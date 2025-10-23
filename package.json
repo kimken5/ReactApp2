@@ -1,0 +1,161 @@
+{
+  "name": "nursery-parent-app",
+  "version": "1.0.0",
+  "description": "保育園保護者向けモバイルアプリ",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd reactapp.client && npm run dev",
+    "dev:server": "cd ReactApp.Server && dotnet run",
+    "build": "cd reactapp.client && npm run build && cd ../ReactApp.Server && dotnet build --configuration Release",
+    "test": "npm run test:all",
+    "test:all": "node scripts/test-utilities.js run",
+    "test:unit": "concurrently \"npm run test:unit:frontend\" \"npm run test:unit:backend\"",
+    "test:unit:frontend": "cd reactapp.client && npm run test",
+    "test:unit:backend": "cd ReactApp.Server.Tests && dotnet test --collect:\"XPlat Code Coverage\"",
+    "test:integration": "cd ReactApp.Server.Tests && dotnet test --filter Category=Integration",
+    "test:e2e": "npx playwright test",
+    "test:device": "npx playwright test tests/e2e/comprehensive-device-testing.spec.ts",
+    "test:ios": "npx playwright test tests/e2e/ios-safari.spec.ts",
+    "test:android": "npx playwright test tests/e2e/android-chrome.spec.ts",
+    "test:tablet": "npx playwright test tests/e2e/tablet-support.spec.ts",
+    "test:pwa": "npx playwright test tests/e2e/pwa-functionality.spec.ts",
+    "test:accessibility": "npx playwright test tests/e2e/accessibility.spec.ts",
+    "test:device-script": "bash tests/scripts/run-device-tests.sh",
+    "test:device-ps1": "powershell -ExecutionPolicy Bypass -File tests/scripts/run-device-tests.ps1",
+    "test:performance": "concurrently \"npm run test:lighthouse\" \"npm run test:load\"",
+    "test:lighthouse": "node performance/performance-test.js",
+    "test:load": "node performance/load-test.js",
+    "test:security": "npm audit && cd ReactApp.Server && dotnet list package --vulnerable",
+    "lint": "cd reactapp.client && npm run lint",
+    "lint:fix": "cd reactapp.client && npm run lint -- --fix",
+    "type-check": "cd reactapp.client && npm run type-check",
+    "format": "cd reactapp.client && npx prettier --write src/**/*.{ts,tsx}",
+    "coverage": "concurrently \"npm run coverage:frontend\" \"npm run coverage:backend\"",
+    "coverage:frontend": "cd reactapp.client && npm run test -- --coverage",
+    "coverage:backend": "cd ReactApp.Server.Tests && dotnet test --collect:\"XPlat Code Coverage\" && reportgenerator -reports:TestResults/*/coverage.opencover.xml -targetdir:TestResults/CoverageReport -reporttypes:Html",
+    "quality-gate": "node scripts/quality-gate-checker.js",
+    "setup:test-data": "node scripts/test-data-generator.js",
+    "setup:test-db": "cd ReactApp.Server.Tests && dotnet ef database update",
+    "seed:test-data": "sqlcmd -S localhost -d NurseryAppTest -i scripts/seed-test-data.sql",
+    "clean": "concurrently \"npm run clean:frontend\" \"npm run clean:backend\"",
+    "clean:frontend": "cd reactapp.client && rm -rf node_modules dist coverage",
+    "clean:backend": "cd ReactApp.Server && dotnet clean && cd ../ReactApp.Server.Tests && dotnet clean",
+    "install:all": "npm install && cd reactapp.client && npm install",
+    "install:tools": "npm install -g @playwright/test @lhci/cli reportgenerator dotnet-ef",
+    "docker:build": "docker build -t nursery-app .",
+    "docker:run": "docker run -p 3000:80 nursery-app",
+    "docker:test": "docker-compose -f docker-compose.test.yml up --build --exit-code-from tests",
+    "deploy:staging": "echo 'Deploying to staging...' && npm run build && echo 'Deployment completed'",
+    "deploy:production": "echo 'Deploying to production...' && npm run build && npm run test:all && echo 'Deployment completed'",
+    "analyze": "cd reactapp.client && npm run build -- --analyze",
+    "bundle-analyzer": "cd reactapp.client && npx webpack-bundle-analyzer dist/static/js/*.js",
+    "accessibility": "cd reactapp.client && npx axe-core dist/index.html",
+    "lighthouse": "lighthouse http://localhost:3000 --output=html --output-path=./reports/lighthouse-report.html",
+    "perf:profile": "cd reactapp.client && npm run build && npx serve -s dist & sleep 5 && lighthouse http://localhost:3000 --view",
+    "db:migrate": "cd ReactApp.Server && dotnet ef migrations add",
+    "db:update": "cd ReactApp.Server && dotnet ef database update",
+    "db:reset": "cd ReactApp.Server && dotnet ef database drop --force && dotnet ef database update",
+    "logs:frontend": "cd reactapp.client && npm run dev -- --log-level verbose",
+    "logs:backend": "cd ReactApp.Server && dotnet run --verbosity detailed",
+    "health-check": "curl -f http://localhost:7154/health || exit 1",
+    "preinstall": "node -v && npm -v",
+    "postinstall": "cd reactapp.client && npm install",
+    "prepare": "husky install",
+    "pre-commit": "npm run lint && npm run type-check",
+    "pre-push": "npm run test:unit"
+  },
+  "keywords": [
+    "nursery",
+    "childcare",
+    "parent-app",
+    "mobile-app",
+    "react",
+    "dotnet",
+    "typescript",
+    "pwa",
+    "cross-platform",
+    "accessibility",
+    "device-testing"
+  ],
+  "author": "Development Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/nursery-parent-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/nursery-parent-app/issues"
+  },
+  "homepage": "https://github.com/your-org/nursery-parent-app#readme",
+  "devDependencies": {
+    "@faker-js/faker": "^10.0.0",
+    "@playwright/test": "^1.55.0",
+    "axe-playwright": "^2.0.3",
+    "autocannon": "^8.0.0",
+    "clinic": "^13.0.0",
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "lighthouse": "^12.8.2"
+  },
+  "dependencies": {
+    "chrome-launcher": "^1.1.0"
+  },
+  "volta": {
+    "node": "20.10.0",
+    "npm": "10.2.3"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all",
+      "ios_saf >= 16",
+      "chrome >= 100",
+      "firefox >= 100",
+      "safari >= 16"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version",
+      "last 1 ios_saf version"
+    ]
+  },
+  "config": {
+    "test": {
+      "timeout": 300000,
+      "coverage": {
+        "threshold": {
+          "global": {
+            "branches": 90,
+            "functions": 95,
+            "lines": 95,
+            "statements": 95
+          }
+        }
+      }
+    },
+    "lighthouse": {
+      "performance": 80,
+      "accessibility": 90,
+      "best-practices": 80,
+      "seo": 80,
+      "pwa": 85
+    },
+    "device-testing": {
+      "timeout": 60000,
+      "retries": 2,
+      "parallel-workers": 4,
+      "accessibility-threshold": 90,
+      "performance-budget": {
+        "loading": 5000,
+        "fcp": 2500,
+        "lcp": 4000
+      }
+    }
+  }
+}

@@ -1,0 +1,153 @@
+// Service Worker for 保育園保護者ポータル
+const CACHE_NAME = 'nursery-portal-v1';
+const STATIC_ASSETS = [
+  '/',
+  '/static/js/bundle.js',
+  '/static/css/main.css',
+  '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png'
+];
+
+// Service Worker インストール時
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
+      })
+      .catch((error) => {
+        console.error('Failed to cache static assets:', error);
+      })
+  );
+  // 新しいService Workerを即座にアクティブ化
+  self.skipWaiting();
+});
+
+// Service Worker アクティブ化時
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((cacheName) => cacheName !== CACHE_NAME)
+            .map((cacheName) => {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            })
+        );
+      })
+      .then(() => {
+        // 全てのクライアントで新しいService Workerを制御
+        return self.clients.claim();
+      })
+  );
+});
+
+// ネットワークリクエスト処理
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // API リクエスト（認証関連）は常にネットワークを使用
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(request)
+        .catch((error) => {
+          console.error('API request failed:', error);
+          // オフライン時のフォールバック処理
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'ネットワークに接続できません。インターネット接続を確認してください。'
+            }),
+            {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        })
+    );
+    return;
+  }
+
+  // 静的アセットはCache Firstで提供
+  if (request.method === 'GET') {
+    event.respondWith(
+      caches.match(request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          
+          return fetch(request)
+            .then((response) => {
+              // レスポンスが有効な場合はキャッシュに保存
+              if (response && response.status === 200 && response.type === 'basic') {
+                const responseClone = response.clone();
+                caches.open(CACHE_NAME)
+                  .then((cache) => {
+                    cache.put(request, responseClone);
+                  });
+              }
+              return response;
+            })
+            .catch((error) => {
+              console.error('Fetch failed:', error);
+              // オフライン時のフォールバック
+              if (request.destination === 'document') {
+                return caches.match('/');
+              }
+              throw error;
+            });
+        })
+    );
+  }
+});
+
+// プッシュ通知処理（将来の拡張用）
+self.addEventListener('push', (event) => {
+  console.log('Push notification received');
+  
+  const options = {
+    body: event.data ? event.data.text() : '新しい通知があります',
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    vibrate: [200, 100, 200],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: '1'
+    },
+    actions: [
+      {
+        action: 'explore',
+        title: '確認する',
+        icon: '/icon-192x192.png'
+      },
+      {
+        action: 'close',
+        title: '閉じる'
+      }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification('保育園保護者ポータル', options)
+  );
+});
+
+// 通知クリック処理
+self.addEventListener('notificationclick', (event) => {
+  console.log('Notification clicked');
+  event.notification.close();
+
+  if (event.action === 'explore') {
+    event.waitUntil(
+      clients.openWindow('/')
+    );
+  }
+});

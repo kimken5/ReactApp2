@@ -1,0 +1,102 @@
+{
+  "Environment": "Production",
+  "Application": {
+    "Name": "kindergarten-management-system",
+    "Version": "1.0.0",
+    "Port": 80,
+    "HttpsPort": 443
+  },
+  "Database": {
+    "Server": "production-server.database.windows.net",
+    "Name": "kindergarten_prod",
+    "User": "kindergarten_admin",
+    "Password": "${DB_PASSWORD}",
+    "ConnectionTimeout": 60,
+    "MaxPoolSize": 100,
+    "MinPoolSize": 5
+  },
+  "Docker": {
+    "Registry": "your-registry.azurecr.io",
+    "ImageName": "kindergarten-app",
+    "BaseTag": "latest",
+    "ComposeFile": "docker-compose.production.yml"
+  },
+  "Security": {
+    "JwtSecret": "${JWT_SECRET_KEY}",
+    "CertificatePath": "/etc/ssl/certs",
+    "RequireHttps": true,
+    "HstsMaxAge": 31536000
+  },
+  "Monitoring": {
+    "ApplicationInsights": {
+      "ConnectionString": "${APP_INSIGHTS_CONNECTION_STRING}",
+      "SamplingPercentage": 10.0
+    },
+    "HealthChecks": {
+      "Enabled": true,
+      "Interval": "00:01:00",
+      "Timeout": "00:00:30"
+    },
+    "Prometheus": {
+      "Enabled": true,
+      "Port": 9090
+    },
+    "Grafana": {
+      "Enabled": true,
+      "Port": 3000,
+      "AdminPassword": "${GRAFANA_PASSWORD}"
+    }
+  },
+  "Caching": {
+    "Redis": {
+      "ConnectionString": "${REDIS_CONNECTION_STRING}",
+      "InstanceName": "kindergarten-cache",
+      "DefaultExpiration": "01:00:00"
+    }
+  },
+  "Storage": {
+    "Azure": {
+      "ConnectionString": "${AZURE_STORAGE_CONNECTION_STRING}",
+      "ContainerName": "kindergarten-media",
+      "CdnEndpoint": "${CDN_ENDPOINT}"
+    }
+  },
+  "ExternalServices": {
+    "Media4U": {
+      "Username": "${MEDIA4U_USERNAME}",
+      "Password": "${MEDIA4U_PASSWORD}",
+      "PhoneNumber": "${MEDIA4U_PHONE}",
+      "ApiEndpoint": "https://www.sms-ope.com/sms/api/"
+    },
+    "NotificationHub": {
+      "ConnectionString": "${NOTIFICATION_HUB_CONNECTION_STRING}",
+      "HubName": "kindergarten-notifications"
+    }
+  },
+  "Performance": {
+    "ResponseCompression": {
+      "Enabled": true,
+      "Level": "Optimal"
+    },
+    "StaticFiles": {
+      "MaxAge": 2592000,
+      "EnableCompression": true
+    },
+    "RateLimit": {
+      "AuthPolicy": {
+        "PermitLimit": 5,
+        "WindowMinutes": 1
+      },
+      "ApiPolicy": {
+        "PermitLimit": 100,
+        "WindowMinutes": 1
+      }
+    }
+  },
+  "Backup": {
+    "Enabled": true,
+    "Schedule": "0 2 * * *",
+    "RetentionDays": 30,
+    "StorageAccount": "${BACKUP_STORAGE_ACCOUNT}"
+  }
+}
