@@ -143,6 +143,16 @@ public class Announcement
     [Required]
     public bool IsActive { get; set; } = true;
 
+    // ===== デスクトップアプリ用追加プロパティ =====
+
+    /// <summary>
+    /// 管理者作成フラグ（必須）
+    /// デフォルト: false
+    /// 管理者がスタッフに成り代わって作成した場合にtrue
+    /// </summary>
+    [Required]
+    public bool CreatedByAdminUser { get; set; } = false;
+
     // ナビゲーションプロパティ
 
     /// <summary>

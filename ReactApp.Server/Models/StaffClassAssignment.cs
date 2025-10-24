@@ -50,6 +50,30 @@ namespace ReactApp.Server.Models
         /// </summary>
         public DateTime? UpdatedAt { get; set; }
 
+        // ===== デスクトップアプリ用追加プロパティ =====
+
+        /// <summary>
+        /// 年度（必須）
+        /// デフォルト: 現在の西暦年度
+        /// </summary>
+        [Required]
+        public int AcademicYear { get; set; } = DateTime.UtcNow.Year;
+
+        /// <summary>
+        /// 有効フラグ（必須）
+        /// デフォルト: true
+        /// 過去年度の割り当てはfalse
+        /// </summary>
+        [Required]
+        public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// 割り当て日時（必須）
+        /// デフォルト: 現在時刻（UTC）
+        /// </summary>
+        [Required]
+        public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+
         // Navigation properties
         /// <summary>
         /// 割り当てられたスタッフ

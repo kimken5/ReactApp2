@@ -99,6 +99,41 @@ public class Child
     [Required]
     public bool IsActive { get; set; } = true;
 
+    // ===== デスクトップアプリ用追加プロパティ =====
+
+    /// <summary>
+    /// 卒園日（任意）
+    /// 園児が卒園した日付
+    /// </summary>
+    public DateTime? GraduationDate { get; set; }
+
+    /// <summary>
+    /// 卒園ステータス（任意、最大20文字）
+    /// "Graduated": 卒園、"Withdrawn": 途中退園
+    /// </summary>
+    [StringLength(20)]
+    public string? GraduationStatus { get; set; }
+
+    /// <summary>
+    /// 退園理由（任意、最大200文字）
+    /// 途中退園の場合の理由
+    /// </summary>
+    [StringLength(200)]
+    public string? WithdrawalReason { get; set; }
+
+    /// <summary>
+    /// 血液型（任意、最大5文字）
+    /// 例: "A", "B", "O", "AB"
+    /// </summary>
+    [StringLength(5)]
+    public string? BloodType { get; set; }
+
+    /// <summary>
+    /// 最終登園日（任意）
+    /// 園児の最終登園日
+    /// </summary>
+    public DateTime? LastAttendanceDate { get; set; }
+
     // ナビゲーションプロパティ（関連エンティティとの関係性）
 
     /// <summary>

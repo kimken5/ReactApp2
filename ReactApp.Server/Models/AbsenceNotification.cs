@@ -49,6 +49,27 @@ public class AbsenceNotification
     public string? StaffResponse { get; set; }
     
     public DateTime? AcknowledgedAt { get; set; }
-    
+
     public int? AcknowledgedBy { get; set; } // スタッフID（将来の実装用）
+
+    // ===== デスクトップアプリ用追加プロパティ =====
+
+    /// <summary>
+    /// 管理者による確認フラグ（必須）
+    /// デフォルト: false
+    /// </summary>
+    [Required]
+    public bool AcknowledgedByAdminUser { get; set; } = false;
+
+    /// <summary>
+    /// 対応したスタッフID（任意）
+    /// 管理者が代理で対応した場合に記録
+    /// </summary>
+    public int? RespondedByStaffId { get; set; }
+
+    /// <summary>
+    /// 管理者確認日時（任意）
+    /// 管理者が確認した日時
+    /// </summary>
+    public DateTime? AcknowledgedByAdminAt { get; set; }
 }

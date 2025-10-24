@@ -89,6 +89,47 @@ namespace ReactApp.Server.Models
         /// </summary>
         public DateTime? UpdatedAt { get; set; }
 
+        // ===== デスクトップアプリ用追加プロパティ =====
+
+        /// <summary>
+        /// 入社日（任意）
+        /// </summary>
+        public DateTime? HireDate { get; set; }
+
+        /// <summary>
+        /// 退職日（任意）
+        /// </summary>
+        public DateTime? TerminationDate { get; set; }
+
+        /// <summary>
+        /// 生年月日（任意）
+        /// </summary>
+        public DateTime? DateOfBirth { get; set; }
+
+        /// <summary>
+        /// 住所（任意、最大200文字）
+        /// </summary>
+        [StringLength(200)]
+        public string? Address { get; set; }
+
+        /// <summary>
+        /// 緊急連絡先名（任意、最大100文字）
+        /// </summary>
+        [StringLength(100)]
+        public string? EmergencyContactName { get; set; }
+
+        /// <summary>
+        /// 緊急連絡先電話番号（任意、最大15文字）
+        /// </summary>
+        [StringLength(15)]
+        public string? EmergencyContactPhone { get; set; }
+
+        /// <summary>
+        /// 備考（任意、最大500文字）
+        /// </summary>
+        [StringLength(500)]
+        public string? Notes { get; set; }
+
         // Navigation properties
         /// <summary>
         /// 欠席通知への対応履歴

@@ -82,6 +82,16 @@ namespace ReactApp.Server.Models
 
         public DateTime? UpdatedAt { get; set; }
 
+        // ===== デスクトップアプリ用追加プロパティ =====
+
+        /// <summary>
+        /// 管理者アップロードフラグ（必須）
+        /// デフォルト: false
+        /// 管理者がスタッフに成り代わってアップロードした場合にtrue
+        /// </summary>
+        [Required]
+        public bool UploadedByAdminUser { get; set; } = false;
+
         // Navigation properties
         public virtual ICollection<PhotoChild> PhotoChildren { get; set; } = new List<PhotoChild>();
         public virtual ICollection<PhotoAccess> PhotoAccesses { get; set; } = new List<PhotoAccess>();

@@ -196,6 +196,15 @@ builder.Services.AddRateLimiter(options =>
         config.QueueLimit = 3;
     });
 
+    // Desktop Authentication Rate Limiting
+    options.AddFixedWindowLimiter("auth", config =>
+    {
+        config.PermitLimit = 10;
+        config.Window = TimeSpan.FromMinutes(1);
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 5;
+    });
+
     options.OnRejected = async (context, token) =>
     {
         context.HttpContext.Response.StatusCode = 429;
@@ -207,15 +216,19 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<IMedia4USmsService, Media4USmsService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IDesktopAuthenticationService, DesktopAuthenticationService>();
+builder.Services.AddScoped<IDesktopMasterService, DesktopMasterService>();
 builder.Services.AddScoped<IUserLookupService, UserLookupService>();
 builder.Services.AddScoped<IStaffClassAccessValidator, StaffClassAccessValidator>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IDailyReportService, DailyReportService>();
+builder.Services.AddScoped<IDesktopDailyReportService, DesktopDailyReportService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IFamilyService, FamilyService>();
 // Photo Storage Services
 builder.Services.AddSingleton<IPhotoStorageService, AzureBlobPhotoService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IDesktopPhotoService, DesktopPhotoService>();
 // Attachment Storage Services
 builder.Services.AddSingleton<IAttachmentService, AzureBlobAttachmentService>();
 

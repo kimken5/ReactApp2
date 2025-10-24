@@ -109,6 +109,16 @@ namespace ReactApp.Server.Models
 
         public DateTime? UpdatedAt { get; set; }
 
+        // ===== デスクトップアプリ用追加プロパティ =====
+
+        /// <summary>
+        /// 管理者作成フラグ（必須）
+        /// デフォルト: false
+        /// 管理者がスタッフに成り代わって作成した場合にtrue
+        /// </summary>
+        [Required]
+        public bool CreatedByAdminUser { get; set; } = false;
+
         // Navigation properties
         public virtual ICollection<DailyReportResponse> Responses { get; set; } = new List<DailyReportResponse>();
     }

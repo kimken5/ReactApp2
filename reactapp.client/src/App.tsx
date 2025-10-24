@@ -4,6 +4,9 @@ import { StaffClassProvider } from './contexts/StaffClassContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { useAuth } from './contexts/AuthContext';
 import './i18n';
+
+// デスクトップアプリ
+import { DesktopApp } from './desktop/DesktopApp';
 import { FamilyInvitePage } from './pages/FamilyInvitePage';
 import { PhotoGalleryPage } from './pages/PhotoGalleryPage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -102,6 +105,9 @@ function App() {
             <LanguageProvider>
                 <Router>
                     <Routes>
+                {/* デスクトップアプリ */}
+                <Route path="/desktop/*" element={<DesktopApp />} />
+
                 {/* 認証画面 */}
                 <Route path="/login" element={<AuthFlow />} />
                 <Route path="/auth" element={<AuthFlow />} />
@@ -131,7 +137,15 @@ function App() {
                         <h1 style={{color: '#333', marginBottom: '30px'}}>保育園アプリ - 画面一覧</h1>
 
                         <div style={{marginBottom: '30px'}}>
-                            <h2 style={{color: '#666', borderBottom: '2px solid #e0e0e0', paddingBottom: '10px'}}>🔐 認証</h2>
+                            <h2 style={{color: '#666', borderBottom: '2px solid #e0e0e0', paddingBottom: '10px'}}>💻 デスクトップ管理画面</h2>
+                            <ul style={{listStyle: 'none', padding: 0}}>
+                                <li style={{margin: '10px 0'}}><a href="/desktop/login" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px', fontWeight: 'bold'}}>💻 デスクトップ管理ログイン</a></li>
+                                <li style={{margin: '10px 0'}}><a href="/desktop/dashboard" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>📊 管理ダッシュボード</a></li>
+                            </ul>
+                        </div>
+
+                        <div style={{marginBottom: '30px'}}>
+                            <h2 style={{color: '#666', borderBottom: '2px solid #e0e0e0', paddingBottom: '10px'}}>🔐 モバイル認証</h2>
                             <ul style={{listStyle: 'none', padding: 0}}>
                                 <li style={{margin: '10px 0'}}><a href="/login" style={{color: '#dc2626', textDecoration: 'none', fontSize: '16px', fontWeight: 'bold'}}>🔐 SMS認証ログイン</a></li>
                             </ul>

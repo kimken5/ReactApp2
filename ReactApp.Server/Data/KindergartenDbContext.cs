@@ -49,6 +49,12 @@ namespace ReactApp.Server.Data
         public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
         public DbSet<AzureNotificationLog> AzureNotificationLogs { get; set; }
 
+        // デスクトップアプリ用エンティティ
+        public DbSet<AcademicYear> AcademicYears { get; set; }
+        public DbSet<PromotionHistory> PromotionHistories { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<AttendanceStatistic> AttendanceStatistics { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -403,6 +409,12 @@ namespace ReactApp.Server.Data
             ConfigureAzureNotificationLog(modelBuilder);
             ConfigureRefreshToken(modelBuilder);
             ConfigureSmsAuthentication(modelBuilder);
+
+            // デスクトップアプリ用エンティティ設定
+            ConfigureAcademicYear(modelBuilder);
+            ConfigurePromotionHistory(modelBuilder);
+            ConfigureAuditLog(modelBuilder);
+            ConfigureAttendanceStatistic(modelBuilder);
         }
 
         private void ConfigureNursery(ModelBuilder modelBuilder)
@@ -828,6 +840,123 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.ReadCount).HasDefaultValue(0);
                 entity.Property(e => e.CommentCount).HasDefaultValue(0);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            });
+        }
+
+        // ===== デスクトップアプリ用エンティティ設定 =====
+
+        private void ConfigureAcademicYear(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<AcademicYear>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // 年度検索最適化
+                entity.HasIndex(e => new { e.NurseryId, e.IsCurrent })
+                    .HasDatabaseName("IX_AcademicYears_Nursery_Current")
+                    .HasFilter("[IsCurrent] = 1");
+
+                entity.HasIndex(e => new { e.NurseryId, e.Year })
+                    .HasDatabaseName("IX_AcademicYears_Nursery_Year");
+
+                entity.Property(e => e.IsCurrent).HasDefaultValue(false);
+                entity.Property(e => e.IsArchived).HasDefaultValue(false);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            });
+        }
+
+        private void ConfigurePromotionHistory(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PromotionHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // 園児別進級履歴検索
+                entity.HasIndex(e => new { e.NurseryId, e.ChildId })
+                    .HasDatabaseName("IX_PromotionHistory_Child");
+
+                // 年度別進級履歴
+                entity.HasIndex(e => new { e.NurseryId, e.ToAcademicYear })
+                    .HasDatabaseName("IX_PromotionHistory_AcademicYear");
+
+                // 進級実行日時検索
+                entity.HasIndex(e => new { e.NurseryId, e.PromotedAt })
+                    .HasDatabaseName("IX_PromotionHistory_PromotedAt");
+
+                entity.Property(e => e.FromClassId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ToClassId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Notes).HasMaxLength(200);
+                entity.Property(e => e.PromotedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            });
+        }
+
+        private void ConfigureAuditLog(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // 監査ログ検索最適化
+                entity.HasIndex(e => new { e.NurseryId, e.Timestamp })
+                    .HasDatabaseName("IX_AuditLogs_Nursery_Timestamp")
+                    .IsDescending(false, true);
+
+                entity.HasIndex(e => e.UserId)
+                    .HasDatabaseName("IX_AuditLogs_UserId")
+                    .HasFilter("[UserId] IS NOT NULL");
+
+                entity.HasIndex(e => e.Action)
+                    .HasDatabaseName("IX_AuditLogs_Action");
+
+                entity.HasIndex(e => e.EntityType)
+                    .HasDatabaseName("IX_AuditLogs_EntityType");
+
+                entity.Property(e => e.UserName).HasMaxLength(100);
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EntityId).HasMaxLength(50);
+                entity.Property(e => e.BeforeValue).HasColumnType("NVARCHAR(MAX)");
+                entity.Property(e => e.AfterValue).HasColumnType("NVARCHAR(MAX)");
+                entity.Property(e => e.IpAddress).HasMaxLength(45);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                entity.Property(e => e.Timestamp).HasDefaultValueSql("GETUTCDATE()");
+            });
+        }
+
+        private void ConfigureAttendanceStatistic(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<AttendanceStatistic>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // 園児別統計検索
+                entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.AcademicYear })
+                    .HasDatabaseName("IX_AttendanceStatistics_Child")
+                    .HasFilter("[ChildId] IS NOT NULL");
+
+                // クラス別統計検索
+                entity.HasIndex(e => new { e.NurseryId, e.ClassId, e.AcademicYear })
+                    .HasDatabaseName("IX_AttendanceStatistics_Class")
+                    .HasFilter("[ClassId] IS NOT NULL");
+
+                // 年度・月別統計
+                entity.HasIndex(e => new { e.NurseryId, e.AcademicYear, e.Month })
+                    .HasDatabaseName("IX_AttendanceStatistics_Year_Month");
+
+                // 統計種別検索
+                entity.HasIndex(e => e.StatisticType)
+                    .HasDatabaseName("IX_AttendanceStatistics_Type");
+
+                entity.Property(e => e.ClassId).HasMaxLength(50);
+                entity.Property(e => e.StatisticType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.TotalDays).HasDefaultValue(0);
+                entity.Property(e => e.PresentDays).HasDefaultValue(0);
+                entity.Property(e => e.AbsentDays).HasDefaultValue(0);
+                entity.Property(e => e.TardyDays).HasDefaultValue(0);
+                entity.Property(e => e.AttendanceRate).HasColumnType("DECIMAL(5,2)").HasDefaultValue(0.00m);
+                entity.Property(e => e.LastCalculatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             });
         }

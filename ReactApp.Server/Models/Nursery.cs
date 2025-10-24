@@ -72,4 +72,54 @@ public class Nursery
     /// 更新日時（任意）
     /// </summary>
     public DateTime? UpdatedAt { get; set; }
+
+    // ===== デスクトップアプリ用追加プロパティ =====
+
+    /// <summary>
+    /// ログインID（任意、最大50文字）
+    /// デスクトップアプリ用ログイン認証
+    /// </summary>
+    [StringLength(50)]
+    public string? LoginId { get; set; }
+
+    /// <summary>
+    /// パスワード（任意、最大255文字）
+    /// BCryptハッシュ化されたパスワード
+    /// </summary>
+    [StringLength(255)]
+    public string? Password { get; set; }
+
+    /// <summary>
+    /// 最終ログイン日時（任意）
+    /// デスクトップアプリへの最終ログイン時刻
+    /// </summary>
+    public DateTime? LastLoginAt { get; set; }
+
+    /// <summary>
+    /// ログイン試行回数（必須）
+    /// デフォルト: 0
+    /// セキュリティ: 5回を超えるとアカウントロック
+    /// </summary>
+    [Required]
+    public int LoginAttempts { get; set; } = 0;
+
+    /// <summary>
+    /// アカウントロック状態（必須）
+    /// デフォルト: false
+    /// </summary>
+    [Required]
+    public bool IsLocked { get; set; } = false;
+
+    /// <summary>
+    /// ロック解除日時（任意）
+    /// ロック解除される日時（通常は30分後）
+    /// </summary>
+    public DateTime? LockedUntil { get; set; }
+
+    /// <summary>
+    /// 現在の年度（必須）
+    /// デフォルト: 現在の西暦年度
+    /// </summary>
+    [Required]
+    public int CurrentAcademicYear { get; set; } = DateTime.UtcNow.Year;
 }
