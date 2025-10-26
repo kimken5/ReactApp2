@@ -84,6 +84,28 @@ export function DesktopAuthProvider({ children }: DesktopAuthProviderProps) {
   useEffect(() => {
     const restoreAuth = () => {
       try {
+        // 開発環境でデモモードを有効にする（URLパラメータで ?demo=true を指定）
+        const urlParams = new URLSearchParams(window.location.search);
+        const isDemoMode = urlParams.get('demo') === 'true';
+
+        if (isDemoMode) {
+          // デモ用のダミーデータ
+          const demoNursery: NurseryInfo = {
+            nurseryId: 0,
+            nurseryName: 'デモ保育園',
+            phoneNumber: '000-0000-0000',
+          };
+          dispatch({
+            type: 'LOGIN',
+            payload: {
+              accessToken: 'demo_token',
+              refreshToken: 'demo_refresh_token',
+              nursery: demoNursery,
+            },
+          });
+          return;
+        }
+
         const accessToken = localStorage.getItem('desktop_access_token');
         const refreshToken = localStorage.getItem('desktop_refresh_token');
         const nurseryData = localStorage.getItem('desktop_nursery');

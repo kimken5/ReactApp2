@@ -1,8 +1,60 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
 import type { ChildDto, ClassDto } from '../types/master';
+
+// デモデータ生成
+const generateDemoData = (): ChildDto[] => {
+  const names = [
+    '佐藤 花子', '鈴木 太郎', '高橋 美咲', '田中 健太', '渡辺 結衣',
+    '伊藤 蓮', '山本 あかり', '中村 大輝', '小林 さくら', '加藤 陽向',
+    '吉田 心春', '山田 颯太', '佐々木 陽菜', '山口 悠真', '松本 愛莉',
+    '井上 樹', '木村 莉子', '林 颯人', '清水 凛', '山崎 奏太'
+  ];
+  const classes = [
+    { id: 1, name: 'さくら組' },
+    { id: 2, name: 'ひまわり組' },
+    { id: 3, name: 'すみれ組' },
+    { id: 4, name: 'ばら組' },
+    { id: 5, name: 'もも組' },
+    { id: 6, name: 'たんぽぽ組' }
+  ];
+  const bloodTypes = ['A', 'B', 'O', 'AB'];
+
+  return names.map((name, index) => {
+    const age = Math.floor(Math.random() * 7); // 0-6歳
+    const birthYear = new Date().getFullYear() - age;
+    const birthMonth = Math.floor(Math.random() * 12) + 1;
+    const birthDay = Math.floor(Math.random() * 28) + 1;
+    const selectedClass = classes[index % classes.length];
+    const gender = index % 2 === 0 ? 'Female' : 'Male';
+    const parentName = gender === 'Female' ? name.split(' ')[0] + ' 母' : name.split(' ')[0] + ' 父';
+
+    return {
+      childId: index + 1,
+      name,
+      dateOfBirth: `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`,
+      gender,
+      classId: selectedClass.id,
+      className: selectedClass.name,
+      bloodType: bloodTypes[Math.floor(Math.random() * bloodTypes.length)],
+      isActive: true,
+      graduationStatus: 'Active',
+      parents: [
+        {
+          parentId: index + 1,
+          name: parentName,
+          phoneNumber: `090-1234-${String(5678 + index).padStart(4, '0')}`,
+          email: `parent${index + 1}@example.com`,
+          relationship: gender === 'Female' ? 'Mother' : 'Father',
+          isEmergencyContact: true,
+          isPrimaryContact: true
+        }
+      ]
+    };
+  });
+};
 
 /**
  * 園児一覧ページ
@@ -10,25 +62,48 @@ import type { ChildDto, ClassDto } from '../types/master';
  */
 export function ChildrenPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === 'true';
+
   const [children, setChildren] = useState<ChildDto[]>([]);
   const [classes, setClasses] = useState<ClassDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // フィルタ状態
   const [filters, setFilters] = useState({
     classId: '',
-    graduationStatus: '',
-    isActive: '',
+    graduationStatus: 'Active',
     searchKeyword: '',
+    graduationDateFrom: '',
+    graduationDateTo: '',
+    dateOfBirthFrom: '',
+    dateOfBirthTo: '',
   });
+
+  // デモデータ
+  const demoChildren = useMemo(() => generateDemoData(), []);
 
   // 初期データ読み込み
   useEffect(() => {
-    loadData();
-  }, [filters]);
+    if (isDemoMode) {
+      // デモモード: デモデータを使用
+      setChildren(demoChildren);
+      setClasses([
+        { classId: 1, name: 'さくら組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
+        { classId: 2, name: 'ひまわり組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
+        { classId: 3, name: 'すみれ組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
+        { classId: 4, name: 'ばら組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
+        { classId: 5, name: 'もも組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
+        { classId: 6, name: 'たんぽぽ組', gradeLevel: 'Nursery', capacity: 20, isActive: true }
+      ]);
+      setIsLoading(false);
+    } else {
+      loadData();
+    }
+  }, [filters, isDemoMode, demoChildren]);
 
   const loadData = async () => {
     try {
@@ -37,7 +112,6 @@ export function ChildrenPage() {
         masterService.getChildren({
           classId: filters.classId || undefined,
           graduationStatus: filters.graduationStatus || undefined,
-          isActive: filters.isActive ? filters.isActive === 'true' : undefined,
           searchKeyword: filters.searchKeyword || undefined,
         }),
         masterService.getClasses({ isActive: true }),
@@ -62,9 +136,12 @@ export function ChildrenPage() {
   const handleResetFilters = () => {
     setFilters({
       classId: '',
-      graduationStatus: '',
-      isActive: '',
+      graduationStatus: 'Active',
       searchKeyword: '',
+      graduationDateFrom: '',
+      graduationDateTo: '',
+      dateOfBirthFrom: '',
+      dateOfBirthTo: '',
     });
   };
 
@@ -138,8 +215,11 @@ export function ChildrenPage() {
           </div>
           <button
             onClick={() => navigate('/desktop/children/create')}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 active:bg-indigo-800 transition"
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-md transition-all duration-200 flex items-center gap-2"
           >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
             新規作成
           </button>
         </div>
@@ -173,8 +253,8 @@ export function ChildrenPage() {
         )}
 
         {/* フィルタ・検索バー */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* 検索キーワード */}
             <div>
               <label htmlFor="searchKeyword" className="block text-sm font-medium text-gray-700 mb-2">
@@ -187,7 +267,7 @@ export function ChildrenPage() {
                 value={filters.searchKeyword}
                 onChange={handleFilterChange}
                 placeholder="氏名で検索"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               />
             </div>
 
@@ -201,7 +281,7 @@ export function ChildrenPage() {
                 name="classId"
                 value={filters.classId}
                 onChange={handleFilterChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
                 {classes.map(cls => (
@@ -215,237 +295,190 @@ export function ChildrenPage() {
             {/* 卒園ステータスフィルタ */}
             <div>
               <label htmlFor="graduationStatus" className="block text-sm font-medium text-gray-700 mb-2">
-                卒園ステータス
+                ステータス
               </label>
               <select
                 id="graduationStatus"
                 name="graduationStatus"
                 value={filters.graduationStatus}
                 onChange={handleFilterChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
                 <option value="Active">在籍中</option>
                 <option value="Graduated">卒園済み</option>
+                <option value="Withdrawn">退園</option>
               </select>
             </div>
+          </div>
 
-            {/* 有効/無効フィルタ */}
-            <div>
-              <label htmlFor="isActive" className="block text-sm font-medium text-gray-700 mb-2">
-                有効/無効
+          {/* 日付フィルタ */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4 items-end">
+            {/* 卒園日フィルタ */}
+            <div className="md:col-span-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                卒園日
               </label>
-              <select
-                id="isActive"
-                name="isActive"
-                value={filters.isActive}
-                onChange={handleFilterChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">すべて</option>
-                <option value="true">有効</option>
-                <option value="false">無効</option>
-              </select>
-            </div>
-          </div>
-
-          {/* フィルタリセット・表示切替 */}
-          <div className="flex justify-between items-center">
-            <button
-              onClick={handleResetFilters}
-              className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-            >
-              フィルタをリセット
-            </button>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode('card')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  viewMode === 'card'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                カード表示
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  viewMode === 'table'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                テーブル表示
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 件数表示 */}
-        <div className="mb-4 text-sm text-gray-600">
-          {children.length}件の園児
-        </div>
-
-        {/* カード表示 */}
-        {viewMode === 'card' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {children.map(child => (
-              <div key={child.childId} className="bg-white rounded-lg shadow hover:shadow-lg transition">
-                <div className="p-6">
-                  {/* ヘッダー: 氏名とステータス */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800">{child.name}</h3>
-                      <p className="text-sm text-gray-500">ID: {child.childId}</p>
-                    </div>
-                    <StatusBadge child={child} />
-                  </div>
-
-                  {/* 詳細情報 */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">年齢:</span>
-                      <span className="font-medium text-gray-800">{calculateAge(child.dateOfBirth)}歳</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">性別:</span>
-                      <span className="font-medium text-gray-800">{getGenderLabel(child.gender)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">クラス:</span>
-                      <span className="font-medium text-gray-800">{child.className || '未所属'}</span>
-                    </div>
-                    {child.bloodType && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">血液型:</span>
-                        <span className="font-medium text-gray-800">{child.bloodType}型</span>
-                      </div>
-                    )}
-                    <div className="pt-2 border-t border-gray-200">
-                      <p className="text-xs text-gray-600 mb-1">保護者:</p>
-                      <p className="text-sm font-medium text-gray-800">
-                        {child.parents.length > 0
-                          ? child.parents.map(p => p.name).join(', ')
-                          : '未登録'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* アクションボタン */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => navigate(`/desktop/children/edit/${child.childId}`)}
-                      className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
-                    >
-                      編集
-                    </button>
-                    <button
-                      onClick={() => handleDelete(child)}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition"
-                    >
-                      削除
-                    </button>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  id="graduationDateFrom"
+                  name="graduationDateFrom"
+                  value={filters.graduationDateFrom}
+                  onChange={handleFilterChange}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                />
+                <span className="text-gray-500">〜</span>
+                <input
+                  type="date"
+                  id="graduationDateTo"
+                  name="graduationDateTo"
+                  value={filters.graduationDateTo}
+                  onChange={handleFilterChange}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                />
               </div>
-            ))}
+            </div>
+
+            {/* 生年月日フィルタ */}
+            <div className="md:col-span-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                生年月日
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  id="dateOfBirthFrom"
+                  name="dateOfBirthFrom"
+                  value={filters.dateOfBirthFrom}
+                  onChange={handleFilterChange}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                />
+                <span className="text-gray-500">〜</span>
+                <input
+                  type="date"
+                  id="dateOfBirthTo"
+                  name="dateOfBirthTo"
+                  value={filters.dateOfBirthTo}
+                  onChange={handleFilterChange}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                />
+              </div>
+            </div>
+
+            {/* フィルタリセット */}
+            <div className="md:col-span-2">
+              <button
+                onClick={handleResetFilters}
+                className="px-3 py-2 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all duration-200 font-medium text-sm"
+              >
+                フィルタをリセット
+              </button>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* テーブル表示 */}
-        {viewMode === 'table' && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    クラス
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    氏名
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    生年月日
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    性別
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    血液型
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    卒園日
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ステータス
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    アクション
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {children.length === 0 ? (
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      氏名
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      年齢
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      性別
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      クラス
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      保護者
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ステータス
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      アクション
-                    </th>
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                      園児が見つかりませんでした
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {children.map(child => (
+                ) : (
+                  children
+                    .sort((a, b) => {
+                      // まずクラス名で年齢の小さい方から昇順（実際のクラスIDで）
+                      if (a.classId !== b.classId) {
+                        return a.classId - b.classId;
+                      }
+                      // 次に生年月日の降順（新しい方が先）
+                      return new Date(b.dateOfBirth).getTime() - new Date(a.dateOfBirth).getTime();
+                    })
+                    .map(child => (
                     <tr key={child.childId} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {child.childId}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {child.name}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {child.className}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {calculateAge(child.dateOfBirth)}歳
+                        {child.name} ({calculateAge(child.dateOfBirth)}歳)
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(child.dateOfBirth).toLocaleDateString('ja-JP', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\//g, '/')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {getGenderLabel(child.gender)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {child.className || '未所属'}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {child.bloodType || '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {child.parents.length > 0
-                          ? child.parents.map(p => p.name).join(', ')
-                          : '未登録'}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {child.graduationDate ? new Date(child.graduationDate).toLocaleDateString('ja-JP') : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge child={child} />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button
-                          onClick={() => navigate(`/desktop/children/edit/${child.childId}`)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          編集
-                        </button>
-                        <button
-                          onClick={() => handleDelete(child)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          削除
-                        </button>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                        {String(child.childId).padStart(6, '0')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => navigate(`/desktop/children/edit/${child.childId}`)}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200 font-medium"
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={() => handleDelete(child)}
+                            className="px-3 py-1.5 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200 font-medium"
+                          >
+                            削除
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
-
-        {/* データなし */}
-        {children.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500 mb-4">園児が見つかりませんでした</p>
-            <button
-              onClick={() => navigate('/desktop/children/create')}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
-            >
-              新規作成
-            </button>
-          </div>
-        )}
+        </div>
       </div>
     </DashboardLayout>
   );

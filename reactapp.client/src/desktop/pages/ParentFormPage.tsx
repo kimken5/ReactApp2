@@ -34,8 +34,12 @@ export function ParentFormPage() {
     isActive: true,
   });
 
-  // 園児選択状態（作成時のみ）
+  // 園児選択状態
   const [selectedChildIds, setSelectedChildIds] = useState<Set<string>>(new Set());
+
+  // オートコンプリート用状態
+  const [childSearchQuery, setChildSearchQuery] = useState('');
+  const [showChildSuggestions, setShowChildSuggestions] = useState(false);
 
   // 通知設定状態（編集時のみ）
   const [notificationSettings, setNotificationSettings] = useState({
@@ -61,11 +65,9 @@ export function ParentFormPage() {
     try {
       setIsLoading(true);
 
-      // 園児一覧を取得（作成時のみ）
-      if (!isEditMode) {
-        const childrenData = await masterService.getChildren({ isActive: true });
-        setChildren(childrenData);
-      }
+      // 園児一覧を取得
+      const childrenData = await masterService.getChildren({ isActive: true });
+      setChildren(childrenData);
 
       // 編集モードの場合は保護者データを取得
       if (isEditMode && parentId) {
@@ -142,6 +144,46 @@ export function ParentFormPage() {
         newSet.add(key);
       }
       return newSet;
+    });
+  };
+
+  // オートコンプリート: 園児を追加
+  const handleAddChild = (child: ChildDto) => {
+    const key = `${child.nurseryId}-${child.childId}`;
+    setSelectedChildIds(prev => new Set(prev).add(key));
+    setChildSearchQuery('');
+    setShowChildSuggestions(false);
+  };
+
+  // オートコンプリート: 園児を削除
+  const handleRemoveChild = (nurseryId: number, childId: number) => {
+    const key = `${nurseryId}-${childId}`;
+    setSelectedChildIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(key);
+      return newSet;
+    });
+  };
+
+  // フィルタされた園児候補を取得
+  const getFilteredChildren = () => {
+    if (!childSearchQuery.trim()) return [];
+
+    const query = childSearchQuery.toLowerCase();
+    return children.filter(child => {
+      const key = `${child.nurseryId}-${child.childId}`;
+      // 既に選択済みの園児は除外
+      if (selectedChildIds.has(key)) return false;
+      // 名前で検索
+      return child.name.toLowerCase().includes(query);
+    }).slice(0, 10); // 最大10件まで表示
+  };
+
+  // 選択済み園児を取得
+  const getSelectedChildren = () => {
+    return children.filter(child => {
+      const key = `${child.nurseryId}-${child.childId}`;
+      return selectedChildIds.has(key);
     });
   };
 
@@ -270,14 +312,32 @@ export function ParentFormPage() {
         )}
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
+        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
           <div className="p-6 space-y-8">
             {/* 基本情報セクション */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                基本情報
-              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 氏名 */}
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    氏名 <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                      errors.name ? 'border-red-500' : 'border-gray-200'
+                    }`}
+                    placeholder="例: 山田 太郎"
+                  />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                  )}
+                </div>
+
                 {/* 電話番号 */}
                 <div>
                   <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
@@ -290,8 +350,8 @@ export function ParentFormPage() {
                     value={formData.phoneNumber}
                     onChange={handleChange}
                     disabled={isEditMode}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                      errors.phoneNumber ? 'border-red-500' : 'border-gray-200'
                     } ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     placeholder="090-1234-5678"
                   />
@@ -301,22 +361,6 @@ export function ParentFormPage() {
                   {isEditMode && (
                     <p className="mt-1 text-sm text-gray-500">電話番号は編集できません</p>
                   )}
-                </div>
-
-                {/* 氏名 */}
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    氏名
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="例: 山田 太郎"
-                  />
                 </div>
 
                 {/* メールアドレス */}
@@ -330,8 +374,8 @@ export function ParentFormPage() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                      errors.email ? 'border-red-500' : 'border-gray-200'
                     }`}
                     placeholder="example@example.com"
                   />
@@ -349,17 +393,31 @@ export function ParentFormPage() {
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                     placeholder="例: 東京都渋谷区..."
                   />
                 </div>
+
+                {/* ID（編集時のみ） */}
+                {isEditMode && parent && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ID
+                    </label>
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <span className="text-gray-900 font-mono">
+                        {String(parent.id).padStart(6, '0')}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* 園児選択（作成時のみ） */}
             {!isEditMode && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
                   園児選択
                 </h2>
                 <p className="text-sm text-gray-600 mb-4">
@@ -399,81 +457,162 @@ export function ParentFormPage() {
               </div>
             )}
 
-            {/* 関連園児表示（編集時のみ） */}
-            {isEditMode && parent && (
+            {/* 園児選択（編集時） */}
+            {isEditMode && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  関連園児
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  園児選択
                 </h2>
-                {parent.children.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">関連園児がいません</p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {parent.children.map((child) => (
-                      <div
-                        key={`${child.nurseryId}-${child.childId}`}
-                        className="p-4 border border-gray-200 rounded-lg bg-gray-50"
-                      >
-                        <div className="font-medium text-gray-900">{child.name}</div>
-                        <div className="text-sm text-gray-600">
-                          {child.className || '未配属'} / {child.age}歳
+
+                {/* オートコンプリート検索 */}
+                <div className="mb-4 relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    園児を追加
+                  </label>
+                  <input
+                    type="text"
+                    value={childSearchQuery}
+                    onChange={(e) => {
+                      setChildSearchQuery(e.target.value);
+                      setShowChildSuggestions(true);
+                    }}
+                    onFocus={() => setShowChildSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowChildSuggestions(false), 200)}
+                    placeholder="園児名を入力..."
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  />
+
+                  {/* サジェストリスト */}
+                  {showChildSuggestions && childSearchQuery && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {getFilteredChildren().length === 0 ? (
+                        <div className="px-4 py-3 text-gray-500 text-sm">
+                          該当する園児が見つかりません
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <p className="mt-4 text-sm text-gray-500">
-                  園児の紐付け変更は園児管理画面から行ってください
-                </p>
+                      ) : (
+                        getFilteredChildren().map((child) => (
+                          <button
+                            key={`${child.nurseryId}-${child.childId}`}
+                            type="button"
+                            onClick={() => handleAddChild(child)}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900">{child.name}</div>
+                            <div className="text-sm text-gray-600">
+                              {child.className || '未配属'} / {child.age}歳
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 選択済み園児一覧 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    選択済み園児
+                  </label>
+                  {getSelectedChildren().length === 0 ? (
+                    <p className="text-gray-500 text-center py-8 border border-gray-200 rounded-lg">
+                      園児が選択されていません
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {getSelectedChildren().map((child) => (
+                        <div
+                          key={`${child.nurseryId}-${child.childId}`}
+                          className="p-4 border border-gray-200 rounded-lg bg-gray-50 flex items-start justify-between"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900 truncate">{child.name}</div>
+                            <div className="text-sm text-gray-600">
+                              {child.className || '未配属'} / {child.age}歳
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveChild(child.nurseryId, child.childId)}
+                            className="ml-2 text-red-600 hover:text-red-800 transition"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="mt-2 text-sm text-gray-500">
+                    選択数: {getSelectedChildren().length} 人
+                  </p>
+                </div>
               </div>
             )}
 
             {/* 通知設定（編集時のみ） */}
             {isEditMode && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  通知設定
-                </h2>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* プッシュ通知 */}
-                  <ToggleSwitch
-                    label="プッシュ通知有効"
-                    description="アプリのプッシュ通知を有効にします"
-                    checked={notificationSettings.pushNotificationsEnabled}
-                    onChange={() => handleNotificationToggle('pushNotificationsEnabled')}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      プッシュ通知有効
+                    </label>
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <span className="text-gray-900">
+                        {notificationSettings.pushNotificationsEnabled ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                  </div>
 
                   {/* 欠席確認通知 */}
-                  <ToggleSwitch
-                    label="欠席確認通知"
-                    description="欠席連絡があった際に通知します"
-                    checked={notificationSettings.absenceConfirmationEnabled}
-                    onChange={() => handleNotificationToggle('absenceConfirmationEnabled')}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      欠席確認通知
+                    </label>
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <span className="text-gray-900">
+                        {notificationSettings.absenceConfirmationEnabled ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                  </div>
 
                   {/* 日報通知 */}
-                  <ToggleSwitch
-                    label="日報通知"
-                    description="新しい日報が公開されたときに通知します"
-                    checked={notificationSettings.dailyReportEnabled}
-                    onChange={() => handleNotificationToggle('dailyReportEnabled')}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      日報通知
+                    </label>
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <span className="text-gray-900">
+                        {notificationSettings.dailyReportEnabled ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                  </div>
 
                   {/* イベント通知 */}
-                  <ToggleSwitch
-                    label="イベント通知"
-                    description="イベントの予定や変更を通知します"
-                    checked={notificationSettings.eventNotificationEnabled}
-                    onChange={() => handleNotificationToggle('eventNotificationEnabled')}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      イベント通知
+                    </label>
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <span className="text-gray-900">
+                        {notificationSettings.eventNotificationEnabled ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                  </div>
 
                   {/* お知らせ通知 */}
-                  <ToggleSwitch
-                    label="お知らせ通知"
-                    description="お知らせが投稿されたときに通知します"
-                    checked={notificationSettings.announcementEnabled}
-                    onChange={() => handleNotificationToggle('announcementEnabled')}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      お知らせ通知
+                    </label>
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <span className="text-gray-900">
+                        {notificationSettings.announcementEnabled ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -481,24 +620,17 @@ export function ParentFormPage() {
             {/* 表示設定（編集時のみ） */}
             {isEditMode && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  表示設定
-                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* フォントサイズ */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       フォントサイズ
                     </label>
-                    <select
-                      value={displaySettings.fontSize}
-                      onChange={(e) => setDisplaySettings(prev => ({ ...prev, fontSize: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="small">小</option>
-                      <option value="medium">中</option>
-                      <option value="large">大</option>
-                    </select>
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <span className="text-gray-900">
+                        {displaySettings.fontSize === 'small' ? '小' : displaySettings.fontSize === 'medium' ? '中' : '大'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* 言語 */}
@@ -506,58 +638,34 @@ export function ParentFormPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       言語
                     </label>
-                    <select
-                      value={displaySettings.language}
-                      onChange={(e) => setDisplaySettings(prev => ({ ...prev, language: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="ja">日本語</option>
-                      <option value="en">English</option>
-                    </select>
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <span className="text-gray-900">
+                        {displaySettings.language === 'ja' ? '日本語' : 'English'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 有効/無効（編集時のみ） */}
-            {isEditMode && (
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  ステータス
-                </h2>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleChange}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm font-medium text-gray-700">有効にする</span>
-                </label>
-                <p className="mt-2 text-sm text-gray-500">
-                  無効にすると、この保護者はアプリにログインできなくなります
-                </p>
-              </div>
-            )}
           </div>
 
           {/* フッター（保存・キャンセルボタン） */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-end gap-3">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-md flex justify-end gap-3">
             <button
               type="button"
               onClick={handleCancel}
-              className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
+              className="px-6 py-2 border border-gray-200 text-gray-700 rounded-md font-medium hover:shadow-md transition-all duration-200"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className={`px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium transition ${
+              className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium transition-all duration-200 ${
                 isSaving
                   ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-indigo-700 active:bg-indigo-800'
+                  : 'hover:shadow-lg'
               }`}
             >
               {isSaving ? (

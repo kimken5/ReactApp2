@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { photoService } from '../services/photoService';
 import { masterService } from '../services/masterService';
@@ -10,8 +10,78 @@ import type { ChildDto, ClassDto, StaffDto } from '../types/master';
  * 写真一覧ページ
  * 写真の表示・検索・削除を行う
  */
+
+// Demo data generator
+const generateDemoPhotos = (): PhotoDto[] => {
+  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+  const descriptions = [
+    '朝のお遊び時間',
+    '給食の様子',
+    '外遊びの風景',
+    'お昼寝タイム',
+    '製作活動',
+    '読み聞かせ',
+    'リトミック教室',
+    'お誕生日会',
+    '運動会練習',
+    '水遊び',
+    '遠足',
+    'クリスマス会'
+  ];
+  const statuses = ['published', 'draft'];
+  const visibilityLevels = ['class', 'grade', 'all'];
+
+  return Array.from({ length: 15 }, (_, i) => ({
+    id: i + 1,
+    description: descriptions[i % descriptions.length],
+    thumbnailPath: `https://via.placeholder.com/300/${colors[i % colors.length].replace('#', '')}/FFFFFF?text=${encodeURIComponent(descriptions[i % descriptions.length])}`,
+    originalPath: `https://via.placeholder.com/800/${colors[i % colors.length].replace('#', '')}/FFFFFF`,
+    uploadedByStaffId: Math.floor(i / 3) + 1,
+    uploadedByStaffName: `田中 ${['花子', '太郎', '次郎', '三郎', '四郎'][Math.floor(i / 3) % 5]}`,
+    publishedAt: new Date(2025, 0, 15 - i).toISOString(),
+    status: statuses[i % 2],
+    visibilityLevel: visibilityLevels[i % 3],
+    requiresConsent: i % 3 === 0,
+    children: Array.from({ length: Math.floor(Math.random() * 5) + 1 }, (_, j) => ({
+      childId: j + 1,
+      childName: `園児${j + 1}`
+    }))
+  }));
+};
+
+const generateDemoChildren = (): ChildDto[] => {
+  return Array.from({ length: 8 }, (_, i) => ({
+    childId: i + 1,
+    name: `園児${i + 1}`,
+    classId: `class${Math.floor(i / 3) + 1}`,
+    gradeId: `grade${Math.floor(i / 4) + 1}`,
+    birthDate: new Date(2020, i % 12, (i + 1) * 3).toISOString(),
+    enrollmentDate: new Date(2024, 3, 1).toISOString()
+  }));
+};
+
+const generateDemoClasses = (): ClassDto[] => {
+  return [
+    { classId: 'class1', name: 'さくら組', gradeId: 'grade1' },
+    { classId: 'class2', name: 'ひまわり組', gradeId: 'grade1' },
+    { classId: 'class3', name: 'つき組', gradeId: 'grade2' }
+  ];
+};
+
+const generateDemoStaff = (): StaffDto[] => {
+  return Array.from({ length: 5 }, (_, i) => ({
+    staffId: i + 1,
+    name: `田中 ${['花子', '太郎', '次郎', '三郎', '四郎'][i]}`,
+    email: `staff${i + 1}@example.com`,
+    phone: `090-1234-${(5678 + i).toString().padStart(4, '0')}`
+  }));
+};
+
 export function PhotosPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === 'true';
+
   const [photos, setPhotos] = useState<PhotoDto[]>([]);
   const [filteredPhotos, setFilteredPhotos] = useState<PhotoDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,21 +126,33 @@ export function PhotosPage() {
       setIsLoading(true);
       setErrorMessage(null);
 
-      const [photosData, childrenData, classesData, staffData] = await Promise.all([
-        photoService.getPhotos(),
-        masterService.getChildren(),
-        masterService.getClasses(),
-        masterService.getStaff(),
-      ]);
+      if (isDemoMode) {
+        // Demo mode: Use generated data
+        setTimeout(() => {
+          setPhotos(generateDemoPhotos());
+          setChildren(generateDemoChildren());
+          setClasses(generateDemoClasses());
+          setStaffList(generateDemoStaff());
+          setIsLoading(false);
+        }, 500);
+      } else {
+        // Real mode: API calls
+        const [photosData, childrenData, classesData, staffData] = await Promise.all([
+          photoService.getPhotos(),
+          masterService.getChildren(),
+          masterService.getClasses(),
+          masterService.getStaff(),
+        ]);
 
-      setPhotos(photosData);
-      setChildren(childrenData);
-      setClasses(classesData);
-      setStaffList(staffData);
+        setPhotos(photosData);
+        setChildren(childrenData);
+        setClasses(classesData);
+        setStaffList(staffData);
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error('データの取得に失敗しました:', error);
       setErrorMessage('データの取得に失敗しました');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -221,7 +303,7 @@ export function PhotosPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
             <p className="mt-4 text-gray-600">読み込み中...</p>
           </div>
         </div>
@@ -240,7 +322,7 @@ export function PhotosPage() {
           </div>
           <button
             onClick={() => navigate('/desktop/photos/upload')}
-            className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 active:bg-purple-800 transition flex items-center space-x-2"
+            className="px-6 py-3 bg-gradient-to-r from-orange-400 to-yellow-400 text-white rounded-lg font-medium hover:from-orange-500 hover:to-yellow-500 active:from-orange-600 active:to-yellow-600 transition flex items-center space-x-2 shadow-sm"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -278,7 +360,7 @@ export function PhotosPage() {
         )}
 
         {/* フィルタ */}
-        <div className="bg-white rounded-lg shadow mb-6 p-6">
+        <div className="bg-white rounded-md shadow-md border border-gray-200 mb-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* 園児選択 */}
             <div>
@@ -294,7 +376,7 @@ export function PhotosPage() {
                     childId: e.target.value ? parseInt(e.target.value) : undefined,
                   }))
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
                 {children.map(child => (
@@ -314,7 +396,7 @@ export function PhotosPage() {
                 id="classId"
                 value={filter.classId || ''}
                 onChange={e => setFilter(prev => ({ ...prev, classId: e.target.value || undefined }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
                 {classes.map(classItem => (
@@ -339,7 +421,7 @@ export function PhotosPage() {
                     staffId: e.target.value ? parseInt(e.target.value) : undefined,
                   }))
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
                 {staffList.map(staff => (
@@ -361,7 +443,7 @@ export function PhotosPage() {
                 onChange={e =>
                   setFilter(prev => ({ ...prev, visibilityLevel: e.target.value || undefined }))
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
                 <option value="class">クラス</option>
@@ -382,7 +464,7 @@ export function PhotosPage() {
                 id="startDate"
                 value={filter.startDate || ''}
                 onChange={e => setFilter(prev => ({ ...prev, startDate: e.target.value || undefined }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               />
             </div>
 
@@ -396,7 +478,7 @@ export function PhotosPage() {
                 id="endDate"
                 value={filter.endDate || ''}
                 onChange={e => setFilter(prev => ({ ...prev, endDate: e.target.value || undefined }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               />
             </div>
 
@@ -409,7 +491,7 @@ export function PhotosPage() {
                 id="status"
                 value={filter.status || ''}
                 onChange={e => setFilter(prev => ({ ...prev, status: e.target.value || undefined }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
                 <option value="draft">下書き</option>
@@ -434,7 +516,7 @@ export function PhotosPage() {
                     requiresConsent: e.target.value === '' ? undefined : e.target.value === 'true',
                   }))
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
                 <option value="true">要同意</option>
@@ -462,14 +544,14 @@ export function PhotosPage() {
         {/* 写真グリッド */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
           {currentPhotos.length === 0 ? (
-            <div className="col-span-full bg-white rounded-lg shadow p-12 text-center text-gray-500">
+            <div className="col-span-full bg-white rounded-md shadow-md border border-gray-200 p-12 text-center text-gray-500">
               写真が見つかりませんでした
             </div>
           ) : (
             currentPhotos.map(photo => (
               <div
                 key={photo.id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
+                className="bg-white rounded-md shadow-md border border-gray-200 hover:shadow-lg transition-shadow overflow-hidden"
               >
                 {/* サムネイル画像 */}
                 <div
@@ -537,7 +619,7 @@ export function PhotosPage() {
                   <div className="flex items-center justify-between border-t border-gray-200 pt-3">
                     <button
                       onClick={() => navigate(`/desktop/photos/${photo.id}`)}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      className="text-sm text-orange-500 hover:text-orange-700 font-medium"
                     >
                       詳細
                     </button>
@@ -548,7 +630,7 @@ export function PhotosPage() {
                         className={`text-sm font-medium ${
                           isPublishedOrArchived(photo.status)
                             ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-purple-600 hover:text-purple-800'
+                            : 'text-yellow-600 hover:text-yellow-700'
                         }`}
                       >
                         編集
@@ -574,7 +656,7 @@ export function PhotosPage() {
 
         {/* ページネーション */}
         {totalPages > 1 && (
-          <div className="bg-white rounded-lg shadow px-6 py-4 flex items-center justify-between">
+          <div className="bg-white rounded-md shadow-md border border-gray-200 px-6 py-4 flex items-center justify-between">
             <div className="text-sm text-gray-700">
               全 {filteredPhotos.length} 件中 {startIndex + 1} ～{' '}
               {Math.min(endIndex, filteredPhotos.length)} 件を表示
@@ -583,7 +665,7 @@ export function PhotosPage() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 前へ
               </button>
@@ -594,8 +676,8 @@ export function PhotosPage() {
                     onClick={() => setCurrentPage(i + 1)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium ${
                       currentPage === i + 1
-                        ? 'bg-purple-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-50 border border-gray-300'
+                        ? 'bg-gradient-to-r from-orange-400 to-yellow-400 text-white'
+                        : 'text-gray-700 hover:bg-gray-50 border border-gray-200'
                     }`}
                   >
                     {i + 1}
@@ -605,7 +687,7 @@ export function PhotosPage() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 次へ
               </button>
@@ -622,7 +704,7 @@ export function PhotosPage() {
             onClick={() => setDeleteConfirmPhoto(null)}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="bg-white rounded-md shadow-xl border border-gray-200 p-6 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">写真を削除</h3>
               <p className="text-gray-600 mb-6">
                 本当にこの写真を削除しますか？
@@ -632,13 +714,13 @@ export function PhotosPage() {
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setDeleteConfirmPhoto(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={() => handleDelete(deleteConfirmPhoto)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow-sm"
                 >
                   削除する
                 </button>

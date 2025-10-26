@@ -262,7 +262,7 @@ export function ClassFormPage() {
         )}
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
+        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
           <div className="p-6 space-y-6">
             {/* クラスID（作成時のみ） */}
             {!isEditMode && (
@@ -276,8 +276,8 @@ export function ClassFormPage() {
                   name="classId"
                   value={createFormData.classId}
                   onChange={handleCreateChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    errors.classId ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                    errors.classId ? 'border-red-500' : 'border-gray-200'
                   }`}
                   placeholder="例: sakura-1"
                 />
@@ -290,7 +290,7 @@ export function ClassFormPage() {
             {isEditMode && existingClass && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">クラスID</label>
-                <div className="px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
+                <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
                   {existingClass.classId}
                 </div>
                 <p className="mt-1 text-xs text-gray-500">クラスIDは変更できません</p>
@@ -308,8 +308,8 @@ export function ClassFormPage() {
                 name="name"
                 value={formData.name}
                 onChange={isEditMode ? handleUpdateChange : handleCreateChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                  errors.name ? 'border-red-500' : 'border-gray-200'
                 }`}
                 placeholder="例: さくら組"
               />
@@ -330,8 +330,8 @@ export function ClassFormPage() {
                   onChange={isEditMode ? handleUpdateChange : handleCreateChange}
                   min="0"
                   max="10"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    errors.ageGroupMin ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                    errors.ageGroupMin ? 'border-red-500' : 'border-gray-200'
                   }`}
                 />
                 {errors.ageGroupMin && <p className="mt-1 text-sm text-red-600">{errors.ageGroupMin}</p>}
@@ -349,8 +349,8 @@ export function ClassFormPage() {
                   onChange={isEditMode ? handleUpdateChange : handleCreateChange}
                   min="0"
                   max="10"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    errors.ageGroupMax ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                    errors.ageGroupMax ? 'border-red-500' : 'border-gray-200'
                   }`}
                 />
                 {errors.ageGroupMax && <p className="mt-1 text-sm text-red-600">{errors.ageGroupMax}</p>}
@@ -370,8 +370,8 @@ export function ClassFormPage() {
                 onChange={isEditMode ? handleUpdateChange : handleCreateChange}
                 min="1"
                 max="100"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                  errors.maxCapacity ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                  errors.maxCapacity ? 'border-red-500' : 'border-gray-200'
                 }`}
               />
               {errors.maxCapacity && <p className="mt-1 text-sm text-red-600">{errors.maxCapacity}</p>}
@@ -387,7 +387,7 @@ export function ClassFormPage() {
                 name="academicYear"
                 value={formData.academicYear}
                 onChange={isEditMode ? handleUpdateChange : handleCreateChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
               >
                 {[...Array(5)].map((_, i) => {
                   const year = new Date().getFullYear() - 2 + i;
@@ -419,19 +419,19 @@ export function ClassFormPage() {
           </div>
 
           {/* ボタン */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-end space-x-3">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-md flex justify-end space-x-3">
             <button
               type="button"
               onClick={() => navigate('/desktop/classes')}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 active:bg-gray-100 transition"
+              className="px-6 py-2 border border-gray-200 rounded-md text-gray-700 font-medium hover:shadow-md transition-all duration-200"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className={`px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium transition ${
-                isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700 active:bg-indigo-800'
+              className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium transition-all duration-200 ${
+                isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
               }`}
             >
               {isSaving ? (

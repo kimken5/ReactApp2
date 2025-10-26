@@ -13,6 +13,42 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
+const getMenuIcon = (iconType: string) => {
+  const iconClass = "w-5 h-5";
+  switch (iconType) {
+    case 'chart':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>;
+    case 'building':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>;
+    case 'users':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+    case 'baby':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    case 'user-group':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
+    case 'badge':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>;
+    case 'document':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
+    case 'camera':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+    case 'megaphone':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>;
+    case 'calendar':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
+    case 'phone':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>;
+    case 'clock':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    case 'clipboard':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>;
+    case 'cog':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+    default:
+      return null;
+  }
+};
+
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const { state, logout } = useDesktopAuth();
@@ -33,20 +69,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const menuItems = [
-    { path: '/desktop/dashboard', label: 'ダッシュボード', icon: '📊' },
-    { path: '/desktop/nurseries', label: '保育園情報', icon: '🏫' },
-    { path: '/desktop/classes', label: 'クラス管理', icon: '👥' },
-    { path: '/desktop/children', label: '園児管理', icon: '👶' },
-    { path: '/desktop/parents', label: '保護者管理', icon: '👨‍👩‍👧' },
-    { path: '/desktop/staff', label: '職員管理', icon: '👩‍🏫' },
-    { path: '/desktop/daily-reports', label: '連絡帳管理', icon: '📋' },
-    { path: '/desktop/photos', label: '写真管理', icon: '📸' },
-    { path: '/desktop/announcements', label: 'お知らせ管理', icon: '📢' },
-    { path: '/desktop/calendar', label: '予定管理', icon: '📅' },
-    { path: '/desktop/absence', label: '欠席・遅刻管理', icon: '📞' },
-    { path: '/desktop/year-management', label: '年度管理', icon: '🗓️' },
-    { path: '/desktop/audit-logs', label: '操作ログ', icon: '📜' },
-    { path: '/desktop/settings', label: 'システム設定', icon: '⚙️' },
+    { path: '/desktop/dashboard', label: 'ダッシュボード', icon: 'chart' },
+    { path: '/desktop/nurseries', label: '保育園情報', icon: 'building' },
+    { path: '/desktop/classes', label: 'クラス管理', icon: 'users' },
+    { path: '/desktop/children', label: '園児管理', icon: 'baby' },
+    { path: '/desktop/parents', label: '保護者管理', icon: 'user-group' },
+    { path: '/desktop/staff', label: '職員管理', icon: 'badge' },
+    { path: '/desktop/daily-reports', label: '連絡帳管理', icon: 'document' },
+    { path: '/desktop/photos', label: '写真管理', icon: 'camera' },
+    { path: '/desktop/announcements', label: 'お知らせ管理', icon: 'megaphone' },
+    { path: '/desktop/calendar', label: '予定管理', icon: 'calendar' },
+    { path: '/desktop/absence', label: '欠席・遅刻管理', icon: 'phone' },
+    { path: '/desktop/year-management', label: '年度管理', icon: 'clock' },
+    { path: '/desktop/settings', label: 'システム設定', icon: 'cog' },
   ];
 
   return (
@@ -65,10 +100,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </svg>
             </button>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
-                K
+              <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-lg flex items-center justify-center text-white font-bold">
+                {state.nursery?.nurseryName?.charAt(0) || 'K'}
               </div>
-              <span className="text-xl font-bold text-gray-800">保育園管理</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-bold text-gray-800">{state.nursery?.nurseryName || '保育園管理'}</span>
+                <span className="text-sm text-gray-500">2025年度</span>
+              </div>
             </div>
           </div>
 
@@ -76,13 +114,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition"
+              className="flex items-center space-x-3 px-3 py-2 rounded-md border border-gray-200 bg-white hover:shadow-md hover:border-gray-300 transition-all duration-200"
             >
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-700">{state.nursery?.name}</p>
                 <p className="text-xs text-gray-500">管理者</p>
               </div>
-              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-medium">
+              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full flex items-center justify-center text-white font-bold">
                 {state.nursery?.name?.charAt(0)}
               </div>
             </button>
@@ -94,7 +132,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   className="fixed inset-0 z-40"
                   onClick={() => setIsUserMenuOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">{state.nursery?.name}</p>
                     <p className="text-xs text-gray-500 mt-1">年度: {state.nursery?.currentAcademicYear}年</p>
@@ -137,9 +175,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Link
               key={item.path}
               to={item.path}
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+              className="flex items-center space-x-3 px-4 py-3 rounded-md text-gray-700 hover:bg-gradient-to-r hover:from-orange-50 hover:to-yellow-50 hover:text-orange-600 transition-all duration-200"
             >
-              <span className="text-xl">{item.icon}</span>
+              {getMenuIcon(item.icon)}
               <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>
             </Link>
           ))}

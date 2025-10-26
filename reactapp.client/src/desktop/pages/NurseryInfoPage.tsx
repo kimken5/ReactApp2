@@ -208,13 +208,10 @@ export function NurseryInfoPage() {
         )}
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
+        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
           <div className="p-6 space-y-6">
             {/* 基本情報セクション */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                基本情報
-              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 保育園名 */}
                 <div className="md:col-span-2">
@@ -335,9 +332,6 @@ export function NurseryInfoPage() {
 
             {/* 施設情報セクション */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                施設情報
-              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 定員 */}
                 <div>

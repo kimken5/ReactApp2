@@ -100,32 +100,35 @@ EXEC sp_addextendedproperty 'MS_Description', '最終登園日', 'SCHEMA', 'dbo'
 
 ### 1.4 Staff テーブル拡張
 
-**追加理由**: スタッフ詳細情報、勤怠管理、緊急連絡先管理に必要
+**追加理由**: 退職日管理、備考管理に必要
+
+**実装済み**: 2025/10/26 - ResignationDate列、Remark列追加完了
 
 ```sql
--- 既存テーブルに以下のカラムを追加
+-- 既存テーブルに以下のカラムを追加（実装済み）
 ALTER TABLE Staff ADD
-    HireDate DATE NULL,  -- 入社日
-    TerminationDate DATE NULL,  -- 退職日
-    DateOfBirth DATE NULL,  -- 生年月日
-    Address NVARCHAR(200) NULL,  -- 住所
-    EmergencyContactName NVARCHAR(100) NULL,  -- 緊急連絡先名
-    EmergencyContactPhone NVARCHAR(15) NULL,  -- 緊急連絡先電話番号
-    Notes NVARCHAR(500) NULL;  -- 備考
+    ResignationDate DATE NULL,  -- 退職日
+    Remark NVARCHAR(500) NULL;  -- 備考
 
--- インデックス追加
-CREATE INDEX IX_Staff_HireDate ON Staff (NurseryId, HireDate) WHERE HireDate IS NOT NULL;
-CREATE INDEX IX_Staff_TerminationDate ON Staff (NurseryId, TerminationDate) WHERE TerminationDate IS NOT NULL;
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '入社日', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'HireDate';
-EXEC sp_addextendedproperty 'MS_Description', '退職日', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'TerminationDate';
-EXEC sp_addextendedproperty 'MS_Description', '生年月日', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'DateOfBirth';
-EXEC sp_addextendedproperty 'MS_Description', '住所', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'Address';
-EXEC sp_addextendedproperty 'MS_Description', '緊急連絡先名', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'EmergencyContactName';
-EXEC sp_addextendedproperty 'MS_Description', '緊急連絡先電話番号', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'EmergencyContactPhone';
-EXEC sp_addextendedproperty 'MS_Description', '備考', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'Notes';
+-- カラムコメント追加（実装済み）
+EXEC sp_addextendedproperty 'MS_Description', '退職日', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'ResignationDate';
+EXEC sp_addextendedproperty 'MS_Description', '備考', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'Remark';
 ```
+
+**現在のStaffテーブル構造**:
+- NurseryId (int, PK)
+- StaffId (int, PK)
+- Name (nvarchar(50))
+- PhoneNumber (nvarchar(15), ユニーク)
+- Email (nvarchar(200))
+- Role (nvarchar(50))
+- Position (nvarchar(100))
+- **ResignationDate (date)** ← 追加済み
+- **Remark (nvarchar(500))** ← 追加済み
+- LastLoginAt (datetime2)
+- IsActive (bit)
+- CreatedAt (datetime2)
+- UpdatedAt (datetime2)
 
 ### 1.5 StaffClassAssignments テーブル拡張
 

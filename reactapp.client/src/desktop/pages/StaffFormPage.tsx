@@ -34,6 +34,8 @@ export function StaffFormPage() {
     email: '',
     role: '',
     position: '',
+    resignationDate: '',
+    remark: '',
     isActive: true,
   });
 
@@ -68,6 +70,8 @@ export function StaffFormPage() {
           email: staffData.email || '',
           role: staffData.role,
           position: staffData.position || '',
+          resignationDate: staffData.resignationDate || '',
+          remark: staffData.remark || '',
           isActive: staffData.isActive,
         });
         setClassAssignments(staffData.classAssignments);
@@ -82,7 +86,7 @@ export function StaffFormPage() {
 
   // 入力値変更ハンドラ
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
 
@@ -159,6 +163,8 @@ export function StaffFormPage() {
           email: formData.email || undefined,
           role: formData.role,
           position: formData.position || undefined,
+          resignationDate: formData.resignationDate || undefined,
+          remark: formData.remark || undefined,
           isActive: formData.isActive,
         };
         await masterService.updateStaff(parseInt(staffId, 10), updateRequest);
@@ -170,6 +176,7 @@ export function StaffFormPage() {
           email: formData.email || undefined,
           role: formData.role,
           position: formData.position || undefined,
+          remark: formData.remark || undefined,
         };
         await masterService.createStaff(createRequest);
       }
@@ -293,43 +300,11 @@ export function StaffFormPage() {
           </div>
         )}
 
-        {/* タブナビゲーション（編集時のみ） */}
-        {isEditMode && (
-          <div className="mb-6 border-b border-gray-200">
-            <nav className="flex gap-8">
-              <button
-                onClick={() => setActiveTab('basic')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
-                  activeTab === 'basic'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                基本情報
-              </button>
-              <button
-                onClick={() => setActiveTab('assignments')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
-                  activeTab === 'assignments'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                クラス担当管理
-              </button>
-            </nav>
-          </div>
-        )}
-
-        {/* 基本情報タブ */}
-        {activeTab === 'basic' && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
+        {/* フォーム */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
             <div className="p-6 space-y-6">
               {/* 基本情報セクション */}
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  基本情報
-                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 氏名 */}
                   <div>
@@ -429,44 +404,108 @@ export function StaffFormPage() {
                     />
                   </div>
 
-                  {/* 有効/無効（編集時のみ） */}
+                  {/* 退職日（編集時のみ） */}
                   {isEditMode && (
-                    <div className="md:col-span-2">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          name="isActive"
-                          checked={formData.isActive}
-                          onChange={handleChange}
-                          className="mr-2"
-                        />
-                        <span className="text-sm font-medium text-gray-700">有効にする</span>
+                    <div>
+                      <label htmlFor="resignationDate" className="block text-sm font-medium text-gray-700 mb-2">
+                        退職日
                       </label>
+                      <input
+                        type="date"
+                        id="resignationDate"
+                        name="resignationDate"
+                        value={formData.resignationDate}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
                       <p className="mt-1 text-sm text-gray-500">
-                        無効にすると、この職員は一覧に表示されなくなります
+                        退職日を設定すると、職員の退職状況を記録できます
                       </p>
                     </div>
                   )}
+
+                  {/* 担当クラス（編集時のみ） */}
+                  {isEditMode && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        担当クラス
+                      </label>
+                      <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 min-h-[42px] flex items-center">
+                        {classAssignments.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {classAssignments.map((assignment, idx) => (
+                              <span
+                                key={idx}
+                                className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-sm font-medium border border-blue-200"
+                              >
+                                {assignment.className || assignment.classId}
+                                {assignment.academicYear && ` (${assignment.academicYear}年度)`}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">担当クラスなし</span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        クラス担当の追加・削除は「クラス担当管理」タブで行えます
+                      </p>
+                    </div>
+                  )}
+
+                  {/* ID（編集時のみ） */}
+                  {isEditMode && staff && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ID
+                      </label>
+                      <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                        <span className="text-gray-900 font-mono">
+                          {String(staff.staffId).padStart(6, '0')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 備考 */}
+                  <div className="md:col-span-2">
+                    <label htmlFor="remark" className="block text-sm font-medium text-gray-700 mb-2">
+                      備考
+                    </label>
+                    <textarea
+                      id="remark"
+                      name="remark"
+                      value={formData.remark}
+                      onChange={handleChange}
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="職員に関する備考を入力してください（最大500文字）"
+                      maxLength={500}
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      {formData.remark.length}/500文字
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* フッター（保存・キャンセルボタン） */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-end gap-3">
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-md flex justify-end gap-3">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
+                className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-50 transition-all duration-200"
               >
                 キャンセル
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className={`px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium transition ${
+                className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium transition-all duration-200 ${
                   isSaving
                     ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:bg-indigo-700 active:bg-indigo-800'
+                    : 'hover:shadow-lg'
                 }`}
               >
                 {isSaving ? (
@@ -494,145 +533,6 @@ export function StaffFormPage() {
               </button>
             </div>
           </form>
-        )}
-
-        {/* クラス担当管理タブ（編集時のみ） */}
-        {activeTab === 'assignments' && isEditMode && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 space-y-6">
-              {/* 現在の担当クラス一覧 */}
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  現在の担当クラス
-                </h2>
-                {classAssignments.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">担当クラスがありません</p>
-                ) : (
-                  <div className="space-y-3">
-                    {classAssignments.map((assignment, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-                      >
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">
-                            {assignment.className || assignment.classId}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            <span className="mr-4">
-                              役割: {assignment.role === 'MainTeacher' ? '主担任' : '副担任'}
-                            </span>
-                            <span>年度: {assignment.academicYear}年度</span>
-                          </div>
-                          {assignment.assignedAt && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              割当日: {new Date(assignment.assignedAt).toLocaleDateString('ja-JP')}
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => handleRemoveAssignment(index)}
-                          className="ml-4 px-4 py-2 text-red-600 hover:text-red-800 font-medium"
-                        >
-                          削除
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* 新規割り当て追加フォーム */}
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  新規クラス担当追加
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* クラス選択 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      クラス <span className="text-red-600">*</span>
-                    </label>
-                    <select
-                      value={newAssignment.classId}
-                      onChange={(e) =>
-                        setNewAssignment(prev => ({ ...prev, classId: e.target.value }))
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">選択してください</option>
-                      {classes.map(cls => (
-                        <option key={cls.classId} value={cls.classId}>
-                          {cls.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* 役割 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      役割 <span className="text-red-600">*</span>
-                    </label>
-                    <select
-                      value={newAssignment.role}
-                      onChange={(e) =>
-                        setNewAssignment(prev => ({ ...prev, role: e.target.value }))
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="MainTeacher">主担任</option>
-                      <option value="AssistantTeacher">副担任</option>
-                    </select>
-                  </div>
-
-                  {/* 年度 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      年度 <span className="text-red-600">*</span>
-                    </label>
-                    <select
-                      value={newAssignment.academicYear}
-                      onChange={(e) =>
-                        setNewAssignment(prev => ({ ...prev, academicYear: parseInt(e.target.value) }))
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      {[...Array(5)].map((_, i) => {
-                        const year = new Date().getFullYear() + (2 - i);
-                        return (
-                          <option key={year} value={year}>
-                            {year}年度
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={handleAddAssignment}
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
-                  >
-                    追加する
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* フッター */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-end">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
-              >
-                閉じる
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );

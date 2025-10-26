@@ -1,8 +1,144 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
 import type { StaffDto, StaffFilterDto } from '../types/master';
+
+// デモ用職員データ
+const DEMO_STAFF: StaffDto[] = [
+  {
+    staffId: 1,
+    name: '山田 太郎',
+    phoneNumber: '090-1234-5678',
+    email: 'yamada@kindergarten.jp',
+    role: 'principal',
+    position: '園長',
+    classAssignments: [],
+    isActive: true,
+    lastLoginAt: '2025-10-25T09:30:00',
+  },
+  {
+    staffId: 2,
+    name: '佐藤 花子',
+    phoneNumber: '090-2345-6789',
+    email: 'sato@kindergarten.jp',
+    role: 'admin',
+    position: '主任',
+    classAssignments: [{ classId: 1, className: 'ひまわり組', academicYear: 2025 }],
+    isActive: true,
+    lastLoginAt: '2025-10-26T08:15:00',
+  },
+  {
+    staffId: 3,
+    name: '鈴木 健一',
+    phoneNumber: '090-3456-7890',
+    email: 'suzuki@kindergarten.jp',
+    role: 'teacher',
+    position: '保育士',
+    classAssignments: [{ classId: 2, className: 'さくら組', academicYear: 2025 }],
+    isActive: true,
+    lastLoginAt: '2025-10-26T07:45:00',
+  },
+  {
+    staffId: 4,
+    name: '高橋 美咲',
+    phoneNumber: '090-4567-8901',
+    email: 'takahashi@kindergarten.jp',
+    role: 'teacher',
+    position: '保育士',
+    classAssignments: [{ classId: 3, className: 'たんぽぽ組', academicYear: 2025 }],
+    isActive: true,
+    lastLoginAt: '2025-10-26T08:00:00',
+  },
+  {
+    staffId: 5,
+    name: '田中 由美',
+    phoneNumber: '090-5678-9012',
+    email: 'tanaka@kindergarten.jp',
+    role: 'nurse',
+    position: '看護師',
+    classAssignments: [],
+    isActive: true,
+    lastLoginAt: '2025-10-26T08:30:00',
+  },
+  {
+    staffId: 6,
+    name: '渡辺 裕子',
+    phoneNumber: '090-6789-0123',
+    email: 'watanabe@kindergarten.jp',
+    role: 'teacher',
+    position: '栄養士',
+    classAssignments: [],
+    isActive: true,
+    lastLoginAt: '2025-10-25T14:20:00',
+  },
+  {
+    staffId: 7,
+    name: '伊藤 健太',
+    phoneNumber: '090-7890-1234',
+    email: 'ito@kindergarten.jp',
+    role: 'teacher',
+    position: '保育士',
+    classAssignments: [{ classId: 4, className: 'ちゅうりっぷ組', academicYear: 2025 }],
+    isActive: true,
+    lastLoginAt: '2025-10-26T08:10:00',
+  },
+  {
+    staffId: 8,
+    name: '山本 愛',
+    phoneNumber: '090-8901-2345',
+    email: 'yamamoto@kindergarten.jp',
+    role: 'teacher',
+    position: '保育士',
+    classAssignments: [{ classId: 1, className: 'ひまわり組', academicYear: 2025 }],
+    isActive: true,
+    lastLoginAt: '2025-10-26T07:50:00',
+  },
+  {
+    staffId: 9,
+    name: '中村 真理',
+    phoneNumber: '090-9012-3456',
+    email: 'nakamura@kindergarten.jp',
+    role: 'admin',
+    position: '副主任',
+    classAssignments: [],
+    isActive: true,
+    lastLoginAt: '2025-10-26T08:20:00',
+  },
+  {
+    staffId: 10,
+    name: '小林 優子',
+    phoneNumber: '090-0123-4567',
+    email: 'kobayashi@kindergarten.jp',
+    role: 'teacher',
+    position: '保育士',
+    classAssignments: [{ classId: 5, className: 'すみれ組', academicYear: 2025 }],
+    isActive: true,
+    lastLoginAt: '2025-10-25T16:30:00',
+  },
+  {
+    staffId: 11,
+    name: '加藤 大輔',
+    phoneNumber: '080-1234-5678',
+    email: 'kato@kindergarten.jp',
+    role: 'teacher',
+    position: '保育士',
+    classAssignments: [{ classId: 2, className: 'さくら組', academicYear: 2025 }],
+    isActive: false,
+    lastLoginAt: '2025-09-15T10:00:00',
+  },
+  {
+    staffId: 12,
+    name: '吉田 明美',
+    phoneNumber: '080-2345-6789',
+    email: 'yoshida@kindergarten.jp',
+    role: 'teacher',
+    position: '保育補助',
+    classAssignments: [],
+    isActive: true,
+    lastLoginAt: '2025-10-26T09:00:00',
+  },
+];
 
 /**
  * 職員一覧ページ
@@ -10,6 +146,8 @@ import type { StaffDto, StaffFilterDto } from '../types/master';
  */
 export function StaffPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === 'true';
 
   const [staff, setStaff] = useState<StaffDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,14 +159,22 @@ export function StaffPage() {
     position: undefined,
     classId: undefined,
     academicYear: new Date().getFullYear(),
-    isActive: true,
     searchKeyword: undefined,
   });
 
+  // ステータスフィルタ（在籍中/退職済み）
+  const [employmentStatus, setEmploymentStatus] = useState<string>('Active');
+
   // データ読み込み
   useEffect(() => {
-    loadStaff();
-  }, [filter]);
+    if (isDemoMode) {
+      // デモモード: デモデータを使用
+      setStaff(applyFilters(DEMO_STAFF));
+      setIsLoading(false);
+    } else {
+      loadStaff();
+    }
+  }, [filter, employmentStatus, isDemoMode]);
 
   const loadStaff = async () => {
     try {
@@ -42,6 +188,30 @@ export function StaffPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // デモモードのフィルタ適用
+  const applyFilters = (data: StaffDto[]): StaffDto[] => {
+    return data.filter((s) => {
+      if (filter.role && s.role !== filter.role) return false;
+      if (filter.position && !s.position?.includes(filter.position)) return false;
+
+      // 在籍ステータスフィルタ
+      if (employmentStatus === 'Active' && s.resignationDate) return false;
+      if (employmentStatus === 'Resigned' && !s.resignationDate) return false;
+
+      if (filter.searchKeyword) {
+        const keyword = filter.searchKeyword.toLowerCase();
+        if (
+          !s.name.toLowerCase().includes(keyword) &&
+          !s.phoneNumber.includes(keyword) &&
+          !s.email?.toLowerCase().includes(keyword)
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
   };
 
   // フィルタ変更ハンドラ
@@ -61,9 +231,9 @@ export function StaffPage() {
       position: undefined,
       classId: undefined,
       academicYear: new Date().getFullYear(),
-      isActive: true,
       searchKeyword: undefined,
     });
+    setEmploymentStatus('Active');
   };
 
   // 削除処理
@@ -124,7 +294,7 @@ export function StaffPage() {
           </div>
           <button
             onClick={() => navigate('/desktop/staff/create')}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition flex items-center gap-2"
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-md transition-all duration-200 flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -134,15 +304,15 @@ export function StaffPage() {
         </div>
 
         {/* フィルタセクション */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* 役割フィルタ */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">役割</label>
               <select
                 value={filter.role || ''}
                 onChange={(e) => handleFilterChange('role', e.target.value || undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition"
               >
                 <option value="">全て</option>
                 <option value="teacher">教職員</option>
@@ -160,41 +330,21 @@ export function StaffPage() {
                 value={filter.position || ''}
                 onChange={(e) => handleFilterChange('position', e.target.value || undefined)}
                 placeholder="例: 主任、副主任"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition"
               />
-            </div>
-
-            {/* 年度フィルタ */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">年度</label>
-              <select
-                value={filter.academicYear || ''}
-                onChange={(e) => handleFilterChange('academicYear', e.target.value ? parseInt(e.target.value) : undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">全て</option>
-                {[...Array(5)].map((_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return (
-                    <option key={year} value={year}>
-                      {year}年度
-                    </option>
-                  );
-                })}
-              </select>
             </div>
 
             {/* ステータスフィルタ */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">ステータス</label>
               <select
-                value={filter.isActive === undefined ? '' : filter.isActive.toString()}
-                onChange={(e) => handleFilterChange('isActive', e.target.value === '' ? undefined : e.target.value === 'true')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={employmentStatus}
+                onChange={(e) => setEmploymentStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition"
               >
                 <option value="">全て</option>
-                <option value="true">有効</option>
-                <option value="false">無効</option>
+                <option value="Active">在籍中</option>
+                <option value="Resigned">退職済み</option>
               </select>
             </div>
           </div>
@@ -207,12 +357,12 @@ export function StaffPage() {
                 value={filter.searchKeyword || ''}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="氏名、電話番号、メールアドレスで検索..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition"
               />
             </div>
             <button
               onClick={handleResetFilter}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition"
             >
               フィルタリセット
             </button>
@@ -221,30 +371,27 @@ export function StaffPage() {
 
         {/* エラー表示 */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
             {error}
           </div>
         )}
 
         {/* ローディング */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-64 bg-white rounded-lg shadow">
+          <div className="flex items-center justify-center h-64 bg-white rounded-md shadow-md border border-gray-200">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
               <p className="mt-4 text-gray-600">読み込み中...</p>
             </div>
           </div>
         ) : (
           <>
             {/* 職員一覧テーブル */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        職員ID
-                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         氏名
                       </th>
@@ -264,10 +411,13 @@ export function StaffPage() {
                         担当クラス
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        退職日
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         最終ログイン
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ステータス
+                        ID
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         アクション
@@ -284,9 +434,6 @@ export function StaffPage() {
                     ) : (
                       staff.map((s) => (
                         <tr key={s.staffId} className="hover:bg-gray-50 transition">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {s.staffId}
-                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {s.name}
                           </td>
@@ -321,6 +468,15 @@ export function StaffPage() {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {s.resignationDate
+                              ? new Date(s.resignationDate).toLocaleDateString('ja-JP', {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                })
+                              : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {s.lastLoginAt
                               ? new Date(s.lastLoginAt).toLocaleDateString('ja-JP', {
                                   year: 'numeric',
@@ -331,28 +487,20 @@ export function StaffPage() {
                                 })
                               : '-'}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                s.isActive
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}
-                            >
-                              {s.isActive ? '有効' : '無効'}
-                            </span>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                            {String(s.staffId).padStart(6, '0')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex gap-2">
                               <button
                                 onClick={() => navigate(`/desktop/staff/edit/${s.staffId}`)}
-                                className="text-indigo-600 hover:text-indigo-800 font-medium"
+                                className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-md font-medium hover:shadow-md transition-all duration-200"
                               >
                                 編集
                               </button>
                               <button
                                 onClick={() => handleDelete(s.staffId, s.name)}
-                                className="text-red-600 hover:text-red-800 font-medium"
+                                className="px-3 py-1 bg-red-50 text-red-600 border border-red-200 rounded-md font-medium hover:shadow-md transition-all duration-200"
                               >
                                 削除
                               </button>

@@ -20,7 +20,6 @@ export function ClassesPage() {
   // フィルタ状態
   const [filter, setFilter] = useState<ClassFilterDto>({
     academicYear: new Date().getFullYear(),
-    isActive: undefined,
     searchKeyword: '',
   });
 
@@ -46,8 +45,101 @@ export function ClassesPage() {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      const data = await masterService.getClasses();
-      setClasses(data);
+
+      // デモモード判定
+      const urlParams = new URLSearchParams(window.location.search);
+      const isDemoMode = urlParams.get('demo') === 'true';
+
+      if (isDemoMode) {
+        // デモデータを設定
+        const demoClasses: ClassDto[] = [
+          {
+            classId: 'sakura-2025',
+            name: 'さくら組',
+            ageGroupMin: 5,
+            ageGroupMax: 6,
+            currentEnrollment: 18,
+            maxCapacity: 20,
+            academicYear: 2025,
+            assignedStaffNames: ['田中 花子', '佐藤 太郎'],
+            isActive: true,
+          },
+          {
+            classId: 'himawari-2025',
+            name: 'ひまわり組',
+            ageGroupMin: 4,
+            ageGroupMax: 5,
+            currentEnrollment: 15,
+            maxCapacity: 20,
+            assignedStaffNames: ['鈴木 次郎'],
+            isActive: true,
+          },
+          {
+            classId: 'sumire-2025',
+            name: 'すみれ組',
+            ageGroupMin: 3,
+            ageGroupMax: 4,
+            currentEnrollment: 12,
+            maxCapacity: 18,
+            assignedStaffNames: ['山田 美咲', '伊藤 健一'],
+            isActive: true,
+          },
+          {
+            classId: 'bara-2025',
+            name: 'ばら組',
+            ageGroupMin: 2,
+            ageGroupMax: 3,
+            currentEnrollment: 10,
+            maxCapacity: 15,
+            assignedStaffNames: ['高橋 さくら'],
+            isActive: true,
+          },
+          {
+            classId: 'momo-2025',
+            name: 'もも組',
+            ageGroupMin: 1,
+            ageGroupMax: 2,
+            currentEnrollment: 8,
+            maxCapacity: 12,
+            assignedStaffNames: ['渡辺 京子', '中村 優子'],
+            isActive: true,
+          },
+          {
+            classId: 'tanpopo-2025',
+            name: 'たんぽぽ組',
+            ageGroupMin: 0,
+            ageGroupMax: 1,
+            currentEnrollment: 6,
+            maxCapacity: 10,
+            assignedStaffNames: ['小林 愛', '加藤 まり'],
+            isActive: true,
+          },
+          {
+            classId: 'yuri-2025',
+            name: 'ゆり組',
+            ageGroupMin: 4,
+            ageGroupMax: 5,
+            currentEnrollment: 16,
+            maxCapacity: 20,
+            assignedStaffNames: ['佐々木 明'],
+            isActive: true,
+          },
+          {
+            classId: 'tsukushi-2025',
+            name: 'つくし組',
+            ageGroupMin: 3,
+            ageGroupMax: 4,
+            currentEnrollment: 14,
+            maxCapacity: 18,
+            assignedStaffNames: ['松本 由美'],
+            isActive: true,
+          },
+        ];
+        setClasses(demoClasses);
+      } else {
+        const data = await masterService.getClasses();
+        setClasses(data);
+      }
     } catch (error) {
       console.error('クラス一覧の取得に失敗しました:', error);
       setErrorMessage('クラス一覧の取得に失敗しました');
@@ -64,9 +156,8 @@ export function ClassesPage() {
       filtered = filtered.filter(c => c.academicYear === filter.academicYear);
     }
 
-    if (filter.isActive !== undefined) {
-      filtered = filtered.filter(c => c.isActive === filter.isActive);
-    }
+    // 論理削除されたクラスは除外（IsActive = true のみ表示）
+    filtered = filtered.filter(c => c.isActive === true);
 
     if (filter.searchKeyword) {
       const keyword = filter.searchKeyword.toLowerCase();
@@ -163,7 +254,7 @@ export function ClassesPage() {
           </div>
           <button
             onClick={() => navigate('/desktop/classes/create')}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 active:bg-green-800 transition flex items-center space-x-2"
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -201,10 +292,10 @@ export function ClassesPage() {
         )}
 
         {/* フィルタ */}
-        <div className="bg-white rounded-lg shadow mb-6 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-md shadow-md border border-gray-200 mb-6 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             {/* 年度 */}
-            <div>
+            <div className="md:col-span-3">
               <label htmlFor="academicYear" className="block text-sm font-medium text-gray-700 mb-2">
                 年度
               </label>
@@ -217,7 +308,7 @@ export function ClassesPage() {
                     academicYear: e.target.value ? parseInt(e.target.value) : undefined,
                   }))
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
               >
                 <option value="">すべて</option>
                 {[...Array(5)].map((_, i) => {
@@ -231,30 +322,8 @@ export function ClassesPage() {
               </select>
             </div>
 
-            {/* 有効/無効 */}
-            <div>
-              <label htmlFor="isActive" className="block text-sm font-medium text-gray-700 mb-2">
-                状態
-              </label>
-              <select
-                id="isActive"
-                value={filter.isActive === undefined ? '' : filter.isActive ? 'true' : 'false'}
-                onChange={e =>
-                  setFilter(prev => ({
-                    ...prev,
-                    isActive: e.target.value === '' ? undefined : e.target.value === 'true',
-                  }))
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">すべて</option>
-                <option value="true">有効</option>
-                <option value="false">無効</option>
-              </select>
-            </div>
-
             {/* 検索キーワード */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-6">
               <label htmlFor="searchKeyword" className="block text-sm font-medium text-gray-700 mb-2">
                 検索（クラスID・名前・担当職員）
               </label>
@@ -263,15 +332,28 @@ export function ClassesPage() {
                 id="searchKeyword"
                 value={filter.searchKeyword || ''}
                 onChange={e => setFilter(prev => ({ ...prev, searchKeyword: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                 placeholder="キーワードを入力"
               />
+            </div>
+
+            {/* フィルタリセット */}
+            <div className="md:col-span-3">
+              <button
+                onClick={() => setFilter({
+                  academicYear: new Date().getFullYear(),
+                  searchKeyword: '',
+                })}
+                className="px-3 py-2 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all duration-200 font-medium text-sm"
+              >
+                フィルタをリセット
+              </button>
             </div>
           </div>
         </div>
 
         {/* テーブル */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -310,9 +392,6 @@ export function ClassesPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     担当職員
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    状態
-                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     アクション
                   </th>
@@ -321,7 +400,7 @@ export function ClassesPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentClasses.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       クラスが見つかりませんでした
                     </td>
                   </tr>
@@ -355,30 +434,21 @@ export function ClassesPage() {
                           ? classItem.assignedStaffNames.join(', ')
                           : '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {classItem.isActive ? (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            有効
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                            無効
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
-                        <button
-                          onClick={() => navigate(`/desktop/classes/edit/${classItem.classId}`)}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          編集
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmClass(classItem)}
-                          className="text-red-600 hover:text-red-800 font-medium"
-                        >
-                          削除
-                        </button>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => navigate(`/desktop/classes/edit/${classItem.classId}`)}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200 font-medium"
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmClass(classItem)}
+                            className="px-3 py-1.5 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200 font-medium"
+                          >
+                            削除
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -398,7 +468,7 @@ export function ClassesPage() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-gray-200 rounded-md text-sm font-medium text-gray-700 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   前へ
                 </button>
@@ -407,10 +477,10 @@ export function ClassesPage() {
                     <button
                       key={i}
                       onClick={() => setCurrentPage(i + 1)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                         currentPage === i + 1
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-gray-700 hover:bg-gray-50 border border-gray-300'
+                          ? 'bg-gradient-to-r from-orange-500 to-yellow-500 text-white shadow-md'
+                          : 'text-gray-700 hover:shadow-md border border-gray-200'
                       }`}
                     >
                       {i + 1}
@@ -420,7 +490,7 @@ export function ClassesPage() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-gray-200 rounded-md text-sm font-medium text-gray-700 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   次へ
                 </button>
@@ -435,7 +505,7 @@ export function ClassesPage() {
         <>
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setDeleteConfirmClass(null)} />
           <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="bg-white rounded-md shadow-xl border border-gray-200 p-6 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">クラスを削除</h3>
               <p className="text-gray-600 mb-6">
                 本当にクラス「{deleteConfirmClass.name}」（{deleteConfirmClass.classId}）を削除しますか？
@@ -445,13 +515,13 @@ export function ClassesPage() {
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setDeleteConfirmClass(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                  className="px-4 py-2 border border-gray-200 rounded-md text-gray-700 hover:shadow-md transition-all duration-200"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={() => handleDelete(deleteConfirmClass)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 hover:shadow-md transition-all duration-200"
                 >
                   削除する
                 </button>

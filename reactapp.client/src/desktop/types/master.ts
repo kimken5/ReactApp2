@@ -206,6 +206,8 @@ export interface StaffDto {
   email?: string;
   role: string;
   position?: string;
+  resignationDate?: string;
+  remark?: string;
   lastLoginAt?: string;
   isActive: boolean;
   createdAt: string;
@@ -219,6 +221,7 @@ export interface CreateStaffRequestDto {
   email?: string;
   role: string;
   position?: string;
+  remark?: string;
 }
 
 export interface UpdateStaffRequestDto {
@@ -227,6 +230,8 @@ export interface UpdateStaffRequestDto {
   email?: string;
   role: string;
   position?: string;
+  resignationDate?: string;
+  remark?: string;
   isActive?: boolean;
 }
 

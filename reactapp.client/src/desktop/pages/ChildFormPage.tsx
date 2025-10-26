@@ -42,6 +42,10 @@ export function ChildFormPage() {
     isActive: true,
   });
 
+  // オートコンプリート用状態
+  const [parentSearchQuery, setParentSearchQuery] = useState('');
+  const [showParentSuggestions, setShowParentSuggestions] = useState(false);
+
   // 初期データ読み込み
   useEffect(() => {
     loadData();
@@ -118,6 +122,40 @@ export function ChildFormPage() {
         : [...prev.parentIds, parentId];
       return { ...prev, parentIds };
     });
+  };
+
+  // オートコンプリート: 保護者を追加
+  const handleAddParent = (parent: ParentDto) => {
+    setFormData(prev => ({
+      ...prev,
+      parentIds: [...prev.parentIds, parent.id]
+    }));
+    setParentSearchQuery('');
+    setShowParentSuggestions(false);
+  };
+
+  // オートコンプリート: 保護者を削除
+  const handleRemoveParent = (parentId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      parentIds: prev.parentIds.filter(id => id !== parentId)
+    }));
+  };
+
+  // フィルタされた保護者候補を取得
+  const getFilteredParents = () => {
+    if (!parentSearchQuery.trim()) return [];
+    const query = parentSearchQuery.toLowerCase();
+    return parents.filter(parent => {
+      if (formData.parentIds.includes(parent.id)) return false;
+      const name = parent.name || '';
+      return name.toLowerCase().includes(query);
+    }).slice(0, 10);
+  };
+
+  // 選択済み保護者を取得
+  const getSelectedParents = () => {
+    return parents.filter(parent => formData.parentIds.includes(parent.id));
   };
 
   // バリデーション
@@ -248,13 +286,10 @@ export function ChildFormPage() {
         )}
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
+        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
           <div className="p-6 space-y-6">
             {/* 基本情報セクション */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                基本情報
-              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 氏名 */}
                 <div>
@@ -267,8 +302,8 @@ export function ChildFormPage() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                      errors.name ? 'border-red-500' : 'border-gray-200'
                     }`}
                     placeholder="例: 山田 太郎"
                   />
@@ -286,7 +321,7 @@ export function ChildFormPage() {
                     name="dateOfBirth"
                     value={formData.dateOfBirth}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                    className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
                       errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -337,7 +372,7 @@ export function ChildFormPage() {
                     name="classId"
                     value={formData.classId}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                   >
                     <option value="">未所属</option>
                     {classes.map(cls => (
@@ -358,7 +393,7 @@ export function ChildFormPage() {
                     name="bloodType"
                     value={formData.bloodType}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                   >
                     <option value="">不明</option>
                     <option value="A">A</option>
@@ -367,14 +402,28 @@ export function ChildFormPage() {
                     <option value="AB">AB</option>
                   </select>
                 </div>
+
+                {/* ID（編集モード時のみ表示） */}
+                {isEditMode && childId && (
+                  <div>
+                    <label htmlFor="childId" className="block text-sm font-medium text-gray-700 mb-2">
+                      ID
+                    </label>
+                    <input
+                      type="text"
+                      id="childId"
+                      name="childId"
+                      value={String(childId).padStart(6, '0')}
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-500 font-mono cursor-not-allowed"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             {/* 医療・特記事項セクション */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                医療・特記事項
-              </h2>
               <div className="space-y-4">
                 {/* 医療メモ */}
                 <div>
@@ -387,7 +436,7 @@ export function ChildFormPage() {
                     value={formData.medicalNotes}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                     placeholder="アレルギー、既往症などを入力してください"
                   />
                 </div>
@@ -403,7 +452,7 @@ export function ChildFormPage() {
                     value={formData.specialInstructions}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                     placeholder="保育上の注意点などを入力してください"
                   />
                 </div>
@@ -413,29 +462,87 @@ export function ChildFormPage() {
             {/* 保護者選択セクション（新規作成時のみ） */}
             {!isEditMode && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
                   保護者選択 <span className="text-red-600">*</span>
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {parents.map(parent => (
-                    <label
-                      key={parent.id}
-                      className="flex items-start p-4 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.parentIds.includes(parent.id)}
-                        onChange={() => handleParentToggle(parent.id)}
-                        className="mt-1 mr-3"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{parent.name || '名前未登録'}</div>
-                        <div className="text-sm text-gray-600">{parent.phoneNumber}</div>
-                        {parent.email && <div className="text-sm text-gray-600">{parent.email}</div>}
-                      </div>
-                    </label>
-                  ))}
+
+                {/* オートコンプリート検索 */}
+                <div className="mb-4 relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    保護者を追加
+                  </label>
+                  <input
+                    type="text"
+                    value={parentSearchQuery}
+                    onChange={(e) => {
+                      setParentSearchQuery(e.target.value);
+                      setShowParentSuggestions(true);
+                    }}
+                    onFocus={() => setShowParentSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowParentSuggestions(false), 200)}
+                    placeholder="保護者名を入力..."
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  />
+
+                  {/* 候補リスト */}
+                  {showParentSuggestions && parentSearchQuery && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {getFilteredParents().length === 0 ? (
+                        <div className="px-4 py-3 text-gray-500 text-sm">
+                          該当する保護者が見つかりません
+                        </div>
+                      ) : (
+                        getFilteredParents().map((parent) => (
+                          <button
+                            key={parent.id}
+                            type="button"
+                            onClick={() => handleAddParent(parent)}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900">{parent.name || '名前未登録'}</div>
+                            <div className="text-sm text-gray-600">{parent.phoneNumber}</div>
+                            {parent.email && <div className="text-sm text-gray-600">{parent.email}</div>}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                {/* 選択済み保護者一覧 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    選択済み保護者 ({getSelectedParents().length}人)
+                  </label>
+                  {getSelectedParents().length === 0 ? (
+                    <div className="px-4 py-3 border border-gray-200 rounded-md bg-gray-50 text-gray-500 text-sm">
+                      保護者が選択されていません
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {getSelectedParents().map((parent) => (
+                        <div
+                          key={parent.id}
+                          className="flex items-start justify-between p-4 border border-gray-200 rounded-md bg-white"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{parent.name || '名前未登録'}</div>
+                            <div className="text-sm text-gray-600">{parent.phoneNumber}</div>
+                            {parent.email && <div className="text-sm text-gray-600">{parent.email}</div>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveParent(parent.id)}
+                            className="ml-4 px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition border border-red-200"
+                          >
+                            削除
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {errors.parentIds && (
                   <p className="mt-2 text-sm text-red-600">{errors.parentIds}</p>
                 )}
@@ -445,9 +552,6 @@ export function ChildFormPage() {
             {/* 卒園・退園情報セクション（編集時のみ） */}
             {isEditMode && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  卒園・退園情報
-                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 卒園日 */}
                   <div>
@@ -460,7 +564,7 @@ export function ChildFormPage() {
                       name="graduationDate"
                       value={formData.graduationDate}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                     />
                   </div>
 
@@ -474,7 +578,7 @@ export function ChildFormPage() {
                       name="graduationStatus"
                       value={formData.graduationStatus}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                     >
                       <option value="">未設定</option>
                       <option value="Active">在籍中</option>
@@ -494,26 +598,9 @@ export function ChildFormPage() {
                       value={formData.withdrawalReason}
                       onChange={handleChange}
                       rows={2}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
                       placeholder="退園理由を入力してください"
                     />
-                  </div>
-
-                  {/* 有効/無効 */}
-                  <div className="md:col-span-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="isActive"
-                        checked={formData.isActive}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      <span className="text-sm font-medium text-gray-700">有効にする</span>
-                    </label>
-                    <p className="mt-1 text-sm text-gray-500">
-                      無効にすると、この園児は一覧に表示されなくなります
-                    </p>
                   </div>
                 </div>
               </div>
@@ -521,21 +608,21 @@ export function ChildFormPage() {
           </div>
 
           {/* フッター（保存・キャンセルボタン） */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-end gap-3">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-md flex justify-end gap-3">
             <button
               type="button"
               onClick={handleCancel}
-              className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
+              className="px-6 py-2 border border-gray-200 text-gray-700 rounded-md font-medium hover:shadow-md transition-all duration-200"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className={`px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium transition ${
+              className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium transition-all duration-200 ${
                 isSaving
                   ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-indigo-700 active:bg-indigo-800'
+                  : 'hover:shadow-lg'
               }`}
             >
               {isSaving ? (
