@@ -75,11 +75,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { path: '/desktop/children', label: '園児管理', icon: 'baby' },
     { path: '/desktop/parents', label: '保護者管理', icon: 'user-group' },
     { path: '/desktop/staff', label: '職員管理', icon: 'badge' },
-    { path: '/desktop/daily-reports', label: '連絡帳管理', icon: 'document' },
+    { path: '/desktop/dailyreports', label: '連絡帳管理', icon: 'document' },
     { path: '/desktop/photos', label: '写真管理', icon: 'camera' },
+    { path: '/desktop/contact-notifications', label: '連絡通知管理', icon: 'clipboard' },
     { path: '/desktop/announcements', label: 'お知らせ管理', icon: 'megaphone' },
     { path: '/desktop/calendar', label: '予定管理', icon: 'calendar' },
-    { path: '/desktop/absence', label: '欠席・遅刻管理', icon: 'phone' },
     { path: '/desktop/year-management', label: '年度管理', icon: 'clock' },
     { path: '/desktop/settings', label: 'システム設定', icon: 'cog' },
   ];

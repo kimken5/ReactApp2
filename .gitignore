@@ -85,3 +85,4 @@ vite.config.ts.timestamp-*
 appsettings.*.local.json
 *.secret.json
 secrets.json
+nul

@@ -28,6 +28,7 @@ export function PhotoUploadPage() {
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
   const [visibilityLevel, setVisibilityLevel] = useState<'class' | 'grade' | 'all'>('class');
   const [targetClassId, setTargetClassId] = useState<string>('');
+  const [targetGrade, setTargetGrade] = useState<number | null>(null);
   const [status, setStatus] = useState<'draft' | 'published'>('published');
   const [requiresConsent, setRequiresConsent] = useState(true);
   const [selectedChildIds, setSelectedChildIds] = useState<number[]>([]);
@@ -165,6 +166,10 @@ export function PhotoUploadPage() {
       errors.targetClassId = 'クラスを選択してください';
     }
 
+    if (visibilityLevel === 'grade' && targetGrade === null) {
+      errors.targetGrade = '学年を選択してください';
+    }
+
     if (selectedChildIds.length === 0) {
       errors.childIds = '少なくとも1人の園児を選択してください';
     }
@@ -204,6 +209,7 @@ export function PhotoUploadPage() {
         publishedAt: new Date(publishedAt).toISOString(),
         visibilityLevel,
         targetClassId: visibilityLevel === 'class' ? targetClassId : undefined,
+        targetGrade: visibilityLevel === 'grade' ? targetGrade ?? undefined : undefined,
         status,
         requiresConsent,
         staffId: selectedStaffId,
@@ -248,7 +254,7 @@ export function PhotoUploadPage() {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="bg-white shadow rounded-lg p-6 space-y-6">
+          <div className="bg-white shadow-md rounded-lg border border-gray-200 p-6 space-y-6">
             {/* File upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -259,7 +265,7 @@ export function PhotoUploadPage() {
                 accept="image/jpeg,image/png,image/webp"
                 onChange={handleFileChange}
                 disabled={isLoading}
-                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               {fieldErrors.file && (
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.file}</p>
@@ -301,7 +307,7 @@ export function PhotoUploadPage() {
                 disabled={isLoading}
                 rows={3}
                 maxLength={500}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100"
                 placeholder="写真の説明を入力してください（任意）"
               />
               {fieldErrors.description && (
@@ -322,7 +328,7 @@ export function PhotoUploadPage() {
                 onChange={(e) => setPublishedAt(e.target.value)}
                 disabled={isLoading}
                 max={new Date().toISOString().slice(0, 16)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100"
               />
               {fieldErrors.publishedAt && (
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.publishedAt}</p>
@@ -340,7 +346,7 @@ export function PhotoUploadPage() {
                 value={selectedStaffId || ''}
                 onChange={(e) => setSelectedStaffId(Number(e.target.value))}
                 disabled={isLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100"
               >
                 <option value="">職員を選択してください</option>
                 {staffList.map((staff) => (
@@ -359,7 +365,7 @@ export function PhotoUploadPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 公開範囲 <span className="text-red-500">*</span>
               </label>
-              <div className="space-y-2">
+              <div className="flex gap-6">
                 <label className="flex items-center">
                   <input
                     type="radio"
@@ -367,7 +373,7 @@ export function PhotoUploadPage() {
                     checked={visibilityLevel === 'class'}
                     onChange={(e) => setVisibilityLevel(e.target.value as 'class' | 'grade' | 'all')}
                     disabled={isLoading}
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
                   />
                   <span className="ml-2 text-sm text-gray-700">クラス</span>
                 </label>
@@ -378,7 +384,7 @@ export function PhotoUploadPage() {
                     checked={visibilityLevel === 'grade'}
                     onChange={(e) => setVisibilityLevel(e.target.value as 'class' | 'grade' | 'all')}
                     disabled={isLoading}
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
                   />
                   <span className="ml-2 text-sm text-gray-700">学年</span>
                 </label>
@@ -389,7 +395,7 @@ export function PhotoUploadPage() {
                     checked={visibilityLevel === 'all'}
                     onChange={(e) => setVisibilityLevel(e.target.value as 'class' | 'grade' | 'all')}
                     disabled={isLoading}
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
                   />
                   <span className="ml-2 text-sm text-gray-700">全体</span>
                 </label>
@@ -407,7 +413,7 @@ export function PhotoUploadPage() {
                   value={targetClassId}
                   onChange={(e) => setTargetClassId(e.target.value)}
                   disabled={isLoading}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100"
                 >
                   <option value="">クラスを選択してください</option>
                   {classes.map((classItem) => (
@@ -422,12 +428,39 @@ export function PhotoUploadPage() {
               </div>
             )}
 
+            {/* Target Grade (conditional) */}
+            {visibilityLevel === 'grade' && (
+              <div>
+                <label htmlFor="targetGrade" className="block text-sm font-medium text-gray-700 mb-2">
+                  対象学年 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="targetGrade"
+                  value={targetGrade ?? ''}
+                  onChange={(e) => setTargetGrade(e.target.value ? Number(e.target.value) : null)}
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100"
+                >
+                  <option value="">学年を選択してください</option>
+                  <option value="0">0歳児</option>
+                  <option value="1">1歳児</option>
+                  <option value="2">2歳児</option>
+                  <option value="3">3歳児</option>
+                  <option value="4">4歳児</option>
+                  <option value="5">5歳児</option>
+                </select>
+                {fieldErrors.targetGrade && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.targetGrade}</p>
+                )}
+              </div>
+            )}
+
             {/* Status */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 ステータス <span className="text-red-500">*</span>
               </label>
-              <div className="space-y-2">
+              <div className="flex gap-6">
                 <label className="flex items-center">
                   <input
                     type="radio"
@@ -435,7 +468,7 @@ export function PhotoUploadPage() {
                     checked={status === 'draft'}
                     onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
                     disabled={isLoading}
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
                   />
                   <span className="ml-2 text-sm text-gray-700">下書き</span>
                 </label>
@@ -446,7 +479,7 @@ export function PhotoUploadPage() {
                     checked={status === 'published'}
                     onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
                     disabled={isLoading}
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
                   />
                   <span className="ml-2 text-sm text-gray-700">公開済み</span>
                 </label>
@@ -461,7 +494,7 @@ export function PhotoUploadPage() {
                   checked={requiresConsent}
                   onChange={(e) => setRequiresConsent(e.target.checked)}
                   disabled={isLoading}
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 rounded"
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-400 rounded"
                 />
                 <span className="ml-2 text-sm text-gray-700">同意が必要</span>
               </label>
@@ -485,7 +518,7 @@ export function PhotoUploadPage() {
                           checked={selectedChildIds.includes(child.id)}
                           onChange={() => handleChildToggle(child.id)}
                           disabled={isLoading}
-                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 rounded"
+                          className="h-4 w-4 text-orange-600 focus:ring-orange-400 rounded"
                         />
                         <span className="ml-2 text-sm text-gray-700">
                           {child.lastName} {child.firstName}
@@ -512,7 +545,7 @@ export function PhotoUploadPage() {
                       checked={primaryChildId === null}
                       onChange={() => setPrimaryChildId(null)}
                       disabled={isLoading}
-                      className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                      className="h-4 w-4 text-orange-600 focus:ring-orange-400"
                     />
                     <span className="ml-2 text-sm text-gray-700">指定なし</span>
                   </label>
@@ -526,7 +559,7 @@ export function PhotoUploadPage() {
                           checked={primaryChildId === childId}
                           onChange={() => setPrimaryChildId(childId)}
                           disabled={isLoading}
-                          className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                          className="h-4 w-4 text-orange-600 focus:ring-orange-400"
                         />
                         <span className="ml-2 text-sm text-gray-700">
                           {child.lastName} {child.firstName}
@@ -541,46 +574,47 @@ export function PhotoUploadPage() {
               </div>
             )}
 
-            {/* Action buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={isLoading}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                キャンセル
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isLoading && (
-                  <svg
-                    className="animate-spin h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                )}
-                {isLoading ? 'アップロード中...' : 'アップロード'}
-              </button>
-            </div>
+          </div>
+
+          {/* フッター（アップロード・キャンセルボタン） */}
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-md flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={isLoading}
+              className="px-6 py-2 border border-gray-200 text-gray-700 rounded-md font-medium hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              キャンセル
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isLoading && (
+                <svg
+                  className="animate-spin h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              )}
+              {isLoading ? 'アップロード中...' : 'アップロード'}
+            </button>
           </div>
         </form>
       </div>

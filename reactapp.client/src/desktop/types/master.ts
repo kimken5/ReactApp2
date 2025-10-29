@@ -147,6 +147,7 @@ export interface ParentDto {
   announcementEnabled: boolean;
   fontSize: string;
   language: string;
+  isPrimary: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;

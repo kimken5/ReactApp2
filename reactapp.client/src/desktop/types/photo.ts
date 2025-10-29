@@ -24,6 +24,7 @@ export interface PhotoDto {
   visibilityLevel: string; // "class" | "grade" | "all"
   targetClassId?: string;
   targetClassName?: string;
+  targetGrade?: number; // 0-5: 0歳児～5歳児
   status: string; // "draft" | "published" | "archived"
   requiresConsent: boolean;
   viewCount: number;
@@ -53,6 +54,7 @@ export interface UploadPhotoRequestDto {
   publishedAt: string; // ISO datetime string
   visibilityLevel: string; // "class" | "grade" | "all"
   targetClassId?: string;
+  targetGrade?: number; // 0-5: 0歳児～5歳児
   status: string; // "draft" | "published"
   requiresConsent: boolean;
   staffId: number;
@@ -68,6 +70,7 @@ export interface UpdatePhotoRequestDto {
   publishedAt: string;
   visibilityLevel: string;
   targetClassId?: string;
+  targetGrade?: number; // 0-5: 0歳児～5歳児
   status: string;
   requiresConsent: boolean;
   childIds?: number[];

@@ -125,6 +125,14 @@ namespace ReactApp.Server.Models
         [StringLength(10)]
         public string Language { get; set; } = "ja";
 
+        /// <summary>
+        /// 主親フラグ
+        /// true: デスクトップアプリで保育園が登録した主保護者（デスクトップで表示）
+        /// false: スマホアプリの家族追加機能で追加された保護者（デスクトップでは非表示）
+        /// デフォルト：true
+        /// </summary>
+        public bool IsPrimary { get; set; } = true;
+
         // ナビゲーションプロパティ（関連エンティティとの関係性）
 
         /// <summary>

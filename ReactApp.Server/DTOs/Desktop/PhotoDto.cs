@@ -24,6 +24,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public string VisibilityLevel { get; set; } = string.Empty; // "class", "grade", "all"
         public string? TargetClassId { get; set; }
         public string? TargetClassName { get; set; }
+        public int? TargetGrade { get; set; }
         public string Status { get; set; } = string.Empty; // "draft", "published", "archived"
         public bool RequiresConsent { get; set; }
         public int ViewCount { get; set; }
@@ -68,6 +69,9 @@ namespace ReactApp.Server.DTOs.Desktop
         [StringLength(50)]
         public string? TargetClassId { get; set; }
 
+        // 学年指定（0-5: 0歳児～5歳児）
+        public int? TargetGrade { get; set; }
+
         [Required]
         [StringLength(20)]
         public string Status { get; set; } = "published"; // "draft", "published"
@@ -101,6 +105,9 @@ namespace ReactApp.Server.DTOs.Desktop
 
         [StringLength(50)]
         public string? TargetClassId { get; set; }
+
+        // 学年指定（0-5: 0歳児～5歳児）
+        public int? TargetGrade { get; set; }
 
         [Required]
         [StringLength(20)]

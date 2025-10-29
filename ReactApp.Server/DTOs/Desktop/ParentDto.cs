@@ -19,6 +19,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public bool AnnouncementEnabled { get; set; }
         public string FontSize { get; set; } = "medium";
         public string Language { get; set; } = "ja";
+        public bool IsPrimary { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

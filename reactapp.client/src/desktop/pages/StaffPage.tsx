@@ -356,7 +356,7 @@ export function StaffPage() {
                 type="text"
                 value={filter.searchKeyword || ''}
                 onChange={(e) => handleSearch(e.target.value)}
-                placeholder="氏名、電話番号、メールアドレスで検索..."
+                placeholder="氏名、電話番号で検索..."
                 className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition"
               />
             </div>
@@ -399,9 +399,6 @@ export function StaffPage() {
                         電話番号
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        メール
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         役割
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -427,7 +424,7 @@ export function StaffPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {staff.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                        <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                           職員が見つかりませんでした
                         </td>
                       </tr>
@@ -439,9 +436,6 @@ export function StaffPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {s.phoneNumber}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {s.email || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(s.role)}`}>
@@ -459,7 +453,6 @@ export function StaffPage() {
                                   .map((a, idx) => (
                                     <span key={idx} className="inline-block mr-2 mb-1">
                                       {a.className || a.classId}
-                                      {a.academicYear && ` (${a.academicYear}年度)`}
                                     </span>
                                   ))}
                               </div>
@@ -478,31 +471,67 @@ export function StaffPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {s.lastLoginAt
-                              ? new Date(s.lastLoginAt).toLocaleDateString('ja-JP', {
-                                  year: 'numeric',
-                                  month: '2-digit',
-                                  day: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
+                              ? (() => {
+                                  const date = new Date(s.lastLoginAt);
+                                  const yy = String(date.getFullYear()).slice(-2);
+                                  const mm = String(date.getMonth() + 1).padStart(2, '0');
+                                  const dd = String(date.getDate()).padStart(2, '0');
+                                  const hh = String(date.getHours()).padStart(2, '0');
+                                  const min = String(date.getMinutes()).padStart(2, '0');
+                                  return `${yy}/${mm}/${dd} ${hh}:${min}`;
+                                })()
                               : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                             {String(s.staffId).padStart(6, '0')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <div className="flex gap-2">
+                            <div className="flex gap-1">
+                              {/* 編集ボタン */}
                               <button
                                 onClick={() => navigate(`/desktop/staff/edit/${s.staffId}`)}
-                                className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-md font-medium hover:shadow-md transition-all duration-200"
+                                className="relative group p-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200"
+                                title="編集"
                               >
-                                編集
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                                <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                  編集
+                                </span>
                               </button>
+                              {/* 削除ボタン */}
                               <button
                                 onClick={() => handleDelete(s.staffId, s.name)}
-                                className="px-3 py-1 bg-red-50 text-red-600 border border-red-200 rounded-md font-medium hover:shadow-md transition-all duration-200"
+                                className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
+                                title="削除"
                               >
-                                削除
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                                <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                  削除
+                                </span>
                               </button>
                             </div>
                           </td>

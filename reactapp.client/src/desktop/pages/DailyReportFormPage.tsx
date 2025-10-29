@@ -433,7 +433,7 @@ export function DailyReportFormPage() {
         )}
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
+        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
           <div className="p-6 space-y-6">
             {/* 園児選択（作成時のみ） */}
             {!isEditMode && (
@@ -447,7 +447,7 @@ export function DailyReportFormPage() {
                   value={createFormData.childId}
                   onChange={handleCreateChange}
                   disabled={isReadOnly || false}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                     errors.childId ? 'border-red-500' : 'border-gray-300'
                   } ${isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 >
@@ -484,7 +484,7 @@ export function DailyReportFormPage() {
                   value={createFormData.staffId}
                   onChange={handleCreateChange}
                   disabled={isReadOnly || false}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                     errors.staffId ? 'border-red-500' : 'border-gray-300'
                   } ${isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 >
@@ -522,7 +522,7 @@ export function DailyReportFormPage() {
                 onChange={isEditMode ? handleUpdateChange : handleCreateChange}
                 disabled={isReadOnly || false}
                 max={new Date().toISOString().split('T')[0]}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                   errors.reportDate ? 'border-red-500' : 'border-gray-300'
                 } ${isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
               />
@@ -540,7 +540,7 @@ export function DailyReportFormPage() {
                 value={formData.category}
                 onChange={isEditMode ? handleUpdateChange : handleCreateChange}
                 disabled={isReadOnly || false}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                   errors.category ? 'border-red-500' : 'border-gray-300'
                 } ${isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
               >
@@ -567,7 +567,7 @@ export function DailyReportFormPage() {
                 onChange={isEditMode ? handleUpdateChange : handleCreateChange}
                 disabled={isReadOnly || false}
                 maxLength={200}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                   errors.title ? 'border-red-500' : 'border-gray-300'
                 } ${isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 placeholder="例: 今日の給食の様子"
@@ -589,7 +589,7 @@ export function DailyReportFormPage() {
                 disabled={isReadOnly || false}
                 maxLength={1000}
                 rows={6}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                   errors.content ? 'border-red-500' : 'border-gray-300'
                 } ${isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 placeholder="日報の内容を入力してください"
@@ -608,7 +608,7 @@ export function DailyReportFormPage() {
                   onChange={e => setTagInput(e.target.value)}
                   onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
                   disabled={isReadOnly || false}
-                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                     isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''
                   }`}
                   placeholder="タグを入力してEnterキーまたは追加ボタンを押す"
@@ -617,8 +617,8 @@ export function DailyReportFormPage() {
                   type="button"
                   onClick={handleAddTag}
                   disabled={isReadOnly || false}
-                  className={`px-4 py-2 bg-purple-600 text-white rounded-lg font-medium transition ${
-                    isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+                  className={`px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium transition ${
+                    isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
                   }`}
                 >
                   追加
@@ -629,14 +629,14 @@ export function DailyReportFormPage() {
                 {(formData.tags || []).map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm"
+                    className="inline-flex items-center px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
                   >
                     {tag}
                     {!isReadOnly && (
                       <button
                         type="button"
                         onClick={() => handleRemoveTag(index)}
-                        className="ml-2 text-purple-600 hover:text-purple-800"
+                        className="ml-2 text-orange-600 hover:text-orange-800"
                       >
                         ×
                       </button>
@@ -656,7 +656,7 @@ export function DailyReportFormPage() {
                   onChange={e => setPhotoInput(e.target.value)}
                   onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddPhoto())}
                   disabled={isReadOnly || false}
-                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                     isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''
                   }`}
                   placeholder="写真URLを入力してEnterキーまたは追加ボタンを押す"
@@ -665,8 +665,8 @@ export function DailyReportFormPage() {
                   type="button"
                   onClick={handleAddPhoto}
                   disabled={isReadOnly || false}
-                  className={`px-4 py-2 bg-purple-600 text-white rounded-lg font-medium transition ${
-                    isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+                  className={`px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium transition ${
+                    isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
                   }`}
                 >
                   追加
@@ -708,7 +708,7 @@ export function DailyReportFormPage() {
                     checked={formData.status === 'draft'}
                     onChange={isEditMode ? handleUpdateChange : handleCreateChange}
                     disabled={isReadOnly || false}
-                    className={`w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 ${
+                    className={`w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-400 ${
                       isReadOnly ? 'cursor-not-allowed' : ''
                     }`}
                   />
@@ -722,7 +722,7 @@ export function DailyReportFormPage() {
                     checked={formData.status === 'published'}
                     onChange={isEditMode ? handleUpdateChange : handleCreateChange}
                     disabled={isReadOnly || false}
-                    className={`w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 ${
+                    className={`w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-400 ${
                       isReadOnly ? 'cursor-not-allowed' : ''
                     }`}
                   />
@@ -745,8 +745,8 @@ export function DailyReportFormPage() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className={`px-6 py-2 bg-purple-600 text-white rounded-lg font-medium transition ${
-                  isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700 active:bg-purple-800'
+                className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium transition ${
+                  isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
                 }`}
               >
                 {isSaving ? (

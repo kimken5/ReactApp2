@@ -733,7 +733,10 @@ namespace ReactApp.Server.Services
         {
             try
             {
-                var query = _context.Parents.AsQueryable();
+                // デスクトップアプリでは主保護者（IsPrimary=true）のみ表示
+                var query = _context.Parents
+                    .Where(p => p.IsPrimary)
+                    .AsQueryable();
 
                 // NurseryIdでフィルタ（保護者-園児関係を通じて）
                 if (filter.NurseryId.HasValue)
@@ -834,6 +837,7 @@ namespace ReactApp.Server.Services
                     AnnouncementEnabled = p.AnnouncementEnabled,
                     FontSize = p.FontSize,
                     Language = p.Language,
+                    IsPrimary = p.IsPrimary,
                     IsActive = p.IsActive,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
@@ -898,6 +902,7 @@ namespace ReactApp.Server.Services
                     AnnouncementEnabled = parent.AnnouncementEnabled,
                     FontSize = parent.FontSize,
                     Language = parent.Language,
+                    IsPrimary = parent.IsPrimary,
                     IsActive = parent.IsActive,
                     CreatedAt = parent.CreatedAt,
                     UpdatedAt = parent.UpdatedAt,
@@ -948,6 +953,7 @@ namespace ReactApp.Server.Services
                     Name = request.Name,
                     Email = request.Email,
                     Address = request.Address,
+                    IsPrimary = true, // デスクトップアプリで登録する保護者は主保護者
                     IsActive = true,
                     CreatedAt = now
                 };
