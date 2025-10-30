@@ -54,8 +54,26 @@ export function DailyReportFormPage() {
   });
 
   // 動的入力用の一時値
-  const [tagInput, setTagInput] = useState('');
   const [photoInput, setPhotoInput] = useState('');
+
+  // 園児オートコンプリート用の状態
+  const [childSearchQuery, setChildSearchQuery] = useState('');
+  const [showChildDropdown, setShowChildDropdown] = useState(false);
+
+  // 定義済みタグ
+  const predefinedTags = [
+    { value: '活動', label: '活動🎨', emoji: '🎨' },
+    { value: '食事', label: '食事🍽️', emoji: '🍽️' },
+    { value: '睡眠', label: '睡眠😴', emoji: '😴' },
+    { value: 'ケガ', label: 'ケガ🩹', emoji: '🩹' },
+    { value: '事故', label: '事故⚠️', emoji: '⚠️' },
+    { value: '喧嘩', label: '喧嘩😤', emoji: '😤' },
+  ];
+
+  // フィルタリングされた園児リスト
+  const filteredChildren = children.filter(child =>
+    child.name.toLowerCase().includes(childSearchQuery.toLowerCase())
+  );
 
   // 読み取り専用モードのチェック
   const isReadOnly = isEditMode && existingReport && (existingReport.status === 'published' || existingReport.status === 'archived');
@@ -145,46 +163,42 @@ export function DailyReportFormPage() {
     }
   };
 
-  // タグ追加
-  const handleAddTag = () => {
-    if (!tagInput.trim()) return;
+  // 園児選択（オートコンプリート）
+  const handleChildSelect = (child: ChildDto) => {
+    setCreateFormData(prev => ({ ...prev, childId: child.childId }));
+    setChildSearchQuery(child.name);
+    setShowChildDropdown(false);
 
+    if (errors.childId) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.childId;
+        return newErrors;
+      });
+    }
+  };
+
+  // タグトグル
+  const handleTagToggle = (tagValue: string) => {
     const formData = isEditMode ? updateFormData : createFormData;
     const tags = formData.tags || [];
 
-    if (tags.includes(tagInput.trim())) {
-      setErrors(prev => ({ ...prev, tags: 'このタグは既に追加されています' }));
-      return;
-    }
+    const newTags = tags.includes(tagValue)
+      ? tags.filter(t => t !== tagValue)
+      : [...tags, tagValue];
 
     if (isEditMode) {
-      setUpdateFormData(prev => ({ ...prev, tags: [...(prev.tags || []), tagInput.trim()] }));
+      setUpdateFormData(prev => ({ ...prev, tags: newTags }));
     } else {
-      setCreateFormData(prev => ({ ...prev, tags: [...(prev.tags || []), tagInput.trim()] }));
+      setCreateFormData(prev => ({ ...prev, tags: newTags }));
     }
 
-    setTagInput('');
     if (errors.tags) {
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors.tags;
         return newErrors;
       });
-    }
-  };
-
-  // タグ削除
-  const handleRemoveTag = (index: number) => {
-    if (isEditMode) {
-      setUpdateFormData(prev => ({
-        ...prev,
-        tags: (prev.tags || []).filter((_, i) => i !== index),
-      }));
-    } else {
-      setCreateFormData(prev => ({
-        ...prev,
-        tags: (prev.tags || []).filter((_, i) => i !== index),
-      }));
     }
   };
 
@@ -255,8 +269,8 @@ export function DailyReportFormPage() {
       }
     }
 
-    if (!createFormData.category) {
-      newErrors.category = 'カテゴリを選択してください';
+    if (!createFormData.tags || createFormData.tags.length === 0) {
+      newErrors.tags = '最低1つのタグを選択してください';
     }
 
     if (!createFormData.title.trim()) {
@@ -291,8 +305,8 @@ export function DailyReportFormPage() {
       }
     }
 
-    if (!updateFormData.category) {
-      newErrors.category = 'カテゴリを選択してください';
+    if (!updateFormData.tags || updateFormData.tags.length === 0) {
+      newErrors.tags = '最低1つのタグを選択してください';
     }
 
     if (!updateFormData.title.trim()) {
@@ -373,7 +387,6 @@ export function DailyReportFormPage() {
   }
 
   const formData = isEditMode ? updateFormData : createFormData;
-  const categories = ['食事', '睡眠', '排泄', '遊び', '健康', 'その他'];
 
   return (
     <DashboardLayout>
@@ -435,30 +448,47 @@ export function DailyReportFormPage() {
         {/* フォーム */}
         <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
           <div className="p-6 space-y-6">
-            {/* 園児選択（作成時のみ） */}
+            {/* 園児選択（作成時のみ - オートコンプリート） */}
             {!isEditMode && (
-              <div>
-                <label htmlFor="childId" className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="relative">
+                <label htmlFor="childSearch" className="block text-sm font-medium text-gray-700 mb-2">
                   園児 <span className="text-red-600">*</span>
                 </label>
-                <select
-                  id="childId"
-                  name="childId"
-                  value={createFormData.childId}
-                  onChange={handleCreateChange}
+                <input
+                  type="text"
+                  id="childSearch"
+                  value={childSearchQuery}
+                  onChange={(e) => {
+                    setChildSearchQuery(e.target.value);
+                    setShowChildDropdown(true);
+                  }}
+                  onFocus={() => setShowChildDropdown(true)}
                   disabled={isReadOnly || false}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
                     errors.childId ? 'border-red-500' : 'border-gray-300'
                   } ${isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                >
-                  <option value={0}>選択してください</option>
-                  {children.map(child => (
-                    <option key={child.childId} value={child.childId}>
-                      {child.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="園児名を入力してください"
+                  autoComplete="off"
+                />
                 {errors.childId && <p className="mt-1 text-sm text-red-600">{errors.childId}</p>}
+
+                {/* オートコンプリートドロップダウン */}
+                {showChildDropdown && childSearchQuery && filteredChildren.length > 0 && !isReadOnly && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredChildren.map((child) => (
+                      <div
+                        key={child.childId}
+                        onClick={() => handleChildSelect(child)}
+                        className="px-4 py-2 hover:bg-orange-50 cursor-pointer transition"
+                      >
+                        <div className="font-medium text-gray-800">{child.name}</div>
+                        {child.className && (
+                          <div className="text-xs text-gray-500">{child.className}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -529,31 +559,6 @@ export function DailyReportFormPage() {
               {errors.reportDate && <p className="mt-1 text-sm text-red-600">{errors.reportDate}</p>}
             </div>
 
-            {/* カテゴリ */}
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                カテゴリ <span className="text-red-600">*</span>
-              </label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={isEditMode ? handleUpdateChange : handleCreateChange}
-                disabled={isReadOnly || false}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
-                  errors.category ? 'border-red-500' : 'border-gray-300'
-                } ${isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-              >
-                <option value="">選択してください</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-              {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
-            </div>
-
             {/* タイトル */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
@@ -598,52 +603,39 @@ export function DailyReportFormPage() {
               {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content}</p>}
             </div>
 
-            {/* タグ */}
+            {/* タグ選択（チェックボックス） */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">タグ（任意）</label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                  disabled={isReadOnly || false}
-                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
-                    isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="タグを入力してEnterキーまたは追加ボタンを押す"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  disabled={isReadOnly || false}
-                  className={`px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium transition ${
-                    isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
-                  }`}
-                >
-                  追加
-                </button>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                タグ <span className="text-red-600">*</span>
+              </label>
+              <p className="text-xs text-gray-500 mb-3">複数選択可能です</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {predefinedTags.map((tag) => {
+                  const isChecked = (formData.tags || []).includes(tag.value);
+                  return (
+                    <label
+                      key={tag.value}
+                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition ${
+                        isChecked
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-300 hover:border-orange-300'
+                      } ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => !isReadOnly && handleTagToggle(tag.value)}
+                        disabled={isReadOnly || false}
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-400"
+                      />
+                      <span className="ml-2 text-sm font-medium text-gray-700">
+                        {tag.label}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
-              {errors.tags && <p className="mt-1 text-sm text-red-600">{errors.tags}</p>}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {(formData.tags || []).map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
-                  >
-                    {tag}
-                    {!isReadOnly && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(index)}
-                        className="ml-2 text-orange-600 hover:text-orange-800"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </span>
-                ))}
-              </div>
+              {errors.tags && <p className="mt-2 text-sm text-red-600">{errors.tags}</p>}
             </div>
 
             {/* 写真 */}
