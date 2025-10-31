@@ -88,6 +88,10 @@ export function DesktopAuthProvider({ children }: DesktopAuthProviderProps) {
         const urlParams = new URLSearchParams(window.location.search);
         const isDemoMode = urlParams.get('demo') === 'true';
 
+        console.log('DesktopAuthContext - Restoring auth');
+        console.log('DesktopAuthContext - window.location.search:', window.location.search);
+        console.log('DesktopAuthContext - isDemoMode:', isDemoMode);
+
         if (isDemoMode) {
           // デモ用のダミーデータ
           const demoNursery: NurseryInfo = {
@@ -95,6 +99,7 @@ export function DesktopAuthProvider({ children }: DesktopAuthProviderProps) {
             nurseryName: 'デモ保育園',
             phoneNumber: '000-0000-0000',
           };
+          console.log('DesktopAuthContext - Setting demo mode with nursery:', demoNursery);
           dispatch({
             type: 'LOGIN',
             payload: {

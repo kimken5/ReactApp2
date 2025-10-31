@@ -1,6 +1,6 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDesktopAuth } from '../contexts/DesktopAuthContext';
 import { authService } from '../services/authService';
 import { AxiosError } from 'axios';
@@ -8,12 +8,23 @@ import type { ApiResponse } from '../types/auth';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, setError, setLoading, state } = useDesktopAuth();
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
+
+  // デモモードの場合はカレンダーページへリダイレクト
+  useEffect(() => {
+    const isDemoMode = searchParams.get('demo') === 'true';
+    console.log('LoginPage - isDemoMode:', isDemoMode);
+    if (isDemoMode) {
+      console.log('LoginPage - Redirecting to calendar with demo=true');
+      navigate('/desktop/calendar?demo=true', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

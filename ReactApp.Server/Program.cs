@@ -231,6 +231,8 @@ builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddScoped<IDesktopPhotoService, DesktopPhotoService>();
 // Attachment Storage Services
 builder.Services.AddSingleton<IAttachmentService, AzureBlobAttachmentService>();
+// Calendar Services
+builder.Services.AddScoped<IDesktopCalendarService, DesktopCalendarService>();
 
 // SignalR Services
 builder.Services.AddScoped<ISignalRService, SignalRService>();
@@ -287,7 +289,15 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("https://localhost:5173", "https://localhost:5174", "https://localhost:5175", "https://localhost:5176", "https://localhost:3000")
+        policy.WithOrigins(
+                  "https://localhost:5173", "https://localhost:5174", "https://localhost:5175",
+                  "https://localhost:5176", "https://localhost:5177", "https://localhost:5178",
+                  "https://localhost:5179", "https://localhost:5180", "https://localhost:5181",
+                  "https://localhost:5182", "https://localhost:5183", "https://localhost:5184",
+                  "https://localhost:5185", "https://localhost:5186", "https://localhost:5187",
+                  "https://localhost:5188", "https://localhost:5189", "https://localhost:5190",
+                  "https://localhost:3000"
+              )
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();

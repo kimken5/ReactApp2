@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { DesktopAuthProvider, useDesktopAuth } from './contexts/DesktopAuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -19,6 +19,7 @@ import { PhotoUploadPage } from './pages/PhotoUploadPage';
 import { PhotoDetailPage } from './pages/PhotoDetailPage';
 import { ContactNotificationsPage } from './pages/ContactNotificationsPage';
 import { ContactNotificationDetailPage } from './pages/ContactNotificationDetailPage';
+import { CalendarPage } from './pages/CalendarPage';
 
 /**
  * デスクトップアプリ用ルーター
@@ -26,6 +27,19 @@ import { ContactNotificationDetailPage } from './pages/ContactNotificationDetail
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { state } = useDesktopAuth();
+  const [searchParams] = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === 'true';
+
+  // デモモード検出のデバッグログ
+  console.log('ProtectedRoute - isDemoMode:', isDemoMode);
+  console.log('ProtectedRoute - searchParams:', Object.fromEntries(searchParams));
+  console.log('ProtectedRoute - state.isAuthenticated:', state.isAuthenticated);
+
+  // デモモードの場合は認証チェックをバイパス
+  if (isDemoMode) {
+    console.log('Demo mode detected, bypassing authentication');
+    return <>{children}</>;
+  }
 
   if (state.isLoading) {
     return (
@@ -39,7 +53,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!state.isAuthenticated) {
-    return <Navigate to="/desktop/login" replace />;
+    // クエリパラメータを保持してリダイレクト
+    const search = window.location.search;
+    console.log('Redirecting to login with search params:', search);
+    return <Navigate to={`/desktop/login${search}`} replace />;
   }
 
   return <>{children}</>;
@@ -245,6 +262,16 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <ContactNotificationDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* カレンダー管理 */}
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <CalendarPage />
           </ProtectedRoute>
         }
       />
