@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { PhotoDetailModal } from '../components/common/PhotoDetailModal';
 import { photoService } from '../services/photoService';
 import { masterService } from '../services/masterService';
 import type { PhotoDto, PhotoFilterDto } from '../types/photo';
@@ -33,18 +34,30 @@ const generateDemoPhotos = (): PhotoDto[] => {
 
   return Array.from({ length: 15 }, (_, i) => ({
     id: i + 1,
+    fileName: `photo_${i + 1}.jpg`,
+    filePath: `/photos/photo_${i + 1}.jpg`,
     description: descriptions[i % descriptions.length],
     thumbnailPath: `https://via.placeholder.com/300/${colors[i % colors.length].replace('#', '')}/FFFFFF?text=${encodeURIComponent(descriptions[i % descriptions.length])}`,
-    originalPath: `https://via.placeholder.com/800/${colors[i % colors.length].replace('#', '')}/FFFFFF`,
+    originalFileName: `original_photo_${i + 1}.jpg`,
+    fileSize: 1024 * (100 + i * 50),
+    mimeType: 'image/jpeg',
+    width: 1920,
+    height: 1080,
     uploadedByStaffId: Math.floor(i / 3) + 1,
     uploadedByStaffName: `田中 ${['花子', '太郎', '次郎', '三郎', '四郎'][Math.floor(i / 3) % 5]}`,
+    uploadedAt: new Date(2025, 0, 15 - i, 9, 0).toISOString(),
     publishedAt: new Date(2025, 0, 15 - i).toISOString(),
     status: statuses[i % 2],
     visibilityLevel: visibilityLevels[i % 3],
     requiresConsent: i % 3 === 0,
+    viewCount: Math.floor(Math.random() * 100),
+    downloadCount: Math.floor(Math.random() * 20),
+    isActive: true,
+    uploadedByAdminUser: false,
     children: Array.from({ length: Math.floor(Math.random() * 5) + 1 }, (_, j) => ({
       childId: j + 1,
-      childName: `園児${j + 1}`
+      childName: `園児${j + 1}`,
+      isPrimarySubject: j === 0
     }))
   }));
 };
@@ -89,6 +102,10 @@ export function PhotosPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmPhoto, setDeleteConfirmPhoto] = useState<PhotoDto | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  
+  // Modal state
+  const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // マスタデータ
   const [children, setChildren] = useState<ChildDto[]>([]);
@@ -217,6 +234,21 @@ export function PhotosPage() {
     }
   };
 
+  const handlePhotoClick = (photo: PhotoDto) => {
+    setSelectedPhoto(photo);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedPhoto(null);
+  };
+
+  const handlePhotoUpdated = () => {
+    // Reload photos after update
+    loadPhotos();
+  };
+
   const handleDelete = async (photo: PhotoDto) => {
     try {
       setErrorMessage(null);
@@ -224,7 +256,7 @@ export function PhotosPage() {
       await photoService.deletePhoto(photo.id);
       setSuccessMessage(`写真を削除しました`);
       setDeleteConfirmPhoto(null);
-      loadInitialData();
+      loadPhotos();
 
       setTimeout(() => {
         setSuccessMessage(null);
@@ -296,10 +328,6 @@ export function PhotosPage() {
 
   const formatDate = (dateString: string) => {
     return dateString.split('T')[0]; // YYYY-MM-DD
-  };
-
-  const isPublished = (status: string) => {
-    return status.toLowerCase() === 'published';
   };
 
   const isPublishedOrArchived = (status: string) => {
@@ -580,7 +608,7 @@ export function PhotosPage() {
                 {/* サムネイル画像 */}
                 <div
                   className="relative aspect-square bg-gray-200 cursor-pointer overflow-hidden"
-                  onClick={() => navigate(`/desktop/photos/${photo.id}`)}
+                  onClick={() => handlePhotoClick(photo)}
                 >
                   <img
                     src={photo.thumbnailPath}
@@ -633,17 +661,16 @@ export function PhotosPage() {
                     </div>
                   </div>
 
-                  {/* バッジ */}
-                  <div className="flex items-center space-x-2 mb-3">
-                    {getStatusBadge(photo.status)}
-                    {getVisibilityBadge(photo.visibilityLevel)}
-                  </div>
-
-                  {/* アクションボタン */}
-                  <div className="flex gap-1 pt-3">
+                  {/* バッジとアクションボタン */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(photo.status)}
+                      {getVisibilityBadge(photo.visibilityLevel)}
+                    </div>
+                    <div className="flex gap-1">
                     {/* 詳細ボタン */}
                     <button
-                      onClick={() => navigate(`/desktop/photos/${photo.id}`)}
+                      onClick={() => handlePhotoClick(photo)}
                       className="relative group p-2 bg-green-50 text-green-600 rounded-md border border-green-200 hover:bg-green-100 hover:shadow-md transition-all duration-200"
                       title="詳細"
                     >
@@ -665,40 +692,11 @@ export function PhotosPage() {
                         詳細
                       </span>
                     </button>
-                    {/* 編集ボタン */}
-                    <button
-                      onClick={() => navigate(`/desktop/photos/edit/${photo.id}`)}
-                      disabled={isPublishedOrArchived(photo.status)}
-                      className={`relative group p-2 rounded-md border transition-all duration-200 ${
-                        isPublishedOrArchived(photo.status)
-                          ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
-                          : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:shadow-md'
-                      }`}
-                      title="編集"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                      {!isPublishedOrArchived(photo.status) && (
-                        <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          編集
-                        </span>
-                      )}
-                    </button>
+                    
                     {/* 削除ボタン */}
                     <button
                       onClick={() => setDeleteConfirmPhoto(photo)}
-                      disabled={isPublished(photo.status)}
-                      className={`relative group p-2 rounded-md border transition-all duration-200 ${
-                        isPublished(photo.status)
-                          ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
-                          : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:shadow-md'
-                      }`}
+                      className="relative group p-2 rounded-md border transition-all duration-200 bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:shadow-md"
                       title="削除"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -709,15 +707,14 @@ export function PhotosPage() {
                           d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                         />
                       </svg>
-                      {!isPublished(photo.status) && (
-                        <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          削除
-                        </span>
-                      )}
+                      <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        削除
+                      </span>
                     </button>
                   </div>
+                  </div>
                 </div>
-                </div>
+              </div>
                 ))
               )}
             </div>
@@ -765,6 +762,14 @@ export function PhotosPage() {
           </>
         )}
       </div>
+
+      {/* Photo Detail Modal */}
+      <PhotoDetailModal
+        photo={selectedPhoto}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onUpdated={handlePhotoUpdated}
+      />
 
       {/* 削除確認モーダル */}
       {deleteConfirmPhoto && (
