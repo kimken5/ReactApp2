@@ -60,18 +60,19 @@ public class Announcement
     public string TargetScope { get; set; } = "all";
 
     /// <summary>
-    /// 対象クラスID（JSON配列）
+    /// 対象クラスID
     /// TargetScope=classの場合に使用
     /// </summary>
-    [Column(TypeName = "nvarchar(max)")]
-    public string? TargetClassIds { get; set; }
+    [StringLength(50)]
+    [Column("TargetClassId")]
+    public string? TargetClassId { get; set; }
 
     /// <summary>
-    /// 対象園児ID（JSON配列）
+    /// 対象園児ID
     /// TargetScope=individualの場合に使用
     /// </summary>
-    [Column(TypeName = "nvarchar(max)")]
-    public string? TargetChildIds { get; set; }
+    [Column("TargetChildId")]
+    public int? TargetChildId { get; set; }
 
     /// <summary>
     /// 添付ファイル（JSON配列）
@@ -87,14 +88,6 @@ public class Announcement
     [Required]
     [StringLength(20)]
     public string Status { get; set; } = "draft";
-
-    /// <summary>
-    /// 重要度（必須）
-    /// normal: 通常、important: 重要、urgent: 緊急
-    /// </summary>
-    [Required]
-    [StringLength(20)]
-    public string Priority { get; set; } = "normal";
 
     /// <summary>
     /// コメント許可フラグ

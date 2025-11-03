@@ -55,10 +55,10 @@ export function AnnouncementsPage() {
     loadAnnouncements();
   }, []);
 
-  // フィルタ適用
+  // フィルタ適用（検索キーワード以外）
   useEffect(() => {
     applyFilter();
-  }, [announcements, filter]);
+  }, [announcements, filter.category, filter.status]);
 
   const loadAnnouncements = async () => {
     try {
@@ -169,6 +169,18 @@ export function AnnouncementsPage() {
     }
 
     setFilteredAnnouncements(filtered);
+  };
+
+  const handleSearchKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFilter({ ...filter, searchKeyword: value });
+    // 検索キーワードの変更では自動検索しない
+  };
+
+  const handleSearchKeywordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      applyFilter();
+    }
   };
 
   const handleOpenReadStatus = async (announcement: AnnouncementDto) => {
@@ -289,19 +301,6 @@ export function AnnouncementsPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">読み込み中...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -359,9 +358,10 @@ export function AnnouncementsPage() {
               <input
                 type="text"
                 value={filter.searchKeyword || ''}
-                onChange={(e) => setFilter({ ...filter, searchKeyword: e.target.value })}
+                onChange={handleSearchKeywordChange}
+                onKeyDown={handleSearchKeywordKeyDown}
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                placeholder="タイトル・内容で検索"
+                placeholder="タイトル・内容で検索（ENTERキーで検索）"
               />
             </div>
 
@@ -407,6 +407,12 @@ export function AnnouncementsPage() {
 
         {/* お知らせ一覧 */}
         <div className="bg-white rounded-md shadow-md border border-gray-200">
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600">読み込み中...</p>
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -593,6 +599,7 @@ export function AnnouncementsPage() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
 

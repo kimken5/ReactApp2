@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { contactNotificationService } from '../services/contactNotificationService';
+import { masterService } from '../services/masterService';
 import type { ContactNotificationDto, ContactNotificationFilterDto } from '../types/contactNotification';
+import type { ClassDto } from '../types/master';
 
 /**
  * 連絡通知一覧ページ（デスクトップアプリ用）
@@ -14,16 +16,34 @@ export function ContactNotificationsPage() {
   const isDemoMode = searchParams.get('demo') === 'true';
 
   const [notifications, setNotifications] = useState<ContactNotificationDto[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  
+  // モーダル関連
+  const [selectedNotification, setSelectedNotification] = useState<ContactNotificationDto | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
-  // フィルタ状態
+  // マスタデータ
+  const [classes, setClasses] = useState<ClassDto[]>([]);
+
+  // 今日の日付を取得 (YYYY-MM-DD形式)
+  const getTodayString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // フィルタ状態（デフォルトで今日の日付をセット）
   const [filters, setFilters] = useState<ContactNotificationFilterDto>({
-    startDate: undefined,
+    startDate: getTodayString(),
     endDate: undefined,
     notificationType: undefined,
     status: undefined,
+    classId: undefined,
     searchKeyword: '',
     acknowledgedByAdminUser: undefined,
   });
@@ -32,13 +52,39 @@ export function ContactNotificationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
+  // 初期データ読み込み（マスタデータと本日のデータ）
   useEffect(() => {
-    if (isDemoMode) {
-      loadDemoData();
-    } else {
+    loadMasterData();
+    // 初回は本日のデータを自動的に取得
+    loadNotifications();
+  }, [isDemoMode]);
+
+  // フィルター変更時に自動的にデータを取得（検索キーワード以外）
+  useEffect(() => {
+    if (hasSearched) {
       loadNotifications();
     }
-  }, []);
+  }, [
+    filters.startDate,
+    filters.endDate,
+    filters.notificationType,
+    filters.status,
+    filters.classId,
+    filters.acknowledgedByAdminUser,
+    isDemoMode
+  ]);
+
+  const loadMasterData = async () => {
+    try {
+      if (!isDemoMode) {
+        const classesData = await masterService.getClasses();
+        setClasses(classesData);
+      }
+    } catch (error) {
+      console.error('マスタデータの取得に失敗しました:', error);
+      setErrorMessage('マスタデータの取得に失敗しました');
+    }
+  };
 
   const loadDemoData = () => {
     const demoNotifications: ContactNotificationDto[] = [
@@ -126,6 +172,7 @@ export function ContactNotificationsPage() {
       setErrorMessage(null);
       const data = await contactNotificationService.getContactNotifications(filters);
       setNotifications(data);
+      setHasSearched(true);
     } catch (error: any) {
       console.error('連絡通知の取得に失敗:', error);
       setErrorMessage('連絡通知の取得に失敗しました');
@@ -137,13 +184,43 @@ export function ContactNotificationsPage() {
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value || undefined }));
+    setCurrentPage(1);
   };
 
-  const handleSearch = () => {
-    setCurrentPage(1);
-    if (!isDemoMode) {
+  const handleSearchKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFilters(prev => ({ ...prev, searchKeyword: value }));
+    // 検索キーワードの変更では自動検索しない
+  };
+
+  const handleSearchKeywordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setCurrentPage(1);
       loadNotifications();
     }
+  };
+
+  const handleDateClear = () => {
+    setFilters(prev => ({ ...prev, startDate: undefined, endDate: undefined }));
+    setCurrentPage(1);
+  };
+
+  const handleInitialSearch = () => {
+    loadNotifications();
+  };
+
+  // フィルタリセット
+  const handleResetFilters = () => {
+    setFilters({
+      startDate: getTodayString(),
+      endDate: undefined,
+      notificationType: undefined,
+      status: undefined,
+      classId: undefined,
+      searchKeyword: '',
+      acknowledgedByAdminUser: undefined,
+    });
+    setCurrentPage(1);
   };
 
   const handleAcknowledge = async (id: number) => {
@@ -174,31 +251,18 @@ export function ContactNotificationsPage() {
     }
   };
 
-  const handleViewDetail = (id: number) => {
-    navigate(`/desktop/contact-notifications/${id}`);
+  const handleViewDetail = (notification: ContactNotificationDto) => {
+    setSelectedNotification(notification);
+    setShowDetailModal(true);
   };
 
-  // フィルタ適用
-  const filteredNotifications = notifications.filter(notification => {
-    if (filters.notificationType && notification.notificationType !== filters.notificationType) {
-      return false;
-    }
-    if (filters.status && notification.status !== filters.status) {
-      return false;
-    }
-    if (filters.acknowledgedByAdminUser !== undefined && notification.acknowledgedByAdminUser !== filters.acknowledgedByAdminUser) {
-      return false;
-    }
-    if (filters.searchKeyword) {
-      const keyword = filters.searchKeyword.toLowerCase();
-      return (
-        notification.parentName.toLowerCase().includes(keyword) ||
-        notification.childName.toLowerCase().includes(keyword) ||
-        (notification.additionalNotes?.toLowerCase().includes(keyword) ?? false)
-      );
-    }
-    return true;
-  });
+  const handleCloseDetailModal = () => {
+    setSelectedNotification(null);
+    setShowDetailModal(false);
+  };
+
+  // ページネーション用にフィルタ済みデータをそのまま使用（バックエンドでフィルタ済み）
+  const filteredNotifications = notifications;
 
   // ページネーション
   const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage);
@@ -248,19 +312,6 @@ export function ContactNotificationsPage() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">読み込み中...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -303,20 +354,54 @@ export function ContactNotificationsPage() {
         {/* フィルタ・検索バー */}
         <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {/* 検索キーワード */}
+            {/* 日付 */}
             <div>
-              <label htmlFor="searchKeyword" className="block text-sm font-medium text-gray-700 mb-2">
-                検索
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+                日付
               </label>
-              <input
-                type="text"
-                id="searchKeyword"
-                name="searchKeyword"
-                value={filters.searchKeyword}
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={filters.startDate || ''}
+                  onChange={handleFilterChange}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+                />
+{filters.startDate && (
+                  <button
+                    type="button"
+                    onClick={handleDateClear}
+                    className="px-2 py-2 bg-gray-50 text-gray-500 rounded border border-gray-300 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                    title="日付クリア"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* クラス選択 */}
+            <div>
+              <label htmlFor="classId" className="block text-sm font-medium text-gray-700 mb-2">
+                クラス
+              </label>
+              <select
+                id="classId"
+                name="classId"
+                value={filters.classId || ''}
                 onChange={handleFilterChange}
-                placeholder="保護者名・園児名で検索"
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-              />
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+              >
+                <option value="">すべて</option>
+                {classes.map(classItem => (
+                  <option key={classItem.classId} value={classItem.classId}>
+                    {classItem.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* 連絡種別 */}
@@ -329,7 +414,7 @@ export function ContactNotificationsPage() {
                 name="notificationType"
                 value={filters.notificationType || ''}
                 onChange={handleFilterChange}
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
               >
                 <option value="">すべて</option>
                 <option value="absence">欠席</option>
@@ -348,7 +433,7 @@ export function ContactNotificationsPage() {
                 name="status"
                 value={filters.status || ''}
                 onChange={handleFilterChange}
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
               >
                 <option value="">すべて</option>
                 <option value="submitted">未確認</option>
@@ -356,14 +441,29 @@ export function ContactNotificationsPage() {
                 <option value="processed">処理済み</option>
               </select>
             </div>
+          </div>
 
-            {/* 検索ボタン */}
-            <div className="flex items-end">
+          {/* 検索キーワードとリセットボタン */}
+          <div className="md:col-span-2">
+            <label htmlFor="searchKeyword" className="block text-sm font-medium text-gray-700 mb-2">
+              検索キーワード
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                id="searchKeyword"
+                name="searchKeyword"
+                value={filters.searchKeyword}
+                onChange={handleSearchKeywordChange}
+                onKeyDown={handleSearchKeywordKeyDown}
+                placeholder="保護者名・園児名で検索"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+              />
               <button
-                onClick={handleSearch}
-                className="w-full px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-md transition-all duration-200"
+                onClick={handleResetFilters}
+                className="px-4 py-2 bg-gray-50 text-gray-600 rounded-lg border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all duration-200 font-medium text-sm whitespace-nowrap"
               >
-                検索
+                フィルタをリセット
               </button>
             </div>
           </div>
@@ -371,7 +471,12 @@ export function ContactNotificationsPage() {
 
         {/* 連絡通知一覧 */}
         <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
-          {currentNotifications.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600">読み込み中...</p>
+            </div>
+          ) : currentNotifications.length === 0 ? (
             <div className="text-center py-12">
               <svg
                 className="mx-auto h-12 w-12 text-gray-400"
@@ -444,7 +549,7 @@ export function ContactNotificationsPage() {
                         <div className="flex gap-1">
                           {/* 詳細ボタン */}
                           <button
-                            onClick={() => handleViewDetail(notification.id)}
+                            onClick={() => handleViewDetail(notification)}
                             className="relative group p-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200"
                             title="詳細"
                           >
@@ -573,6 +678,151 @@ export function ContactNotificationsPage() {
             </div>
           )}
         </div>
+
+        {/* 詳細モーダル */}
+        {showDetailModal && selectedNotification && (
+          <>
+            {/* Overlay */}
+            <div
+              className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+              onClick={handleCloseDetailModal}
+            />
+
+            {/* Modal */}
+            <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+              <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-3xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto">
+              {/* モーダルヘッダー */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">連絡通知詳細</h2>
+                <button
+                  onClick={handleCloseDetailModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* モーダルコンテンツ */}
+              <div className="p-6 space-y-6">
+                {/* ステータス */}
+                <div className="flex items-center justify-between pb-4">
+                  <div>
+                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mr-2">
+                      {getNotificationTypeLabel(selectedNotification.notificationType)}
+                    </span>
+                    {selectedNotification.acknowledgedByAdminUser ? (
+                      <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                        確認済み
+                      </span>
+                    ) : (
+                      <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                        未確認
+                      </span>
+                    )}
+                  </div>
+                  {!selectedNotification.acknowledgedByAdminUser && (
+                    <button
+                      onClick={() => {
+                        handleAcknowledge(selectedNotification.id);
+                        handleCloseDetailModal();
+                      }}
+                      className="px-4 py-2 bg-green-50 text-green-600 rounded-md border border-green-200 hover:bg-green-100 hover:shadow-md transition-all duration-200"
+                    >
+                      確認済みにする
+                    </button>
+                  )}
+                </div>
+
+                {/* 基本情報 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">対象日</label>
+                    <p className="text-gray-900">{new Date(selectedNotification.ymd).toLocaleDateString('ja-JP')}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">提出日時</label>
+                    <p className="text-gray-900">
+                      {new Date(selectedNotification.submittedAt).toLocaleString('ja-JP')}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">園児名</label>
+                    <p className="text-gray-900">
+                      {selectedNotification.childName}
+                      {selectedNotification.className && (
+                        <span className="ml-2 text-sm text-gray-500">({selectedNotification.className})</span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">保護者名</label>
+                    <p className="text-gray-900">{selectedNotification.parentName}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">理由</label>
+                    <p className="text-gray-900">{getReasonLabel(selectedNotification.reason)}</p>
+                  </div>
+                  {selectedNotification.expectedArrivalTime && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">予定時刻</label>
+                      <p className="text-gray-900">{selectedNotification.expectedArrivalTime}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 備考 */}
+                {selectedNotification.additionalNotes && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">備考</label>
+                    <p className="text-gray-900 whitespace-pre-wrap bg-gray-50 p-4 rounded-md">
+                      {selectedNotification.additionalNotes}
+                    </p>
+                  </div>
+                )}
+
+                {/* 返信情報 */}
+                {selectedNotification.latestResponse && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">スタッフ返信</label>
+                    <div className="bg-gray-50 rounded-md p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {selectedNotification.latestResponse.staffName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(selectedNotification.latestResponse.responseAt).toLocaleString('ja-JP')}
+                          </p>
+                        </div>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                          {selectedNotification.latestResponse.responseType}
+                        </span>
+                      </div>
+                      {selectedNotification.latestResponse.responseMessage && (
+                        <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">
+                          {selectedNotification.latestResponse.responseMessage}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* モーダルフッター */}
+              <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end">
+                <button
+                  onClick={handleCloseDetailModal}
+                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+            </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -346,19 +346,6 @@ export function PhotosPage() {
   const endIndex = startIndex + itemsPerPage;
   const currentPhotos = filteredPhotos.slice(startIndex, endIndex);
 
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">読み込み中...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -594,6 +581,12 @@ export function PhotosPage() {
         {/* 写真グリッド */}
         {hasSearched && (
           <>
+            {isLoading ? (
+              <div className="bg-white rounded-md shadow-md border border-gray-200 p-12 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">読み込み中...</p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
               {currentPhotos.length === 0 ? (
                 <div className="col-span-full bg-white rounded-md shadow-md border border-gray-200 p-12 text-center text-gray-500">
@@ -718,6 +711,7 @@ export function PhotosPage() {
                 ))
               )}
             </div>
+            )}
 
             {/* ページネーション */}
             {totalPages > 1 && (

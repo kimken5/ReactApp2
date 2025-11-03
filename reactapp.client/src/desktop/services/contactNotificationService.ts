@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { apiClient } from './apiClient';
 import type {
   ContactNotificationDto,
   ContactNotificationFilterDto,
@@ -19,18 +19,18 @@ export const contactNotificationService = {
   async getContactNotifications(
     filter: ContactNotificationFilterDto
   ): Promise<ContactNotificationDto[]> {
-    const response = await axios.get<ContactNotificationDto[]>(API_BASE_URL, {
+    const response = await apiClient.get<{ success: boolean; data: ContactNotificationDto[] }>(API_BASE_URL, {
       params: filter,
     });
-    return response.data;
+    return response.data.data;
   },
 
   /**
    * 連絡通知詳細を取得
    */
   async getContactNotificationById(id: number): Promise<ContactNotificationDto> {
-    const response = await axios.get<ContactNotificationDto>(`${API_BASE_URL}/${id}`);
-    return response.data;
+    const response = await apiClient.get<{ success: boolean; data: ContactNotificationDto }>(`${API_BASE_URL}/${id}`);
+    return response.data.data;
   },
 
   /**
@@ -40,11 +40,11 @@ export const contactNotificationService = {
     id: number,
     request: AcknowledgeNotificationRequestDto
   ): Promise<ContactNotificationDto> {
-    const response = await axios.put<ContactNotificationDto>(
+    const response = await apiClient.put<{ success: boolean; data: ContactNotificationDto }>(
       `${API_BASE_URL}/${id}/acknowledge`,
       request
     );
-    return response.data;
+    return response.data.data;
   },
 
   /**
@@ -54,25 +54,25 @@ export const contactNotificationService = {
     notificationId: number,
     request: CreateResponseRequestDto
   ): Promise<ContactNotificationResponseDto> {
-    const response = await axios.post<ContactNotificationResponseDto>(
+    const response = await apiClient.post<{ success: boolean; data: ContactNotificationResponseDto }>(
       `${API_BASE_URL}/${notificationId}/responses`,
       request
     );
-    return response.data;
+    return response.data.data;
   },
 
   /**
    * 連絡通知を削除
    */
   async deleteContactNotification(id: number): Promise<void> {
-    await axios.delete(`${API_BASE_URL}/${id}`);
+    await apiClient.delete(`${API_BASE_URL}/${id}`);
   },
 
   /**
    * 未確認の連絡通知数を取得
    */
   async getUnacknowledgedCount(): Promise<number> {
-    const response = await axios.get<number>(`${API_BASE_URL}/unacknowledged-count`);
-    return response.data;
+    const response = await apiClient.get<{ success: boolean; data: number }>(`${API_BASE_URL}/unacknowledged/count`);
+    return response.data.data;
   },
 };

@@ -234,6 +234,15 @@ builder.Services.AddSingleton<IAttachmentService, AzureBlobAttachmentService>();
 // Calendar Services
 builder.Services.AddScoped<IDesktopCalendarService, DesktopCalendarService>();
 
+// Desktop Announcement Service
+builder.Services.AddScoped<IDesktopAnnouncementService, DesktopAnnouncementService>();
+
+// Desktop Contact Notification Service
+builder.Services.AddScoped<IDesktopContactNotificationService, DesktopContactNotificationService>();
+
+// Desktop Dashboard Service
+builder.Services.AddScoped<IDesktopDashboardService, DesktopDashboardService>();
+
 // SignalR Services
 builder.Services.AddScoped<ISignalRService, SignalRService>();
 

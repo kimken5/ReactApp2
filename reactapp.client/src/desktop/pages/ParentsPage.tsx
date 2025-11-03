@@ -182,7 +182,7 @@ export function ParentsPage() {
   // データ読み込み
   useEffect(() => {
     loadParents();
-  }, [filter, isDemoMode]);
+  }, [filter.classId, filter.childGraduationStatus, isDemoMode]);
 
   const loadParents = async () => {
     try {
@@ -225,9 +225,19 @@ export function ParentsPage() {
     setFilter(prev => ({ ...prev, [key]: value }));
   };
 
-  // 検索実行
-  const handleSearch = (keyword: string) => {
-    setFilter(prev => ({ ...prev, searchKeyword: keyword || undefined }));
+  // 検索キーワード変更ハンドラ
+  const handleSearchKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFilter(prev => ({ ...prev, searchKeyword: value || undefined }));
+    // 検索キーワードの変更では自動検索しない
+  };
+
+  const handleSearchKeywordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      if (!isDemoMode) {
+        loadParents();
+      }
+    }
   };
 
   // フィルタリセット
@@ -311,8 +321,9 @@ export function ParentsPage() {
               <input
                 type="text"
                 value={filter.searchKeyword || ''}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder="氏名、電話番号、メールアドレスで検索..."
+                onChange={handleSearchKeywordChange}
+                onKeyDown={handleSearchKeywordKeyDown}
+                placeholder="氏名、電話番号、メールアドレスで検索（ENTERキーで検索）..."
                 className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
               />
             </div>
@@ -332,20 +343,16 @@ export function ParentsPage() {
           </div>
         )}
 
-        {/* ローディング */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64 bg-white rounded-md shadow-md border border-gray-200">
-            <div className="text-center">
+        {/* 保護者一覧テーブル */}
+        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+          {isLoading ? (
+            <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
               <p className="mt-4 text-gray-600">読み込み中...</p>
             </div>
-          </div>
-        ) : (
-          <>
-            {/* 保護者一覧テーブル */}
-            <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+          ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -456,13 +463,14 @@ export function ParentsPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+          )}
+        </div>
 
-            {/* 件数表示 */}
-            <div className="text-sm text-gray-600 text-center">
-              全 {parents.length} 件の保護者
-            </div>
-          </>
+        {/* 件数表示 */}
+        {!isLoading && (
+          <div className="text-sm text-gray-600 text-center">
+            全 {parents.length} 件の保護者
+          </div>
         )}
       </div>
     </DashboardLayout>

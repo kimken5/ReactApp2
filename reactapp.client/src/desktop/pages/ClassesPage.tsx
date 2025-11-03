@@ -36,10 +36,10 @@ export function ClassesPage() {
     loadClasses();
   }, []);
 
-  // フィルタ・ソート適用
+  // フィルタ・ソート適用（検索キーワード以外）
   useEffect(() => {
     applyFilterAndSort();
-  }, [classes, filter, sortField, sortDirection]);
+  }, [classes, filter.academicYear, sortField, sortDirection]);
 
   const loadClasses = async () => {
     try {
@@ -186,6 +186,18 @@ export function ClassesPage() {
     setCurrentPage(1);
   };
 
+  const handleSearchKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFilter(prev => ({ ...prev, searchKeyword: value }));
+    // 検索キーワードの変更では自動検索しない
+  };
+
+  const handleSearchKeywordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      applyFilterAndSort();
+    }
+  };
+
   const handleSort = (field: 'name' | 'enrollment') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -229,19 +241,6 @@ export function ClassesPage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentClasses = filteredClasses.slice(startIndex, endIndex);
-
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">読み込み中...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
@@ -331,9 +330,10 @@ export function ClassesPage() {
                 type="text"
                 id="searchKeyword"
                 value={filter.searchKeyword || ''}
-                onChange={e => setFilter(prev => ({ ...prev, searchKeyword: e.target.value }))}
+                onChange={handleSearchKeywordChange}
+                onKeyDown={handleSearchKeywordKeyDown}
                 className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                placeholder="キーワードを入力"
+                placeholder="キーワードを入力（ENTERキーで検索）"
               />
             </div>
 
@@ -354,6 +354,12 @@ export function ClassesPage() {
 
         {/* テーブル */}
         <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">読み込み中...</p>
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -513,6 +519,7 @@ export function ClassesPage() {
               </tbody>
             </table>
           </div>
+          )}
 
           {/* ページネーション */}
           {totalPages > 1 && (

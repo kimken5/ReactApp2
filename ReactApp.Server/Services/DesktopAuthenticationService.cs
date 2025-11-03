@@ -76,8 +76,11 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             _logger.LogInformation("Account lock expired and reset for NurseryId: {NurseryId}", nursery.Id);
         }
 
-        // パスワード検証
-        if (string.IsNullOrEmpty(nursery.Password) || !BCrypt.Net.BCrypt.Verify(request.Password, nursery.Password))
+        // パスワード検証（平文比較）
+        _logger.LogInformation("DEBUG: Verifying password for NurseryId: {NurseryId}, InputPassword: {InputPassword}, StoredPassword: {StoredPassword}",
+            nursery.Id, request.Password, nursery.Password);
+        
+        if (string.IsNullOrEmpty(nursery.Password) || nursery.Password != request.Password)
         {
             // ログイン試行回数を増やす
             nursery.LoginAttempts++;
@@ -222,15 +225,15 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             throw new InvalidOperationException("保育園が見つかりません");
         }
 
-        // 現在のパスワードを検証
-        if (string.IsNullOrEmpty(nursery.Password) || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, nursery.Password))
+        // 現在のパスワードを検証（平文比較）
+        if (string.IsNullOrEmpty(nursery.Password) || nursery.Password != request.CurrentPassword)
         {
             _logger.LogWarning("Password change failed: Invalid current password for NurseryId: {NurseryId}", nurseryId);
             throw new UnauthorizedAccessException("現在のパスワードが正しくありません");
         }
 
-        // 新しいパスワードをハッシュ化して保存
-        nursery.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        // 新しいパスワードを平文で保存
+        nursery.Password = request.NewPassword;
         nursery.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 

@@ -58,10 +58,28 @@ namespace ReactApp.Server.Services
                     query = query.Where(n => n.ChildId == filter.ChildId.Value);
                 }
 
-                // 確認状態フィルタ
+                // クラスフィルタ（Childテーブルと結合してフィルタリング）
+                if (!string.IsNullOrEmpty(filter.ClassId))
+                {
+                    var childIdsInClass = await _context.Children
+                        .Where(c => c.ClassId == filter.ClassId)
+                        .Select(c => c.ChildId)
+                        .ToListAsync();
+
+                    query = query.Where(n => childIdsInClass.Contains(n.ChildId));
+                }
+
+                // 確認状態フィルタ（AcknowledgedAtで判定）
                 if (filter.AcknowledgedByAdminUser.HasValue)
                 {
-                    query = query.Where(n => n.AcknowledgedByAdminUser == filter.AcknowledgedByAdminUser.Value);
+                    if (filter.AcknowledgedByAdminUser.Value)
+                    {
+                        query = query.Where(n => n.AcknowledgedAt != null);
+                    }
+                    else
+                    {
+                        query = query.Where(n => n.AcknowledgedAt == null);
+                    }
                 }
 
                 var notifications = await query
@@ -70,26 +88,21 @@ namespace ReactApp.Server.Services
 
                 // 関連情報を手動で読み込み
                 var parentIds = notifications.Select(n => n.ParentId).Distinct().ToList();
-                var childIds = notifications.Select(n => n.ChildId).Distinct().ToList();
-                var staffIds = notifications.Where(n => n.RespondedByStaffId.HasValue)
-                    .Select(n => n.RespondedByStaffId!.Value).Distinct().ToList();
+                var childIds = notifications.Select(n => new { n.NurseryId, n.ChildId }).Distinct().ToList();
+                var acknowledgedByIds = notifications.Where(n => n.AcknowledgedBy.HasValue)
+                    .Select(n => new { n.NurseryId, StaffId = n.AcknowledgedBy!.Value }).Distinct().ToList();
 
                 var parents = await _context.Parents
                     .Where(p => parentIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p.Name);
 
                 var children = await _context.Children
-                    .Where(c => childIds.Contains(c.ChildId))
-                    .ToDictionaryAsync(c => c.ChildId, c => new { c.Name, c.ClassId });
+                    .Where(c => childIds.Select(x => x.ChildId).Contains(c.ChildId))
+                    .ToDictionaryAsync(c => new { c.NurseryId, c.ChildId }, c => new { c.Name, c.ClassId });
 
                 var classes = await _context.Classes
-                    .ToDictionaryAsync(c => c.ClassId, c => c.Name);
-
-                var staff = staffIds.Any()
-                    ? await _context.Staff
-                        .Where(s => staffIds.Contains(s.StaffId))
-                        .ToDictionaryAsync(s => s.StaffId, s => s.Name)
-                    : new Dictionary<int, string>();
+                    .GroupBy(c => c.ClassId)
+                    .ToDictionaryAsync(g => g.Key, g => g.First().Name);
 
                 // 最新の返信を取得
                 var notificationIds = notifications.Select(n => n.Id).ToList();
@@ -102,15 +115,25 @@ namespace ReactApp.Server.Services
                     .GroupBy(r => r.AbsenceNotificationId)
                     .ToDictionary(g => g.Key, g => g.First());
 
-                var responseStaffIds = responses.Select(r => r.StaffId).Distinct().ToList();
-                var responseStaff = await _context.Staff
-                    .Where(s => responseStaffIds.Contains(s.StaffId))
-                    .ToDictionaryAsync(s => s.StaffId, s => s.Name);
+                var responseStaffIds = responses.Select(r => new { r.NurseryId, r.StaffId }).Distinct().ToList();
+                var responseStaff = responseStaffIds.Any()
+                    ? await _context.Staff
+                        .Where(s => responseStaffIds.Select(x => x.StaffId).Contains(s.StaffId))
+                        .ToDictionaryAsync(s => (s.NurseryId, s.StaffId), s => s.Name)
+                    : new Dictionary<(int NurseryId, int StaffId), string>();
+
+                // 確認済みスタッフ情報を取得
+                var acknowledgedByStaff = acknowledgedByIds.Any()
+                    ? await _context.Staff
+                        .Where(s => acknowledgedByIds.Select(x => x.StaffId).Contains(s.StaffId))
+                        .ToDictionaryAsync(s => (s.NurseryId, s.StaffId), s => s.Name)
+                    : new Dictionary<(int NurseryId, int StaffId), string>();
 
                 // DTOにマッピング
                 var result = notifications.Select(n =>
                 {
-                    var childInfo = children.GetValueOrDefault(n.ChildId);
+                    var childKey = new { n.NurseryId, n.ChildId };
+                    var childInfo = children.GetValueOrDefault(childKey);
                     var className = childInfo != null && !string.IsNullOrEmpty(childInfo.ClassId)
                         ? classes.GetValueOrDefault(childInfo.ClassId)
                         : null;
@@ -118,18 +141,28 @@ namespace ReactApp.Server.Services
                     ContactNotificationResponseDto? latestResponseDto = null;
                     if (latestResponses.TryGetValue(n.Id, out var latestResponse))
                     {
+                        var responseStaffKey = (latestResponse.NurseryId, latestResponse.StaffId);
+                        var responseStaffName = responseStaff.GetValueOrDefault(responseStaffKey, "不明");
+
                         latestResponseDto = new ContactNotificationResponseDto
                         {
                             Id = latestResponse.Id,
                             AbsenceNotificationId = latestResponse.AbsenceNotificationId,
                             NurseryId = latestResponse.NurseryId,
                             StaffId = latestResponse.StaffId,
-                            StaffName = responseStaff.GetValueOrDefault(latestResponse.StaffId, "不明"),
+                            StaffName = responseStaffName,
                             ResponseType = latestResponse.ResponseType,
                             ResponseMessage = latestResponse.ResponseMessage,
                             ResponseAt = latestResponse.ResponseAt,
                             IsActive = latestResponse.IsActive
                         };
+                    }
+
+                    string? acknowledgedByName = null;
+                    if (n.AcknowledgedBy.HasValue)
+                    {
+                        var acknowledgedKey = (n.NurseryId, n.AcknowledgedBy.Value);
+                        acknowledgedByStaff.TryGetValue(acknowledgedKey, out acknowledgedByName);
                     }
 
                     return new ContactNotificationDto
@@ -151,12 +184,10 @@ namespace ReactApp.Server.Services
                         StaffResponse = n.StaffResponse,
                         AcknowledgedAt = n.AcknowledgedAt,
                         AcknowledgedBy = n.AcknowledgedBy,
-                        AcknowledgedByAdminUser = n.AcknowledgedByAdminUser,
-                        RespondedByStaffId = n.RespondedByStaffId,
-                        RespondedByStaffName = n.RespondedByStaffId.HasValue
-                            ? staff.GetValueOrDefault(n.RespondedByStaffId.Value, "不明")
-                            : null,
-                        AcknowledgedByAdminAt = n.AcknowledgedByAdminAt,
+                        AcknowledgedByAdminUser = n.AcknowledgedAt.HasValue,
+                        RespondedByStaffId = null, // 非推奨フィールド
+                        RespondedByStaffName = acknowledgedByName,
+                        AcknowledgedByAdminAt = n.AcknowledgedAt, // 実際の確認日時を使用
                         LatestResponse = latestResponseDto
                     };
                 }).ToList();
@@ -205,21 +236,22 @@ namespace ReactApp.Server.Services
                 // 関連情報を読み込み
                 var parent = await _context.Parents.FindAsync(notification.ParentId);
                 var child = await _context.Children
-                    .FirstOrDefaultAsync(c => c.ChildId == notification.ChildId);
+                    .FirstOrDefaultAsync(c => c.NurseryId == notification.NurseryId && c.ChildId == notification.ChildId);
 
                 string? className = null;
                 if (child != null && !string.IsNullOrEmpty(child.ClassId))
                 {
-                    var classInfo = await _context.Classes.FindAsync(child.ClassId);
+                    var classInfo = await _context.Classes
+                        .FirstOrDefaultAsync(c => c.NurseryId == notification.NurseryId && c.ClassId == child.ClassId);
                     className = classInfo?.Name;
                 }
 
-                string? respondedByStaffName = null;
-                if (notification.RespondedByStaffId.HasValue)
+                string? acknowledgedByStaffName = null;
+                if (notification.AcknowledgedBy.HasValue)
                 {
                     var staff = await _context.Staff
-                        .FirstOrDefaultAsync(s => s.StaffId == notification.RespondedByStaffId.Value);
-                    respondedByStaffName = staff?.Name;
+                        .FirstOrDefaultAsync(s => s.NurseryId == notification.NurseryId && s.StaffId == notification.AcknowledgedBy.Value);
+                    acknowledgedByStaffName = staff?.Name;
                 }
 
                 // 最新の返信を取得
@@ -267,10 +299,10 @@ namespace ReactApp.Server.Services
                     StaffResponse = notification.StaffResponse,
                     AcknowledgedAt = notification.AcknowledgedAt,
                     AcknowledgedBy = notification.AcknowledgedBy,
-                    AcknowledgedByAdminUser = notification.AcknowledgedByAdminUser,
-                    RespondedByStaffId = notification.RespondedByStaffId,
-                    RespondedByStaffName = respondedByStaffName,
-                    AcknowledgedByAdminAt = notification.AcknowledgedByAdminAt,
+                    AcknowledgedByAdminUser = notification.AcknowledgedAt.HasValue,
+                    RespondedByStaffId = null, // 非推奨フィールド
+                    RespondedByStaffName = acknowledgedByStaffName,
+                    AcknowledgedByAdminAt = notification.AcknowledgedAt, // 実際の確認日時を使用
                     LatestResponse = latestResponseDto
                 };
             }
@@ -294,9 +326,8 @@ namespace ReactApp.Server.Services
                     throw new KeyNotFoundException($"連絡通知が見つかりません。ID: {id}");
                 }
 
-                notification.AcknowledgedByAdminUser = true;
-                notification.AcknowledgedByAdminAt = DateTime.UtcNow;
-                notification.RespondedByStaffId = request.RespondedByStaffId;
+                notification.AcknowledgedAt = DateTime.UtcNow;
+                notification.AcknowledgedBy = request.RespondedByStaffId;
                 notification.StaffResponse = request.StaffResponse;
                 notification.Status = "acknowledged";
 
@@ -340,14 +371,13 @@ namespace ReactApp.Server.Services
 
                 // 通知ステータスを更新
                 notification.Status = "acknowledged";
-                notification.AcknowledgedByAdminUser = true;
-                notification.AcknowledgedByAdminAt = DateTime.UtcNow;
-                notification.RespondedByStaffId = request.StaffId;
+                notification.AcknowledgedAt = DateTime.UtcNow;
+                notification.AcknowledgedBy = request.StaffId;
 
                 await _context.SaveChangesAsync();
 
                 var staff = await _context.Staff
-                    .FirstOrDefaultAsync(s => s.StaffId == request.StaffId);
+                    .FirstOrDefaultAsync(s => s.NurseryId == notification.NurseryId && s.StaffId == request.StaffId);
 
                 return new ContactNotificationResponseDto
                 {
@@ -402,7 +432,7 @@ namespace ReactApp.Server.Services
             try
             {
                 return await _context.AbsenceNotifications
-                    .Where(n => !n.AcknowledgedByAdminUser)
+                    .Where(n => n.AcknowledgedAt == null)
                     .CountAsync();
             }
             catch (Exception ex)

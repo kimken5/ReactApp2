@@ -304,17 +304,17 @@ export function ContactNotificationDetailPage() {
         <div className="bg-white rounded-md shadow-md border border-gray-200 mb-6">
           <div className="p-6 space-y-6">
             {/* ステータス */}
-            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+            <div className="flex items-center justify-between pb-4">
               <div>
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mr-2">
+                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mr-2">
                   {getNotificationTypeLabel(notification.notificationType)}
                 </span>
                 {notification.acknowledgedByAdminUser ? (
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                  <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                     確認済み
                   </span>
                 ) : (
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                  <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
                     未確認
                   </span>
                 )}
