@@ -128,6 +128,18 @@ export interface UnreadParentDto {
 }
 
 /**
+ * 既読保護者情報DTO
+ */
+export interface ReadParentDto {
+  parentId: number;
+  parentName: string;
+  phoneNumber: string;
+  childName: string;
+  className: string;
+  readAt: string; // ISO datetime string
+}
+
+/**
  * お知らせカテゴリ定義（デスクトップ用・固定日本語）
  */
 export const announcementCategoriesDesktop: Record<AnnouncementCategoryType, CategoryInfo> = {

@@ -25,7 +25,6 @@ export function ClassFormPage() {
     ageGroupMin: 0,
     ageGroupMax: 5,
     maxCapacity: 20,
-    academicYear: new Date().getFullYear(),
   });
 
   // フォーム入力値の状態（更新用）
@@ -34,7 +33,6 @@ export function ClassFormPage() {
     ageGroupMin: 0,
     ageGroupMax: 5,
     maxCapacity: 20,
-    academicYear: new Date().getFullYear(),
     isActive: true,
   });
 
@@ -55,7 +53,6 @@ export function ClassFormPage() {
         ageGroupMin: data.ageGroupMin,
         ageGroupMax: data.ageGroupMax,
         maxCapacity: data.maxCapacity,
-        academicYear: data.academicYear,
         isActive: data.isActive,
       });
     } catch (error) {
@@ -70,7 +67,7 @@ export function ClassFormPage() {
   const handleCreateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
-    if (name === 'ageGroupMin' || name === 'ageGroupMax' || name === 'maxCapacity' || name === 'academicYear') {
+    if (name === 'ageGroupMin' || name === 'ageGroupMax' || name === 'maxCapacity') {
       const numValue = parseInt(value, 10) || 0;
       setCreateFormData(prev => ({ ...prev, [name]: numValue }));
     } else {
@@ -95,7 +92,7 @@ export function ClassFormPage() {
 
     if (type === 'checkbox' && checked !== undefined) {
       setUpdateFormData(prev => ({ ...prev, [name]: checked }));
-    } else if (name === 'ageGroupMin' || name === 'ageGroupMax' || name === 'maxCapacity' || name === 'academicYear') {
+    } else if (name === 'ageGroupMin' || name === 'ageGroupMax' || name === 'maxCapacity') {
       const numValue = parseInt(value, 10) || 0;
       setUpdateFormData(prev => ({ ...prev, [name]: numValue }));
     } else {
@@ -375,29 +372,6 @@ export function ClassFormPage() {
                 }`}
               />
               {errors.maxCapacity && <p className="mt-1 text-sm text-red-600">{errors.maxCapacity}</p>}
-            </div>
-
-            {/* 年度 */}
-            <div>
-              <label htmlFor="academicYear" className="block text-sm font-medium text-gray-700 mb-2">
-                年度
-              </label>
-              <select
-                id="academicYear"
-                name="academicYear"
-                value={formData.academicYear}
-                onChange={isEditMode ? handleUpdateChange : handleCreateChange}
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-              >
-                {[...Array(5)].map((_, i) => {
-                  const year = new Date().getFullYear() - 2 + i;
-                  return (
-                    <option key={year} value={year}>
-                      {year}年度
-                    </option>
-                  );
-                })}
-              </select>
             </div>
 
             {/* 有効/無効（編集時のみ） */}

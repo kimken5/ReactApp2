@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { ReadStatusModal } from '../components/announcements/ReadStatusModal';
 import { announcementService } from '../services/announcementService';
 import type {
   AnnouncementDto,
   AnnouncementFilterDto,
   AnnouncementCategoryType,
   DeliveryStatusType,
+  ReadStatusDto,
+  ReadParentDto,
+  UnreadParentDto,
 } from '../types/announcement';
 import {
   announcementCategoriesDesktop,
@@ -30,6 +34,16 @@ export function AnnouncementsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmAnnouncement, setDeleteConfirmAnnouncement] =
     useState<AnnouncementDto | null>(null);
+
+  // 閲覧状況モーダル用state
+  const [readStatusModalOpen, setReadStatusModalOpen] = useState(false);
+  const [selectedAnnouncementForReadStatus, setSelectedAnnouncementForReadStatus] =
+    useState<AnnouncementDto | null>(null);
+  const [readStatusData, setReadStatusData] = useState<{
+    readStatus: ReadStatusDto;
+    readParents: ReadParentDto[];
+    unreadParents: UnreadParentDto[];
+  } | null>(null);
 
   // フィルタ状態
   const [filter, setFilter] = useState<AnnouncementFilterDto>({
@@ -155,6 +169,81 @@ export function AnnouncementsPage() {
     }
 
     setFilteredAnnouncements(filtered);
+  };
+
+  const handleOpenReadStatus = async (announcement: AnnouncementDto) => {
+    try {
+      setSelectedAnnouncementForReadStatus(announcement);
+
+      if (isDemoMode) {
+        // デモモード: サンプルデータを生成
+        const demoReadParents: ReadParentDto[] = [
+          {
+            parentId: 1,
+            parentName: '田中 一郎',
+            phoneNumber: '090-1234-5678',
+            childName: '田中 太郎',
+            className: 'ひよこ組',
+            readAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2時間前
+          },
+          {
+            parentId: 2,
+            parentName: '佐藤 花子',
+            phoneNumber: '090-2345-6789',
+            childName: '佐藤 次郎',
+            className: 'ひよこ組',
+            readAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5時間前
+          },
+          {
+            parentId: 3,
+            parentName: '鈴木 美咲',
+            phoneNumber: '090-3456-7890',
+            childName: '鈴木 三郎',
+            className: 'うさぎ組',
+            readAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1時間前
+          },
+        ];
+
+        const demoUnreadParents: UnreadParentDto[] = [
+          {
+            parentId: 4,
+            parentName: '高橋 健太',
+            phoneNumber: '090-4567-8901',
+            childName: '高橋 四郎',
+            className: 'きりん組',
+          },
+        ];
+
+        setReadStatusData({
+          readStatus: {
+            totalRecipients: 4,
+            readCount: 3,
+            readRate: 75.0,
+          },
+          readParents: demoReadParents,
+          unreadParents: demoUnreadParents,
+        });
+      } else {
+        // 本番モード: APIから取得
+        const unreadParents = await announcementService.getUnreadParents(announcement.announcementId);
+
+        // ここでは仮のデータを設定（APIが実装されたら適切に修正）
+        setReadStatusData({
+          readStatus: announcement.readStatus || {
+            totalRecipients: 0,
+            readCount: 0,
+            readRate: 0,
+          },
+          readParents: [], // APIから取得した既読保護者リスト
+          unreadParents: unreadParents,
+        });
+      }
+
+      setReadStatusModalOpen(true);
+    } catch (error) {
+      console.error('閲覧状況取得エラー:', error);
+      setErrorMessage('閲覧状況の取得に失敗しました');
+    }
   };
 
   const handleDelete = async (announcement: AnnouncementDto) => {
@@ -396,6 +485,31 @@ export function AnnouncementsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                         <div className="flex justify-end gap-1">
+                          {/* 閲覧状況ボタン (配信済みのみ) */}
+                          {announcement.status === 'published' && (
+                            <button
+                              onClick={() => handleOpenReadStatus(announcement)}
+                              className="relative group p-2 bg-purple-50 text-purple-600 rounded-md border border-purple-200 hover:bg-purple-100 hover:shadow-md transition-all duration-200"
+                              title="閲覧状況"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                />
+                              </svg>
+                              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                閲覧状況
+                              </span>
+                            </button>
+                          )}
                           {/* 配信ボタン (下書きのみ) */}
                           {announcement.status === 'draft' && (
                             <button
@@ -481,6 +595,22 @@ export function AnnouncementsPage() {
           </div>
         </div>
       </div>
+
+      {/* 閲覧状況モーダル */}
+      {readStatusModalOpen && selectedAnnouncementForReadStatus && readStatusData && (
+        <ReadStatusModal
+          isOpen={readStatusModalOpen}
+          onClose={() => {
+            setReadStatusModalOpen(false);
+            setSelectedAnnouncementForReadStatus(null);
+            setReadStatusData(null);
+          }}
+          announcementTitle={selectedAnnouncementForReadStatus.title}
+          readStatus={readStatusData.readStatus}
+          readParents={readStatusData.readParents}
+          unreadParents={readStatusData.unreadParents}
+        />
+      )}
 
       {/* 削除確認モーダル */}
       {deleteConfirmAnnouncement && (

@@ -12,6 +12,12 @@ const generateDemoData = (): ChildDto[] => {
     '吉田 心春', '山田 颯太', '佐々木 陽菜', '山口 悠真', '松本 愛莉',
     '井上 樹', '木村 莉子', '林 颯人', '清水 凛', '山崎 奏太'
   ];
+  const furiganas = [
+    'さとう はなこ', 'すずき たろう', 'たかはし みさき', 'たなか けんた', 'わたなべ ゆい',
+    'いとう れん', 'やまもと あかり', 'なかむら だいき', 'こばやし さくら', 'かとう ひなた',
+    'よしだ こはる', 'やまだ そうた', 'ささき ひな', 'やまぐち ゆうま', 'まつもと あいり',
+    'いのうえ いつき', 'きむら りこ', 'はやし はやと', 'しみず りん', 'やまざき そうた'
+  ];
   const classes = [
     { id: 1, name: 'さくら組' },
     { id: 2, name: 'ひまわり組' },
@@ -34,6 +40,7 @@ const generateDemoData = (): ChildDto[] => {
     return {
       childId: index + 1,
       name,
+      furigana: furiganas[index],
       dateOfBirth: `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`,
       gender,
       classId: selectedClass.id,
@@ -391,6 +398,9 @@ export function ChildrenPage() {
                     氏名
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ふりがな
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     生年月日
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -416,7 +426,7 @@ export function ChildrenPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {children.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                       園児が見つかりませんでした
                     </td>
                   </tr>
@@ -437,6 +447,9 @@ export function ChildrenPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {child.name} ({calculateAge(child.dateOfBirth)}歳)
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {child.furigana || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(child.dateOfBirth).toLocaleDateString('ja-JP', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\//g, '/')}

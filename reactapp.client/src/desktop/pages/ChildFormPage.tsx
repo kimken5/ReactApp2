@@ -29,6 +29,7 @@ export function ChildFormPage() {
   // フォーム状態
   const [formData, setFormData] = useState({
     name: '',
+    furigana: '',
     dateOfBirth: '',
     gender: '',
     classId: '',
@@ -70,6 +71,7 @@ export function ChildFormPage() {
         setChild(childData);
         setFormData({
           name: childData.name,
+          furigana: childData.furigana || '',
           dateOfBirth: childData.dateOfBirth.split('T')[0],
           gender: childData.gender,
           classId: childData.classId || '',
@@ -204,6 +206,7 @@ export function ChildFormPage() {
         // 編集モード
         const updateRequest: UpdateChildRequestDto = {
           name: formData.name,
+          furigana: formData.furigana || undefined,
           dateOfBirth: formData.dateOfBirth,
           gender: formData.gender,
           classId: formData.classId || undefined,
@@ -220,6 +223,7 @@ export function ChildFormPage() {
         // 新規作成モード
         const createRequest: CreateChildRequestDto = {
           name: formData.name,
+          furigana: formData.furigana || undefined,
           dateOfBirth: formData.dateOfBirth,
           gender: formData.gender,
           classId: formData.classId || undefined,
@@ -308,6 +312,24 @@ export function ChildFormPage() {
                     placeholder="例: 山田 太郎"
                   />
                   {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                </div>
+
+                {/* ふりがな */}
+                <div>
+                  <label htmlFor="furigana" className="block text-sm font-medium text-gray-700 mb-2">
+                    ふりがな
+                  </label>
+                  <input
+                    type="text"
+                    id="furigana"
+                    name="furigana"
+                    value={formData.furigana}
+                    onChange={handleChange}
+                    maxLength={100}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="例: やまだ たろう"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">最大100文字まで入力できます</p>
                 </div>
 
                 {/* 生年月日 */}

@@ -75,6 +75,7 @@ export interface ChildDto {
   nurseryId: number;
   childId: number;
   name: string;
+  furigana?: string;
   dateOfBirth: string;
   gender: string;
   classId?: string;
@@ -95,6 +96,7 @@ export interface ChildDto {
 
 export interface CreateChildRequestDto {
   name: string;
+  furigana?: string;
   dateOfBirth: string;
   gender: string;
   classId?: string;
@@ -106,6 +108,7 @@ export interface CreateChildRequestDto {
 
 export interface UpdateChildRequestDto {
   name: string;
+  furigana?: string;
   dateOfBirth: string;
   gender: string;
   classId?: string;

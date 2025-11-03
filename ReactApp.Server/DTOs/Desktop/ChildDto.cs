@@ -10,6 +10,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public int NurseryId { get; set; }
         public int ChildId { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? Furigana { get; set; }
         public DateTime DateOfBirth { get; set; }
         public string Gender { get; set; } = string.Empty;
         public string? ClassId { get; set; }
@@ -38,6 +39,9 @@ namespace ReactApp.Server.DTOs.Desktop
         [Required(ErrorMessage = "氏名は必須です")]
         [StringLength(100, ErrorMessage = "氏名は100文字以内で入力してください")]
         public string Name { get; set; } = string.Empty;
+
+        [StringLength(100, ErrorMessage = "ふりがなは100文字以内で入力してください")]
+        public string? Furigana { get; set; }
 
         [Required(ErrorMessage = "生年月日は必須です")]
         public DateTime DateOfBirth { get; set; }
@@ -72,6 +76,9 @@ namespace ReactApp.Server.DTOs.Desktop
         [Required(ErrorMessage = "氏名は必須です")]
         [StringLength(100, ErrorMessage = "氏名は100文字以内で入力してください")]
         public string Name { get; set; } = string.Empty;
+
+        [StringLength(100, ErrorMessage = "ふりがなは100文字以内で入力してください")]
+        public string? Furigana { get; set; }
 
         [Required(ErrorMessage = "生年月日は必須です")]
         public DateTime DateOfBirth { get; set; }

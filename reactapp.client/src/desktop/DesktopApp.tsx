@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { NurseryInfoPage } from './pages/NurseryInfoPage';
 import { ClassesPage } from './pages/ClassesPage';
 import { ClassFormPage } from './pages/ClassFormPage';
+import { ClassCompositionPage } from './pages/ClassCompositionPage';
 import { ChildrenPage } from './pages/ChildrenPage';
 import { ChildFormPage } from './pages/ChildFormPage';
 import { ParentsPage } from './pages/ParentsPage';
@@ -108,6 +109,14 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <ClassFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/classes/composition/:classId"
+        element={
+          <ProtectedRoute>
+            <ClassCompositionPage />
           </ProtectedRoute>
         }
       />

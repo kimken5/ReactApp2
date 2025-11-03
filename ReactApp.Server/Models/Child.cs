@@ -36,6 +36,13 @@ public class Child
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// ふりがな（任意）
+    /// 最大100文字、園児名のふりがな
+    /// </summary>
+    [StringLength(100)]
+    public string? Furigana { get; set; }
+
+    /// <summary>
     /// 生年月日（必須）
     /// 年齢計算や成長記録管理に使用
     /// </summary>
