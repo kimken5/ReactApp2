@@ -20,6 +20,8 @@ import { PhotoDetailPage } from './pages/PhotoDetailPage';
 import { ContactNotificationsPage } from './pages/ContactNotificationsPage';
 import { ContactNotificationDetailPage } from './pages/ContactNotificationDetailPage';
 import { CalendarPage } from './pages/CalendarPage';
+import { AnnouncementsPage } from './pages/AnnouncementsPage';
+import { AnnouncementFormPage } from './pages/AnnouncementFormPage';
 
 /**
  * デスクトップアプリ用ルーター
@@ -272,6 +274,32 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <CalendarPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* お知らせ管理 */}
+      <Route
+        path="/announcements"
+        element={
+          <ProtectedRoute>
+            <AnnouncementsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/announcements/create"
+        element={
+          <ProtectedRoute>
+            <AnnouncementFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/announcements/edit/:announcementId"
+        element={
+          <ProtectedRoute>
+            <AnnouncementFormPage />
           </ProtectedRoute>
         }
       />

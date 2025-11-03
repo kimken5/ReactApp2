@@ -86,3 +86,7 @@ appsettings.*.local.json
 *.secret.json
 secrets.json
 nul
+
+# Configuration files with sensitive data (exclude from git)
+ReactApp.Server/appsettings.json
+ReactApp.Server/appsettings.Development.json

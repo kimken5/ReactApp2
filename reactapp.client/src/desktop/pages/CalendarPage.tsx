@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { EventFormModal } from '../components/calendar/EventFormModal';
 import { calendarService } from '../services/calendarService';
 import { masterService } from '../services/masterService';
-import type { CalendarEventDto, EventCategoryType } from '../types/calendar';
+import type { CalendarEventDto, EventCategoryType, CreateEventRequestDto, UpdateEventRequestDto } from '../types/calendar';
 import type { ClassDto } from '../types/master';
 import { eventCategoriesDesktop } from '../types/calendar';
 
@@ -72,10 +73,13 @@ export function CalendarPage() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventDto | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
+  const [showEventFormModal, setShowEventFormModal] = useState(false);
+  const [eventFormMode, setEventFormMode] = useState<'create' | 'edit'>('create');
   const [events, setEvents] = useState<CalendarEventDto[]>([]);
   const [classes, setClasses] = useState<ClassDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // イベントデータの読み込み
   useEffect(() => {
@@ -212,6 +216,92 @@ export function CalendarPage() {
   const closeEventModal = () => {
     setShowEventModal(false);
     setSelectedEvent(null);
+  };
+
+  // イベント作成モーダル
+  const openCreateEventModal = () => {
+    setEventFormMode('create');
+    setSelectedEvent(null);
+    setShowEventFormModal(true);
+  };
+
+  const openEditEventModal = () => {
+    setEventFormMode('edit');
+    setShowEventModal(false);
+    setShowEventFormModal(true);
+  };
+
+  const closeEventFormModal = () => {
+    setShowEventFormModal(false);
+    setSelectedEvent(null);
+  };
+
+  // イベント作成・更新処理
+  const handleEventSubmit = async (data: CreateEventRequestDto | UpdateEventRequestDto) => {
+    try {
+      if (isDemoMode) {
+        // デモモードの場合はローカル状態のみ更新
+        if (eventFormMode === 'create') {
+          const newEvent: CalendarEventDto = {
+            id: Math.max(...events.map(e => e.id), 0) + 1,
+            ...data,
+          };
+          setEvents([...events, newEvent]);
+          setSuccessMessage('イベントを作成しました（デモモード）');
+        } else if (eventFormMode === 'edit' && selectedEvent) {
+          setEvents(events.map(e => e.id === selectedEvent.id ? { ...e, ...data } : e));
+          setSuccessMessage('イベントを更新しました（デモモード）');
+        }
+      } else {
+        // 本番モード
+        if (eventFormMode === 'create') {
+          await calendarService.createEvent(data as CreateEventRequestDto);
+          setSuccessMessage('イベントを作成しました');
+          loadEvents();
+        } else if (eventFormMode === 'edit' && selectedEvent) {
+          await calendarService.updateEvent(selectedEvent.id, data as UpdateEventRequestDto);
+          setSuccessMessage('イベントを更新しました');
+          loadEvents();
+        }
+      }
+
+      // 成功メッセージを3秒後に消す
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      console.error('イベント保存エラー:', error);
+      setErrorMessage('イベントの保存に失敗しました');
+      setTimeout(() => setErrorMessage(null), 3000);
+      throw error;
+    }
+  };
+
+  // イベント削除処理
+  const handleEventDelete = async () => {
+    if (!selectedEvent) return;
+
+    if (!confirm('このイベントを削除してもよろしいですか？')) {
+      return;
+    }
+
+    try {
+      if (isDemoMode) {
+        // デモモードの場合はローカル状態のみ更新
+        setEvents(events.filter(e => e.id !== selectedEvent.id));
+        setSuccessMessage('イベントを削除しました（デモモード）');
+      } else {
+        // 本番モード
+        await calendarService.deleteEvent(selectedEvent.id);
+        setSuccessMessage('イベントを削除しました');
+        loadEvents();
+      }
+
+      closeEventModal();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      console.error('イベント削除エラー:', error);
+      setErrorMessage('イベントの削除に失敗しました');
+      setTimeout(() => setErrorMessage(null), 3000);
+    }
   };
 
   // 月表示の描画
@@ -485,9 +575,20 @@ export function CalendarPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ヘッダー */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">カレンダー管理</h1>
-          <p className="text-gray-600 mt-2">イベントの確認・作成・編集を行います</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">カレンダー管理</h1>
+            <p className="text-gray-600 mt-2">イベントの確認・作成・編集を行います</p>
+          </div>
+          <button
+            onClick={openCreateEventModal}
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>新規イベント</span>
+          </button>
         </div>
 
         {/* エラーメッセージ */}
@@ -501,6 +602,20 @@ export function CalendarPage() {
               />
             </svg>
             {errorMessage}
+          </div>
+        )}
+
+        {/* 成功メッセージ */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            {successMessage}
           </div>
         )}
 
@@ -717,19 +832,59 @@ export function CalendarPage() {
                   </div>
 
                   {/* アクションボタン */}
-                  <div className="mt-6 flex justify-end">
+                  <div className="mt-6 flex justify-between">
                     <button
-                      onClick={closeEventModal}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                      onClick={handleEventDelete}
+                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center gap-2"
                     >
-                      閉じる
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                      削除
                     </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={openEditEventModal}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition flex items-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                        編集
+                      </button>
+                      <button
+                        onClick={closeEventModal}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                      >
+                        閉じる
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </>
         )}
+
+        {/* イベント作成・編集モーダル */}
+        <EventFormModal
+          isOpen={showEventFormModal}
+          onClose={closeEventFormModal}
+          onSubmit={handleEventSubmit}
+          event={selectedEvent}
+          classes={classes}
+          mode={eventFormMode}
+        />
       </div>
     </DashboardLayout>
   );
