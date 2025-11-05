@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs.Desktop;
@@ -767,6 +768,29 @@ namespace ReactApp.Server.Services
                     query = query.Where(p => parentIdsInClass.Contains(p.Id));
                 }
 
+                // ChildGraduationStatusでフィルタ
+                if (!string.IsNullOrWhiteSpace(filter.ChildGraduationStatus))
+                {
+                    _logger.LogInformation("=== ChildGraduationStatus Filter Applied ===");
+                    _logger.LogInformation($"Filter value: {filter.ChildGraduationStatus}");
+                    
+                    var parentIdsWithChildStatus = await _context.ParentChildRelationships
+                        .Where(pcr => pcr.NurseryId == nurseryId && pcr.IsActive)
+                        .Join(_context.Children,
+                            pcr => new { pcr.NurseryId, pcr.ChildId },
+                            c => new { c.NurseryId, c.ChildId },
+                            (pcr, c) => new { pcr.ParentId, c.GraduationStatus })
+                        .Where(x => x.GraduationStatus == filter.ChildGraduationStatus)
+                        .Select(x => x.ParentId)
+                        .Distinct()
+                        .ToListAsync();
+
+                    _logger.LogInformation($"Found {parentIdsWithChildStatus.Count} parents with children having GraduationStatus={filter.ChildGraduationStatus}");
+                    _logger.LogInformation($"ParentIds: {string.Join(", ", parentIdsWithChildStatus)}");
+                    
+                    query = query.Where(p => parentIdsWithChildStatus.Contains(p.Id));
+                }
+
                 if (filter.IsActive.HasValue)
                 {
                     query = query.Where(p => p.IsActive == filter.IsActive.Value);
@@ -1011,6 +1035,11 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"保護者が見つかりません。ParentId: {parentId}");
                 }
 
+                if (request.PhoneNumber != null)
+                {
+                    parent.PhoneNumber = request.PhoneNumber;
+                }
+
                 if (request.Name != null)
                 {
                     parent.Name = request.Name;
@@ -1129,6 +1158,9 @@ namespace ReactApp.Server.Services
         {
             try
             {
+                _logger.LogInformation("GetStaffAsync called - NurseryId: {NurseryId}, Filter: Role={Role}, Position={Position}, ClassId={ClassId}, AcademicYear={AcademicYear}, IsActive={IsActive}, SearchKeyword={SearchKeyword}",
+                    nurseryId, filter.Role, filter.Position, filter.ClassId, filter.AcademicYear, filter.IsActive, filter.SearchKeyword);
+
                 var query = _context.Staff
                     .Where(s => s.NurseryId == nurseryId);
 
@@ -1160,6 +1192,9 @@ namespace ReactApp.Server.Services
                 var staff = await query
                     .OrderBy(s => s.Name)
                     .ToListAsync();
+
+                _logger.LogInformation("Initial staff query returned {Count} staff members. StaffIds: [{StaffIds}]",
+                    staff.Count, string.Join(", ", staff.Select(s => s.StaffId)));
 
                 // 各職員のクラス割り当てを取得
                 var staffIds = staff.Select(s => s.StaffId).ToList();
@@ -1200,12 +1235,18 @@ namespace ReactApp.Server.Services
                         }).ToList()
                     );
 
-                // ClassIdまたはAcademicYearでフィルタした場合、割り当てのある職員のみを返す
-                if (!string.IsNullOrWhiteSpace(filter.ClassId) || filter.AcademicYear.HasValue)
+                // ClassIdでフィルタした場合のみ、割り当てのある職員のみを返す
+                // AcademicYearのみの場合は全職員を返す（割り当てなしも含む）
+                if (!string.IsNullOrWhiteSpace(filter.ClassId))
                 {
                     var filteredStaffIds = assignmentsByStaff.Keys.ToHashSet();
+                    _logger.LogInformation("Filtering by ClassId. Staff with assignments: {Count} (IDs: [{StaffIds}])",
+                        filteredStaffIds.Count, string.Join(", ", filteredStaffIds));
                     staff = staff.Where(s => filteredStaffIds.Contains(s.StaffId)).ToList();
                 }
+
+                _logger.LogInformation("Final staff list count: {Count}. Returning staff IDs: [{StaffIds}]",
+                    staff.Count, string.Join(", ", staff.Select(s => s.StaffId)));
 
                 return staff.Select(s => new StaffDto
                 {
@@ -1216,6 +1257,8 @@ namespace ReactApp.Server.Services
                     Email = s.Email,
                     Role = s.Role,
                     Position = s.Position,
+                    Remark = s.Remark,
+                    ResignationDate = s.ResignationDate,
                     LastLoginAt = s.LastLoginAt,
                     IsActive = s.IsActive,
                     CreatedAt = s.CreatedAt,
@@ -1272,6 +1315,8 @@ namespace ReactApp.Server.Services
                     Email = staff.Email,
                     Role = staff.Role,
                     Position = staff.Position,
+                    Remark = staff.Remark,
+                    ResignationDate = staff.ResignationDate,
                     LastLoginAt = staff.LastLoginAt,
                     IsActive = staff.IsActive,
                     CreatedAt = staff.CreatedAt,
@@ -1291,10 +1336,11 @@ namespace ReactApp.Server.Services
         /// </summary>
         public async Task<StaffDto> CreateStaffAsync(int nurseryId, CreateStaffRequestDto request)
         {
+            // 電話番号を正規化
+            var normalizedPhone = request.PhoneNumber.Replace("-", "").Replace(" ", "");
+
             try
             {
-                // 電話番号を正規化
-                var normalizedPhone = request.PhoneNumber.Replace("-", "").Replace(" ", "");
 
                 // 新しいStaffIdを採番
                 var maxStaffId = await _context.Staff
@@ -1338,6 +1384,14 @@ namespace ReactApp.Server.Services
                     ClassAssignments = new List<StaffClassAssignmentDto>()
                 };
             }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx &&
+                                               (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+            {
+                // Unique constraint violation
+                _logger.LogWarning(ex, "職員の作成に失敗しました(重複キー)。NurseryId: {NurseryId}, PhoneNumber: {PhoneNumber}",
+                    nurseryId, normalizedPhone);
+                throw new InvalidOperationException("この電話番号は既に登録されています。別の電話番号を使用してください。");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "職員の作成に失敗しました。NurseryId: {NurseryId}", nurseryId);
@@ -1352,6 +1406,9 @@ namespace ReactApp.Server.Services
         {
             try
             {
+                _logger.LogInformation("UpdateStaffAsync - StaffId: {StaffId}, Remark: '{Remark}', ResignationDate: {ResignationDate}",
+                    staffId, request.Remark ?? "(null)", request.ResignationDate);
+
                 var staff = await _context.Staff
                     .Where(s => s.NurseryId == nurseryId && s.StaffId == staffId)
                     .FirstOrDefaultAsync();
@@ -1361,6 +1418,9 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"職員が見つかりません。StaffId: {staffId}");
                 }
 
+                _logger.LogInformation("Current staff data - Remark: '{CurrentRemark}', ResignationDate: {CurrentResignationDate}",
+                    staff.Remark ?? "(null)", staff.ResignationDate);
+
                 // 電話番号を正規化
                 var normalizedPhone = request.PhoneNumber.Replace("-", "").Replace(" ", "");
 
@@ -1369,6 +1429,8 @@ namespace ReactApp.Server.Services
                 staff.Email = request.Email;
                 staff.Role = request.Role;
                 staff.Position = request.Position;
+                staff.Remark = request.Remark;
+                staff.ResignationDate = request.ResignationDate;
 
                 if (request.IsActive.HasValue)
                 {
@@ -1377,12 +1439,24 @@ namespace ReactApp.Server.Services
 
                 staff.UpdatedAt = DateTime.UtcNow;
 
+                _logger.LogInformation("Before SaveChanges - Remark: '{Remark}', ResignationDate: {ResignationDate}",
+                    staff.Remark ?? "(null)", staff.ResignationDate);
+
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("職員情報を更新しました。NurseryId: {NurseryId}, StaffId: {StaffId}", nurseryId, staffId);
+                _logger.LogInformation("職員情報を更新しました。NurseryId: {NurseryId}, StaffId: {StaffId}, UpdatedRemark: '{Remark}', UpdatedResignationDate: {ResignationDate}",
+                    nurseryId, staffId, staff.Remark ?? "(null)", staff.ResignationDate);
 
                 return await GetStaffByIdAsync(nurseryId, staffId)
                     ?? throw new InvalidOperationException("更新後の職員情報の取得に失敗しました");
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx &&
+                                               (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+            {
+                // Unique constraint violation
+                _logger.LogWarning(ex, "職員情報の更新に失敗しました(重複キー)。NurseryId: {NurseryId}, StaffId: {StaffId}, PhoneNumber: {PhoneNumber}",
+                    nurseryId, staffId, request.PhoneNumber);
+                throw new InvalidOperationException("この電話番号は既に登録されています。別の電話番号を使用してください。");
             }
             catch (Exception ex)
             {
@@ -1528,6 +1602,168 @@ namespace ReactApp.Server.Services
                 age--;
             }
             return age;
+        }
+
+        #endregion
+
+        #region クラス構成管理
+
+        /// <summary>
+        /// クラス構成情報取得
+        /// </summary>
+        public async Task<ClassCompositionDto> GetClassCompositionAsync(int nurseryId, string classId)
+        {
+            // クラス情報取得
+            var classInfo = await _context.Classes
+                .Where(c => c.NurseryId == nurseryId && c.ClassId == classId)
+                .FirstOrDefaultAsync();
+
+            if (classInfo == null)
+            {
+                throw new KeyNotFoundException($"クラス {classId} が見つかりません");
+            }
+
+            // 割り当て済み職員を取得
+            var assignedStaff = await _context.StaffClassAssignments
+                .Where(sca => sca.NurseryId == nurseryId && sca.ClassId == classId && sca.IsActive)
+                .Join(
+                    _context.Staff,
+                    sca => new { sca.NurseryId, sca.StaffId },
+                    s => new { s.NurseryId, s.StaffId },
+                    (sca, s) => new AssignedStaffDto
+                    {
+                        StaffId = s.StaffId,
+                        Name = s.Name,
+                        AssignmentRole = sca.AssignmentRole
+                    })
+                .ToListAsync();
+
+            // 割り当て済み園児を取得（classIdが一致する園児）
+            var assignedChildren = await _context.Children
+                .Where(c => c.NurseryId == nurseryId && c.ClassId == classId && c.IsActive)
+                .Select(c => new AssignedChildDto
+                {
+                    ChildId = c.ChildId,
+                    Name = c.Name,
+                    Furigana = c.Furigana
+                })
+                .ToListAsync();
+
+            return new ClassCompositionDto
+            {
+                ClassId = classInfo.ClassId,
+                ClassName = classInfo.Name,
+                AssignedStaff = assignedStaff,
+                AssignedChildren = assignedChildren
+            };
+        }
+
+        /// <summary>
+        /// クラス構成更新
+        /// </summary>
+        public async Task<ClassCompositionDto> UpdateClassCompositionAsync(int nurseryId, string classId, UpdateClassCompositionRequestDto request)
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                try
+                {
+                    // クラス存在確認
+                    var classExists = await _context.Classes
+                        .AnyAsync(c => c.NurseryId == nurseryId && c.ClassId == classId);
+
+                    if (!classExists)
+                    {
+                        throw new KeyNotFoundException($"クラス {classId} が見つかりません");
+                    }
+
+                    var currentYear = DateTime.UtcNow.Year;
+
+                    // 1. 既存の職員割り当てを非アクティブ化
+                    var existingStaffAssignments = await _context.StaffClassAssignments
+                        .Where(sca => sca.NurseryId == nurseryId && sca.ClassId == classId && sca.IsActive)
+                        .ToListAsync();
+
+                    foreach (var assignment in existingStaffAssignments)
+                    {
+                        assignment.IsActive = false;
+                        assignment.UpdatedAt = DateTime.UtcNow;
+                    }
+
+                    // 2. 新しい職員割り当てを作成
+                    foreach (var staffId in request.StaffIds)
+                    {
+                        // 既存のレコードがあれば再アクティブ化、なければ新規作成
+                        var existing = await _context.StaffClassAssignments
+                            .FirstOrDefaultAsync(sca => sca.NurseryId == nurseryId &&
+                                                       sca.StaffId == staffId &&
+                                                       sca.ClassId == classId);
+
+                        if (existing != null)
+                        {
+                            existing.IsActive = true;
+                            existing.UpdatedAt = DateTime.UtcNow;
+                            existing.AcademicYear = currentYear;
+                        }
+                        else
+                        {
+                            _context.StaffClassAssignments.Add(new StaffClassAssignment
+                            {
+                                NurseryId = nurseryId,
+                                StaffId = staffId,
+                                ClassId = classId,
+                                AssignmentRole = "MainTeacher", // デフォルトは担任
+                                AcademicYear = currentYear,
+                                IsActive = true,
+                                AssignedAt = DateTime.UtcNow,
+                                CreatedAt = DateTime.UtcNow
+                            });
+                        }
+                    }
+
+                    // 3. 園児のクラス割り当てを更新
+                    // まず、現在このクラスに属する園児のclassIdをクリア
+                    var currentChildren = await _context.Children
+                        .Where(c => c.NurseryId == nurseryId && c.ClassId == classId)
+                        .ToListAsync();
+
+                    foreach (var child in currentChildren)
+                    {
+                        if (!request.ChildIds.Contains(child.ChildId))
+                        {
+                            child.ClassId = null; // クラスから除外
+                            child.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
+
+                    // 新しい園児をこのクラスに割り当て
+                    foreach (var childId in request.ChildIds)
+                    {
+                        var child = await _context.Children
+                            .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ChildId == childId);
+
+                        if (child != null)
+                        {
+                            child.ClassId = classId;
+                            child.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // 更新後のデータを取得して返す
+                    return await GetClassCompositionAsync(nurseryId, classId);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
         }
 
         #endregion

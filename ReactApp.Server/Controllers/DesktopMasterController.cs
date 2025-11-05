@@ -584,6 +584,78 @@ namespace ReactApp.Server.Controllers
 
         #endregion
 
+        #region クラス構成管理
+
+        /// <summary>
+        /// クラス構成取得
+        /// GET /api/desktop/master/classes/{classId}/composition
+        /// </summary>
+        [HttpGet("classes/{classId}/composition")]
+        public async Task<ActionResult<ApiResponse<ClassCompositionDto>>> GetClassComposition(string classId)
+        {
+            try
+            {
+                var nurseryId = GetNurseryId();
+                var composition = await _masterService.GetClassCompositionAsync(nurseryId, classId);
+
+                return Ok(new ApiResponse<ClassCompositionDto> { Success = true, Data = composition });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponse<ClassCompositionDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "CLASS_NOT_FOUND", Message = ex.Message }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "クラス構成の取得中にエラーが発生しました: ClassId={ClassId}", classId);
+                return StatusCode(500, new ApiResponse<ClassCompositionDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "SERVER_ERROR", Message = "サーバーエラーが発生しました" }
+                });
+            }
+        }
+
+        /// <summary>
+        /// クラス構成更新
+        /// PUT /api/desktop/master/classes/{classId}/composition
+        /// </summary>
+        [HttpPut("classes/{classId}/composition")]
+        public async Task<ActionResult<ApiResponse<ClassCompositionDto>>> UpdateClassComposition(
+            string classId,
+            [FromBody] UpdateClassCompositionRequestDto request)
+        {
+            try
+            {
+                var nurseryId = GetNurseryId();
+                var composition = await _masterService.UpdateClassCompositionAsync(nurseryId, classId, request);
+
+                return Ok(new ApiResponse<ClassCompositionDto> { Success = true, Data = composition });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponse<ClassCompositionDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "CLASS_NOT_FOUND", Message = ex.Message }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "クラス構成の更新中にエラーが発生しました: ClassId={ClassId}", classId);
+                return StatusCode(500, new ApiResponse<ClassCompositionDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "SERVER_ERROR", Message = "サーバーエラーが発生しました" }
+                });
+            }
+        }
+
+        #endregion
+
         #region 職員管理
 
         /// <summary>
@@ -623,6 +695,10 @@ namespace ReactApp.Server.Controllers
                 var nurseryId = GetNurseryId();
                 var staff = await _masterService.GetStaffByIdAsync(nurseryId, staffId);
 
+                // デバッグログ: StaffDtoの内容を確認
+                _logger.LogInformation("GetStaffById - StaffId: {StaffId}, Remark: {Remark}, ResignationDate: {ResignationDate}",
+                    staffId, staff?.Remark ?? "(null)", staff?.ResignationDate);
+
                 if (staff == null)
                 {
                     return NotFound(new ApiResponse<StaffDto>
@@ -659,6 +735,15 @@ namespace ReactApp.Server.Controllers
 
                 return CreatedAtAction(nameof(GetStaffById), new { staffId = staff.StaffId }, new ApiResponse<StaffDto> { Success = true, Data = staff });
             }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "職員の作成に失敗しました: {Message}", ex.Message);
+                return BadRequest(new ApiResponse<StaffDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "VALIDATION_ERROR", Message = ex.Message }
+                });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "職員の作成中にエラーが発生しました");
@@ -677,6 +762,9 @@ namespace ReactApp.Server.Controllers
         [HttpPut("staff/{staffId}")]
         public async Task<ActionResult<ApiResponse<StaffDto>>> UpdateStaff(int staffId, [FromBody] UpdateStaffRequestDto request)
         {
+            _logger.LogInformation("UpdateStaff controller - StaffId: {StaffId}, Request: Remark={Remark}, ResignationDate={ResignationDate}", 
+                staffId, request.Remark ?? "(null)", request.ResignationDate);
+            
             try
             {
                 var nurseryId = GetNurseryId();
@@ -690,6 +778,15 @@ namespace ReactApp.Server.Controllers
                 {
                     Success = false,
                     Error = new ApiError { Code = "STAFF_NOT_FOUND", Message = ex.Message }
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "職員の更新に失敗しました: StaffId={StaffId}, Message={Message}", staffId, ex.Message);
+                return BadRequest(new ApiResponse<StaffDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "VALIDATION_ERROR", Message = ex.Message }
                 });
             }
             catch (Exception ex)

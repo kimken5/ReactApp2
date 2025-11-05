@@ -25,6 +25,7 @@ export function StaffFormPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'basic' | 'assignments'>('basic');
 
   // 基本情報フォーム状態
@@ -64,13 +65,37 @@ export function StaffFormPage() {
       if (isEditMode && staffId) {
         const staffData = await masterService.getStaffById(parseInt(staffId, 10));
         setStaff(staffData);
+
+        // 電話番号をハイフン付き形式にフォーマット
+        const formatPhoneNumber = (phone: string): string => {
+          const cleaned = phone.replace(/\D/g, '');
+          if (cleaned.length === 11) {
+            return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7, 11)}`;
+          } else if (cleaned.length === 10) {
+            return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+          }
+          return phone;
+        };
+
+        // 日付をYYYY-MM-DD形式にフォーマット
+        const formatDateForInput = (dateString: string | undefined): string => {
+          if (!dateString) return '';
+          try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            return date.toISOString().split('T')[0];
+          } catch {
+            return '';
+          }
+        };
+
         setFormData({
           name: staffData.name,
-          phoneNumber: staffData.phoneNumber,
+          phoneNumber: formatPhoneNumber(staffData.phoneNumber),
           email: staffData.email || '',
           role: staffData.role,
           position: staffData.position || '',
-          resignationDate: staffData.resignationDate || '',
+          resignationDate: formatDateForInput(staffData.resignationDate),
           remark: staffData.remark || '',
           isActive: staffData.isActive,
         });
@@ -154,6 +179,7 @@ export function StaffFormPage() {
     try {
       setIsSaving(true);
       setErrors({});
+      setSuccessMessage('');
 
       if (isEditMode && staffId) {
         // 編集モード
@@ -168,6 +194,8 @@ export function StaffFormPage() {
           isActive: formData.isActive,
         };
         await masterService.updateStaff(parseInt(staffId, 10), updateRequest);
+        // 編集モードは一覧に戻る
+        navigate('/desktop/staff');
       } else {
         // 新規作成モード
         const createRequest: CreateStaffRequestDto = {
@@ -179,12 +207,38 @@ export function StaffFormPage() {
           remark: formData.remark || undefined,
         };
         await masterService.createStaff(createRequest);
+
+        // 新規作成モードはフォームをクリアして同じページに留まる
+        setFormData({
+          name: '',
+          phoneNumber: '',
+          email: '',
+          role: '',
+          position: '',
+          resignationDate: '',
+          remark: '',
+          isActive: true,
+        });
+        setSuccessMessage('職員を登録しました');
+
+        // 3秒後に成功メッセージをクリア
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
+      }
+    } catch (error: unknown) {
+      console.error('保存に失敗しました:', error);
+
+      // Extract error message from API response
+      let errorMessage = '保存に失敗しました';
+      if (typeof error === 'object' && error !== null) {
+        const axiosError = error as { response?: { data?: { error?: { message?: string } } } };
+        if (axiosError.response?.data?.error?.message) {
+          errorMessage = axiosError.response.data.error.message;
+        }
       }
 
-      navigate('/desktop/staff');
-    } catch (error) {
-      console.error('保存に失敗しました:', error);
-      setErrors({ general: '保存に失敗しました' });
+      setErrors({ general: errorMessage });
     } finally {
       setIsSaving(false);
     }
@@ -285,6 +339,20 @@ export function StaffFormPage() {
             {isEditMode ? '職員情報を編集します' : '新しい職員を登録します'}
           </p>
         </div>
+
+        {/* 成功メッセージ */}
+        {successMessage && (
+          <div className="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            {successMessage}
+          </div>
+        )}
 
         {/* エラーメッセージ */}
         {errors.general && (

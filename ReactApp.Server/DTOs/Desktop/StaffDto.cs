@@ -14,6 +14,12 @@ namespace ReactApp.Server.DTOs.Desktop
         public string? Email { get; set; }
         public string Role { get; set; } = string.Empty;
         public string? Position { get; set; }
+        
+        [System.Text.Json.Serialization.JsonInclude]
+        public string? Remark { get; set; }
+        
+        [System.Text.Json.Serialization.JsonInclude]
+        public DateTime? ResignationDate { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -73,6 +79,11 @@ namespace ReactApp.Server.DTOs.Desktop
 
         [StringLength(100, ErrorMessage = "役職は100文字以内で入力してください")]
         public string? Position { get; set; }
+
+        [StringLength(500, ErrorMessage = "備考は500文字以内で入力してください")]
+        public string? Remark { get; set; }
+
+        public DateTime? ResignationDate { get; set; }
 
         public bool? IsActive { get; set; }
     }

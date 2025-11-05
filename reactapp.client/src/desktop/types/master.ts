@@ -70,6 +70,31 @@ export interface ClassFilterDto {
   searchKeyword?: string;
 }
 
+// ===== クラス構成管理 =====
+export interface ClassCompositionDto {
+  classId: string;
+  className: string;
+  assignedStaff: AssignedStaffDto[];
+  assignedChildren: AssignedChildDto[];
+}
+
+export interface AssignedStaffDto {
+  staffId: number;
+  name: string;
+  assignmentRole: string;
+}
+
+export interface AssignedChildDto {
+  childId: number;
+  name: string;
+  furigana?: string;
+}
+
+export interface UpdateClassCompositionRequestDto {
+  staffIds: number[];
+  childIds: number[];
+}
+
 // ===== 園児管理 =====
 export interface ChildDto {
   nurseryId: number;
@@ -167,6 +192,7 @@ export interface CreateParentRequestDto {
 }
 
 export interface UpdateParentRequestDto {
+  phoneNumber?: string;
   name?: string;
   email?: string;
   address?: string;
