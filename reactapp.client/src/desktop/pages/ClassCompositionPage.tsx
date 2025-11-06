@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
-import type { ClassDto, StaffDto, ChildDto } from '../types/master';
+import type { ClassDto, StaffDto, ChildDto, AssignedStaffDto, AssignedChildDto } from '../types/master';
 
 /**
  * クラス構成管理ページ
@@ -39,9 +39,10 @@ export function ClassCompositionPage() {
     try {
       setIsLoading(true);
 
-      // クラス情報、全職員、全園児を並列取得
-      const [classInfo, staffList, childrenList] = await Promise.all([
+      // クラス情報、クラス構成、全職員、全園児を並列取得
+      const [classInfo, composition, staffList, childrenList] = await Promise.all([
         masterService.getClass(classId!),
+        masterService.getClassComposition(classId!),
         masterService.getStaff(),
         masterService.getChildren({ isActive: true }),
       ]);
@@ -50,15 +51,38 @@ export function ClassCompositionPage() {
       setAllStaff(staffList);
       setAllChildren(childrenList);
 
-      // 既に割り当てられている職員と園児を設定
-      // TODO: 実際のAPIから取得する場合はここで設定
-      
-      // デモモード: classIdに応じてサンプル職員を割り当て
-      const demoAssignedStaff = staffList.slice(0, Math.min(2, staffList.length));
-      setAssignedStaff(demoAssignedStaff);
-      
-      const classChildren = childrenList.filter(child => child.classId === parseInt(classId!));
-      setAssignedChildren(classChildren);
+      // 実データから既に割り当てられている職員と園児を設定
+      const assignedStaffData = composition.assignedStaff.map(assigned => {
+        const fullStaff = staffList.find(s => s.staffId === assigned.staffId);
+        return fullStaff || {
+          nurseryId: 0,
+          staffId: assigned.staffId,
+          name: assigned.name,
+          role: assigned.assignmentRole,
+          phoneNumber: '',
+          isActive: true,
+          createdAt: '',
+        } as StaffDto;
+      });
+
+      const assignedChildrenData = composition.assignedChildren.map(assigned => {
+        const fullChild = childrenList.find(c => c.childId === assigned.childId);
+        return fullChild || {
+          nurseryId: 0,
+          childId: assigned.childId,
+          name: assigned.name,
+          furigana: assigned.furigana,
+          dateOfBirth: '',
+          gender: '',
+          isActive: true,
+          createdAt: '',
+          age: 0,
+          parents: [],
+        } as ChildDto;
+      });
+
+      setAssignedStaff(assignedStaffData);
+      setAssignedChildren(assignedChildrenData);
 
     } catch (error) {
       console.error('データの取得に失敗しました:', error);
@@ -70,7 +94,7 @@ export function ClassCompositionPage() {
 
   // 職員を追加
   const handleAddStaff = (staff: StaffDto) => {
-    if (!assignedStaff.find(s => s.id === staff.id)) {
+    if (!assignedStaff.find(s => s.staffId === staff.staffId)) {
       setAssignedStaff(prev => [...prev, staff]);
     }
     setStaffSearchQuery('');
@@ -79,7 +103,7 @@ export function ClassCompositionPage() {
 
   // 職員を削除
   const handleRemoveStaff = (staffId: number) => {
-    setAssignedStaff(prev => prev.filter(s => s.id !== staffId));
+    setAssignedStaff(prev => prev.filter(s => s.staffId !== staffId));
   };
 
   // 園児を追加
@@ -101,7 +125,7 @@ export function ClassCompositionPage() {
     if (!staffSearchQuery.trim()) return [];
     const query = staffSearchQuery.toLowerCase();
     return allStaff.filter(staff => {
-      if (assignedStaff.find(s => s.id === staff.id)) return false;
+      if (assignedStaff.find(s => s.staffId === staff.staffId)) return false;
       const name = staff.name || '';
       return name.toLowerCase().includes(query);
     }).slice(0, 10);
@@ -125,16 +149,14 @@ export function ClassCompositionPage() {
       setIsSaving(true);
       setErrors({});
 
-      // TODO: 実際のAPI呼び出しに置き換える
-      // await masterService.updateClassComposition(classId!, {
-      //   staffIds: assignedStaff.map(s => s.id),
-      //   childIds: assignedChildren.map(c => c.childId),
-      // });
+      // 実際のAPI呼び出し
+      await masterService.updateClassComposition(classId!, {
+        staffIds: assignedStaff.map(s => s.staffId),
+        childIds: assignedChildren.map(c => c.childId),
+      });
 
       setSuccessMessage('クラス構成を保存しました');
-      setTimeout(() => {
-        navigate('/desktop/classes');
-      }, 1500);
+      // 保存後も画面に留まる
 
     } catch (error) {
       console.error('保存に失敗しました:', error);
@@ -252,7 +274,7 @@ export function ClassCompositionPage() {
                   ) : (
                     getFilteredStaff().map((staff) => (
                       <button
-                        key={staff.id}
+                        key={staff.staffId}
                         type="button"
                         onClick={() => handleAddStaff(staff)}
                         className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0"
@@ -279,7 +301,7 @@ export function ClassCompositionPage() {
                 <div className="space-y-2">
                   {assignedStaff.map((staff) => (
                     <div
-                      key={staff.id}
+                      key={staff.staffId}
                       className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-white hover:bg-gray-50 transition"
                     >
                       <div className="flex-1">
@@ -288,7 +310,7 @@ export function ClassCompositionPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleRemoveStaff(staff.id)}
+                        onClick={() => handleRemoveStaff(staff.staffId)}
                         className="ml-4 px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition border border-red-200"
                       >
                         削除

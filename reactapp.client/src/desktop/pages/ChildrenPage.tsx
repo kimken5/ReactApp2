@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
@@ -79,6 +79,12 @@ export function ChildrenPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // 日付入力フィールドのref
+  const graduationDateFromRef = useRef<HTMLInputElement>(null);
+  const graduationDateToRef = useRef<HTMLInputElement>(null);
+  const dateOfBirthFromRef = useRef<HTMLInputElement>(null);
+  const dateOfBirthToRef = useRef<HTMLInputElement>(null);
+
   // フィルタ状態
   const [filters, setFilters] = useState({
     classId: '',
@@ -115,14 +121,26 @@ export function ChildrenPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
+
+      const filterParams = {
+        classId: filters.classId || undefined,
+        graduationStatus: filters.graduationStatus ? filters.graduationStatus : undefined,
+        searchKeyword: filters.searchKeyword || undefined,
+        graduationDateFrom: filters.graduationDateFrom || undefined,
+        graduationDateTo: filters.graduationDateTo || undefined,
+        dateOfBirthFrom: filters.dateOfBirthFrom || undefined,
+        dateOfBirthTo: filters.dateOfBirthTo || undefined,
+      };
+
+      console.log('=== 園児一覧取得 フィルターパラメータ ===', filterParams);
+
       const [childrenData, classesData] = await Promise.all([
-        masterService.getChildren({
-          classId: filters.classId || undefined,
-          graduationStatus: filters.graduationStatus || undefined,
-          searchKeyword: filters.searchKeyword || undefined,
-        }),
+        masterService.getChildren(filterParams),
         masterService.getClasses({ isActive: true }),
       ]);
+
+      console.log('=== 園児一覧取得 結果 ===', childrenData.length, '件');
+
       setChildren(childrenData);
       setClasses(classesData);
     } catch (error) {
@@ -139,6 +157,34 @@ export function ChildrenPage() {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
+  // 日付フィルタ変更ハンドラ
+  const handleDateFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+    // カレンダーで日付を選択した後、フォーカスをセット
+    setTimeout(() => {
+      e.target.focus();
+    }, 0);
+  };
+
+  // 日付フィールドクリアハンドラ
+  const handleClearDate = (fieldName: string) => {
+    setFilters(prev => ({ ...prev, [fieldName]: '' }));
+    // クリア後、対応する入力フィールドにフォーカスをセット
+    setTimeout(() => {
+      const refMap: { [key: string]: React.RefObject<HTMLInputElement> } = {
+        graduationDateFrom: graduationDateFromRef,
+        graduationDateTo: graduationDateToRef,
+        dateOfBirthFrom: dateOfBirthFromRef,
+        dateOfBirthTo: dateOfBirthToRef,
+      };
+      const ref = refMap[fieldName];
+      if (ref?.current) {
+        ref.current.focus();
+      }
+    }, 0);
+  };
+
   const handleSearchKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
     setFilters(prev => ({ ...prev, searchKeyword: value }));
@@ -153,9 +199,19 @@ export function ChildrenPage() {
     }
   };
 
+  // 日付入力のEnterキーハンドラ（手入力時のトリガー用）
+  const handleDateInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      // 手入力時はEnterキーでフィルターを実行
+      if (!isDemoMode) {
+        loadData();
+      }
+    }
+  };
+
   // フィルタリセット
-  const handleResetFilters = () => {
-    setFilters({
+  const handleResetFilters = async () => {
+    const resetFilters = {
       classId: '',
       graduationStatus: 'Active',
       searchKeyword: '',
@@ -163,7 +219,40 @@ export function ChildrenPage() {
       graduationDateTo: '',
       dateOfBirthFrom: '',
       dateOfBirthTo: '',
-    });
+    };
+    setFilters(resetFilters);
+
+    // リセット後、すぐにフィルター検索を実行
+    if (!isDemoMode) {
+      try {
+        setIsLoading(true);
+
+        const filterParams = {
+          classId: resetFilters.classId || undefined,
+          graduationStatus: resetFilters.graduationStatus ? resetFilters.graduationStatus : undefined,
+          searchKeyword: resetFilters.searchKeyword || undefined,
+          graduationDateFrom: resetFilters.graduationDateFrom || undefined,
+          graduationDateTo: resetFilters.graduationDateTo || undefined,
+          dateOfBirthFrom: resetFilters.dateOfBirthFrom || undefined,
+          dateOfBirthTo: resetFilters.dateOfBirthTo || undefined,
+        };
+
+        console.log('=== フィルターリセット後の検索 ===', filterParams);
+
+        const [childrenData, classesData] = await Promise.all([
+          masterService.getChildren(filterParams),
+          masterService.getClasses({ isActive: true }),
+        ]);
+
+        setChildren(childrenData);
+        setClasses(classesData);
+      } catch (error) {
+        console.error('フィルターリセット後のデータ取得に失敗しました:', error);
+        alert('データの取得に失敗しました。');
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   // 削除ハンドラ
@@ -329,23 +418,55 @@ export function ChildrenPage() {
                 卒園日
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  id="graduationDateFrom"
-                  name="graduationDateFrom"
-                  value={filters.graduationDateFrom}
-                  onChange={handleFilterChange}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                />
+                <div className="flex-1 relative">
+                  <input
+                    ref={graduationDateFromRef}
+                    type="date"
+                    id="graduationDateFrom"
+                    name="graduationDateFrom"
+                    value={filters.graduationDateFrom}
+                    onChange={handleDateFilterChange}
+                    onKeyDown={handleDateInputKeyDown}
+                    className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                  />
+                  {filters.graduationDateFrom && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearDate('graduationDateFrom')}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      title="クリア"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
                 <span className="text-gray-500">〜</span>
-                <input
-                  type="date"
-                  id="graduationDateTo"
-                  name="graduationDateTo"
-                  value={filters.graduationDateTo}
-                  onChange={handleFilterChange}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                />
+                <div className="flex-1 relative">
+                  <input
+                    ref={graduationDateToRef}
+                    type="date"
+                    id="graduationDateTo"
+                    name="graduationDateTo"
+                    value={filters.graduationDateTo}
+                    onChange={handleDateFilterChange}
+                    onKeyDown={handleDateInputKeyDown}
+                    className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                  />
+                  {filters.graduationDateTo && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearDate('graduationDateTo')}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      title="クリア"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -355,23 +476,55 @@ export function ChildrenPage() {
                 生年月日
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  id="dateOfBirthFrom"
-                  name="dateOfBirthFrom"
-                  value={filters.dateOfBirthFrom}
-                  onChange={handleFilterChange}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                />
+                <div className="flex-1 relative">
+                  <input
+                    ref={dateOfBirthFromRef}
+                    type="date"
+                    id="dateOfBirthFrom"
+                    name="dateOfBirthFrom"
+                    value={filters.dateOfBirthFrom}
+                    onChange={handleDateFilterChange}
+                    onKeyDown={handleDateInputKeyDown}
+                    className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                  />
+                  {filters.dateOfBirthFrom && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearDate('dateOfBirthFrom')}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      title="クリア"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
                 <span className="text-gray-500">〜</span>
-                <input
-                  type="date"
-                  id="dateOfBirthTo"
-                  name="dateOfBirthTo"
-                  value={filters.dateOfBirthTo}
-                  onChange={handleFilterChange}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                />
+                <div className="flex-1 relative">
+                  <input
+                    ref={dateOfBirthToRef}
+                    type="date"
+                    id="dateOfBirthTo"
+                    name="dateOfBirthTo"
+                    value={filters.dateOfBirthTo}
+                    onChange={handleDateFilterChange}
+                    onKeyDown={handleDateInputKeyDown}
+                    className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                  />
+                  {filters.dateOfBirthTo && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearDate('dateOfBirthTo')}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      title="クリア"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

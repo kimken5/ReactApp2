@@ -91,6 +91,12 @@ export function ParentFormPage() {
           fontSize: parentData.fontSize,
           language: parentData.language,
         });
+
+        // 紐付いている園児を selectedChildIds に設定
+        const childIds = new Set<string>(
+          parentData.children.map(child => `${child.nurseryId}-${child.childId}`)
+        );
+        setSelectedChildIds(childIds);
       }
     } catch (error) {
       console.error('データの取得に失敗しました:', error);
@@ -131,20 +137,6 @@ export function ParentFormPage() {
         return newErrors;
       });
     }
-  };
-
-  // 園児選択トグル
-  const handleChildToggle = (nurseryId: number, childId: number) => {
-    const key = `${nurseryId}-${childId}`;
-    setSelectedChildIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
   };
 
   // オートコンプリート: 園児を追加
@@ -196,6 +188,7 @@ export function ParentFormPage() {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // 電話番号のバリデーション（作成時・編集時共通）
     if (!formData.phoneNumber.trim()) {
       newErrors.phoneNumber = '電話番号は必須です';
     } else if (!/^\d{3}-\d{4}-\d{4}$/.test(formData.phoneNumber)) {
@@ -227,6 +220,7 @@ export function ParentFormPage() {
       if (isEditMode && parentId) {
         // 編集モード
         const updateRequest: UpdateParentRequestDto = {
+          phoneNumber: formData.phoneNumber || undefined,
           name: formData.name || undefined,
           email: formData.email || undefined,
           address: formData.address || undefined,
@@ -349,17 +343,13 @@ export function ParentFormPage() {
                     name="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={handleChange}
-                    disabled={isEditMode}
                     className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
                       errors.phoneNumber ? 'border-red-500' : 'border-gray-200'
-                    } ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    }`}
                     placeholder="090-1234-5678"
                   />
                   {errors.phoneNumber && (
                     <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
-                  )}
-                  {isEditMode && (
-                    <p className="mt-1 text-sm text-gray-500">電話番号は編集できません</p>
                   )}
                 </div>
 
@@ -414,46 +404,96 @@ export function ParentFormPage() {
               </div>
             </div>
 
-            {/* 園児選択（作成時のみ） */}
+            {/* 園児選択（作成時） */}
             {!isEditMode && (
               <div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">
                   園児選択
                 </h2>
-                <p className="text-sm text-gray-600 mb-4">
-                  この保護者に紐付ける園児を選択してください（後から追加・変更可能）
-                </p>
-                {children.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">選択可能な園児がいません</p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
-                    {children.map((child) => {
-                      const key = `${child.nurseryId}-${child.childId}`;
-                      return (
-                        <label
-                          key={key}
-                          className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+
+                {/* オートコンプリート検索 */}
+                <div className="mb-4 relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    園児を追加
+                  </label>
+                  <input
+                    type="text"
+                    value={childSearchQuery}
+                    onChange={(e) => {
+                      setChildSearchQuery(e.target.value);
+                      setShowChildSuggestions(true);
+                    }}
+                    onFocus={() => setShowChildSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowChildSuggestions(false), 200)}
+                    placeholder="園児名を入力..."
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  />
+
+                  {/* サジェストリスト */}
+                  {showChildSuggestions && childSearchQuery && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {getFilteredChildren().length === 0 ? (
+                        <div className="px-4 py-3 text-gray-500 text-sm">
+                          該当する園児が見つかりません
+                        </div>
+                      ) : (
+                        getFilteredChildren().map((child) => (
+                          <button
+                            key={`${child.nurseryId}-${child.childId}`}
+                            type="button"
+                            onClick={() => handleAddChild(child)}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900">{child.name}</div>
+                            <div className="text-sm text-gray-600">
+                              {child.className || '未配属'} / {child.age}歳
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 選択済み園児一覧 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    選択済み園児
+                  </label>
+                  {getSelectedChildren().length === 0 ? (
+                    <p className="text-gray-500 text-center py-8 border border-gray-200 rounded-lg">
+                      園児が選択されていません
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {getSelectedChildren().map((child) => (
+                        <div
+                          key={`${child.nurseryId}-${child.childId}`}
+                          className="p-4 border border-gray-200 rounded-lg bg-gray-50 flex items-start justify-between"
                         >
-                          <input
-                            type="checkbox"
-                            checked={selectedChildIds.has(key)}
-                            onChange={() => handleChildToggle(child.nurseryId, child.childId)}
-                            className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-gray-900 truncate">{child.name}</div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-600">
                               {child.className || '未配属'} / {child.age}歳
                             </div>
                           </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-                <p className="mt-2 text-sm text-gray-500">
-                  選択数: {selectedChildIds.size} 人
-                </p>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveChild(child.nurseryId, child.childId)}
+                            className="ml-2 text-red-600 hover:text-red-800 transition"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="mt-2 text-sm text-gray-500">
+                    選択数: {getSelectedChildren().length} 人
+                  </p>
+                </div>
               </div>
             )}
 

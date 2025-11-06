@@ -2,7 +2,24 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
-import type { ParentDto, ParentFilterDto } from '../types/master';
+import type { ParentDto, ParentFilterDto, ClassDto } from '../types/master';
+
+/**
+ * 電話番号を XXX-XXXX-XXXX 形式にフォーマット
+ * 11桁の数字の場合のみフォーマットを適用
+ */
+const formatPhoneNumber = (phoneNumber: string): string => {
+  // ハイフンや空白を除去
+  const cleaned = phoneNumber.replace(/[-\s]/g, '');
+
+  // 11桁の数字の場合のみフォーマット
+  if (/^\d{11}$/.test(cleaned)) {
+    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7, 11)}`;
+  }
+
+  // それ以外はそのまま返す
+  return phoneNumber;
+};
 
 // デモデータ
 const DEMO_PARENTS: ParentDto[] = [
@@ -165,6 +182,7 @@ export function ParentsPage() {
   const isDemoMode = searchParams.get('demo') === 'true';
 
   const [parents, setParents] = useState<ParentDto[]>([]);
+  const [classes, setClasses] = useState<ClassDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -179,10 +197,33 @@ export function ParentsPage() {
     searchKeyword: undefined,
   });
 
+  // 初期データ読み込み
+  useEffect(() => {
+    loadClasses();
+  }, [isDemoMode]);
+
   // データ読み込み
   useEffect(() => {
     loadParents();
   }, [filter.classId, filter.childGraduationStatus, isDemoMode]);
+
+  const loadClasses = async () => {
+    try {
+      if (isDemoMode) {
+        // デモモード: ダミーのクラスデータ
+        setClasses([
+          { classId: 'sakura', name: 'さくら組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
+          { classId: 'himawari', name: 'ひまわり組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
+          { classId: 'tanpopo', name: 'たんぽぽ組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
+        ]);
+      } else {
+        const classesData = await masterService.getClasses({ isActive: true });
+        setClasses(classesData);
+      }
+    } catch (err) {
+      console.error('クラス一覧の取得に失敗しました:', err);
+    }
+  };
 
   const loadParents = async () => {
     try {
@@ -194,8 +235,11 @@ export function ParentsPage() {
         await new Promise(resolve => setTimeout(resolve, 300));
         let filteredData = [...DEMO_PARENTS];
 
-        if (filter.isActive !== undefined) {
-          filteredData = filteredData.filter(p => p.isActive === filter.isActive);
+        // 園児ステータスでフィルタ（園児のGraduationStatusを確認）
+        if (filter.childGraduationStatus) {
+          // 注意: デモデータには園児のGraduationStatusが含まれていないため、
+          // 実際の実装では全て表示する
+          // 本番環境では、children配列の各園児のstatusをチェックする必要がある
         }
 
         if (filter.searchKeyword) {
@@ -241,12 +285,29 @@ export function ParentsPage() {
   };
 
   // フィルタリセット
-  const handleResetFilter = () => {
-    setFilter({
+  const handleResetFilter = async () => {
+    const resetFilter = {
       classId: undefined,
-      childGraduationStatus: 'Active',
+      childGraduationStatus: 'Active' as const,
       searchKeyword: undefined,
-    });
+    };
+    setFilter(resetFilter);
+
+    // リセット後、すぐに検索を実行
+    if (!isDemoMode) {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const data = await masterService.getParents(resetFilter);
+        setParents(data);
+      } catch (error: any) {
+        console.error('保護者一覧の取得に失敗しました:', error);
+        setError('保護者一覧の取得に失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   // 削除処理
@@ -290,13 +351,18 @@ export function ParentsPage() {
             {/* クラスフィルタ */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">クラス</label>
-              <input
-                type="text"
+              <select
                 value={filter.classId || ''}
                 onChange={(e) => handleFilterChange('classId', e.target.value || undefined)}
-                placeholder="例: sakura, himawari"
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-              />
+              >
+                <option value="">すべて</option>
+                {classes.map((cls) => (
+                  <option key={cls.classId} value={cls.classId}>
+                    {cls.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* 園児ステータスフィルタ */}
@@ -329,9 +395,9 @@ export function ParentsPage() {
             </div>
             <button
               onClick={handleResetFilter}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 hover:shadow-md transition-all duration-200"
+              className="px-3 py-2 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all duration-200 font-medium text-sm"
             >
-              フィルタリセット
+              フィルタをリセット
             </button>
           </div>
         </div>
@@ -389,7 +455,7 @@ export function ParentsPage() {
                             {parent.name || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {parent.phoneNumber}
+                            {formatPhoneNumber(parent.phoneNumber)}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600">
                             {parent.children.length > 0 ? (

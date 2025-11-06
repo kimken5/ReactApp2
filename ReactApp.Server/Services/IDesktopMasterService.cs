@@ -39,5 +39,9 @@ namespace ReactApp.Server.Services
         Task<StaffDto> UpdateStaffAsync(int nurseryId, int staffId, UpdateStaffRequestDto request);
         Task DeleteStaffAsync(int nurseryId, int staffId);
         Task<List<StaffClassAssignmentDto>> UpdateStaffClassAssignmentsAsync(int nurseryId, int staffId, List<StaffClassAssignmentRequestDto> assignments);
+
+        // クラス構成管理
+        Task<ClassCompositionDto> GetClassCompositionAsync(int nurseryId, string classId);
+        Task<ClassCompositionDto> UpdateClassCompositionAsync(int nurseryId, string classId, UpdateClassCompositionRequestDto request);
     }
 }

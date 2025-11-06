@@ -121,6 +121,13 @@ namespace ReactApp.Server.DTOs.Desktop
         public string? GraduationStatus { get; set; }
         public bool? IsActive { get; set; }
         public string? SearchKeyword { get; set; }
+
+        // 日付フィルターは文字列として受け取り、サービス層でDateTimeに変換
+        // クエリ文字列からのDateTimeバインディングに問題があるため
+        public string? GraduationDateFrom { get; set; }
+        public string? GraduationDateTo { get; set; }
+        public string? DateOfBirthFrom { get; set; }
+        public string? DateOfBirthTo { get; set; }
     }
 
     /// <summary>

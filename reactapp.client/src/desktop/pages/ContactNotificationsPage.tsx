@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { contactNotificationService } from '../services/contactNotificationService';
@@ -47,6 +47,10 @@ export function ContactNotificationsPage() {
     searchKeyword: '',
     acknowledgedByAdminUser: undefined,
   });
+
+  // 日付入力フィールドのref
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
 
   // ページネーション
   const [currentPage, setCurrentPage] = useState(1);
@@ -185,6 +189,29 @@ export function ContactNotificationsPage() {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value || undefined }));
     setCurrentPage(1);
+
+    // 日付フィールドの場合、カレンダー選択後にフォーカスをセット
+    if (name === 'startDate' || name === 'endDate') {
+      setTimeout(() => {
+        if (e.target instanceof HTMLInputElement) {
+          e.target.focus();
+        }
+      }, 0);
+    }
+  };
+
+  // 日付クリアハンドラ
+  const handleClearDate = (fieldName: 'startDate' | 'endDate') => {
+    setFilters(prev => ({ ...prev, [fieldName]: undefined }));
+    setCurrentPage(1);
+    // クリア後、対応する入力フィールドにフォーカスをセット
+    setTimeout(() => {
+      if (fieldName === 'startDate' && startDateRef.current) {
+        startDateRef.current.focus();
+      } else if (fieldName === 'endDate' && endDateRef.current) {
+        endDateRef.current.focus();
+      }
+    }, 0);
   };
 
   const handleSearchKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,11 +225,6 @@ export function ContactNotificationsPage() {
       setCurrentPage(1);
       loadNotifications();
     }
-  };
-
-  const handleDateClear = () => {
-    setFilters(prev => ({ ...prev, startDate: undefined, endDate: undefined }));
-    setCurrentPage(1);
   };
 
   const handleInitialSearch = () => {
@@ -221,6 +243,10 @@ export function ContactNotificationsPage() {
       acknowledgedByAdminUser: undefined,
     });
     setCurrentPage(1);
+    // リセット後、すぐに検索を実行
+    if (!isDemoMode) {
+      loadNotifications();
+    }
   };
 
   const handleAcknowledge = async (id: number) => {
@@ -359,23 +385,24 @@ export function ContactNotificationsPage() {
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
                 日付
               </label>
-              <div className="flex gap-2">
+              <div className="relative">
                 <input
+                  ref={startDateRef}
                   type="date"
                   id="startDate"
                   name="startDate"
                   value={filters.startDate || ''}
                   onChange={handleFilterChange}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+                  className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
                 />
-{filters.startDate && (
+                {filters.startDate && (
                   <button
                     type="button"
-                    onClick={handleDateClear}
-                    className="px-2 py-2 bg-gray-50 text-gray-500 rounded border border-gray-300 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-                    title="日付クリア"
+                    onClick={() => handleClearDate('startDate')}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="クリア"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>

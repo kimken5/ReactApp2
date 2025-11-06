@@ -60,6 +60,10 @@ namespace ReactApp.Server.DTOs.Desktop
     /// </summary>
     public class UpdateParentRequestDto
     {
+        [Phone(ErrorMessage = "有効な電話番号を入力してください")]
+        [StringLength(20, ErrorMessage = "電話番号は20文字以内で入力してください")]
+        public string? PhoneNumber { get; set; }
+
         [StringLength(100, ErrorMessage = "氏名は100文字以内で入力してください")]
         public string? Name { get; set; }
 
@@ -93,6 +97,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public int? NurseryId { get; set; }
         public string? ClassId { get; set; }
         public bool? IsActive { get; set; }
+        public string? ChildGraduationStatus { get; set; }
         public string? SearchKeyword { get; set; }
     }
 

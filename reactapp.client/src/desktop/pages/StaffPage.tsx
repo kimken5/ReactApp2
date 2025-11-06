@@ -92,6 +92,7 @@ const DEMO_STAFF: StaffDto[] = [
     position: '保育士',
     classAssignments: [{ classId: 1, className: 'ひまわり組', academicYear: 2025 }],
     isActive: true,
+    resignationDate: '2026-03-31T00:00:00', // 未来の退職予定日
     lastLoginAt: '2025-10-26T07:50:00',
   },
   {
@@ -136,7 +137,8 @@ const DEMO_STAFF: StaffDto[] = [
     position: '保育補助',
     classAssignments: [],
     isActive: true,
-    lastLoginAt: '2025-10-26T09:00:00',
+    resignationDate: '2025-03-31T00:00:00',
+    lastLoginAt: '2025-03-30T17:00:00',
   },
 ];
 
@@ -174,14 +176,48 @@ export function StaffPage() {
     } else {
       loadStaff();
     }
-  }, [filter.role, filter.position, employmentStatus, isDemoMode]);
+  }, [filter.role, filter.position, filter.searchKeyword, employmentStatus, isDemoMode]);
 
   const loadStaff = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await masterService.getStaff(filter);
-      setStaff(data);
+
+      // フィルター（在籍ステータス以外）
+      const filterWithoutStatus: StaffFilterDto = {
+        ...filter,
+        isActive: undefined, // 在籍ステータスはクライアントサイドでフィルタリング
+      };
+
+      const data = await masterService.getStaff(filterWithoutStatus);
+
+      // クライアントサイドで退職日を使った在籍ステータスフィルタリング
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const filteredData = data.filter((s) => {
+        // 削除済みデータ（isActive === false）は常に除外
+        if (s.isActive === false) return false;
+
+        // 在籍ステータスフィルタ（退職日と本日の比較で判定）
+        if (s.resignationDate) {
+          const resignationDate = new Date(s.resignationDate);
+          resignationDate.setHours(0, 0, 0, 0);
+
+          // 退職日が本日以下（過去または本日）の場合は退職済み
+          const isResigned = resignationDate <= today;
+
+          if (employmentStatus === 'Active' && isResigned) return false;
+          if (employmentStatus === 'Resigned' && !isResigned) return false;
+        } else {
+          // resignationDateがない場合は在籍中
+          if (employmentStatus === 'Resigned') return false;
+        }
+
+        return true;
+      });
+
+      setStaff(filteredData);
     } catch (err) {
       console.error('職員一覧の取得に失敗しました:', err);
       setError('職員一覧の取得に失敗しました');
@@ -192,13 +228,30 @@ export function StaffPage() {
 
   // デモモードのフィルタ適用
   const applyFilters = (data: StaffDto[]): StaffDto[] => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 時刻を0:00:00にリセット
+
     return data.filter((s) => {
+      // 削除済みデータ（isActive === false）は常に除外
+      if (s.isActive === false) return false;
+
       if (filter.role && s.role !== filter.role) return false;
       if (filter.position && !s.position?.includes(filter.position)) return false;
 
-      // 在籍ステータスフィルタ
-      if (employmentStatus === 'Active' && s.resignationDate) return false;
-      if (employmentStatus === 'Resigned' && !s.resignationDate) return false;
+      // 在籍ステータスフィルタ（退職日と本日の比較で判定）
+      if (s.resignationDate) {
+        const resignationDate = new Date(s.resignationDate);
+        resignationDate.setHours(0, 0, 0, 0);
+
+        // 退職日が本日以下（過去または本日）の場合は退職済み
+        const isResigned = resignationDate <= today;
+
+        if (employmentStatus === 'Active' && isResigned) return false;
+        if (employmentStatus === 'Resigned' && !isResigned) return false;
+      } else {
+        // resignationDateがない場合は在籍中
+        if (employmentStatus === 'Resigned') return false;
+      }
 
       if (filter.searchKeyword) {
         const keyword = filter.searchKeyword.toLowerCase();
@@ -338,7 +391,8 @@ export function StaffPage() {
                 type="text"
                 value={filter.position || ''}
                 onChange={(e) => handleFilterChange('position', e.target.value || undefined)}
-                placeholder="例: 主任、副主任"
+                onKeyDown={handleSearchKeywordKeyDown}
+                placeholder="例: 主任、副主任（ENTERキーで検索）"
                 className="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition"
               />
             </div>
@@ -372,9 +426,9 @@ export function StaffPage() {
             </div>
             <button
               onClick={handleResetFilter}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition"
+              className="px-3 py-2 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all duration-200 font-medium text-sm"
             >
-              フィルタリセット
+              フィルタをリセット
             </button>
           </div>
         </div>

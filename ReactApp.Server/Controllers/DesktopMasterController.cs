@@ -288,6 +288,11 @@ namespace ReactApp.Server.Controllers
             try
             {
                 var nurseryId = GetNurseryId();
+
+                // デバッグログ: 受信したフィルターパラメータを確認
+                _logger.LogInformation("=== GetChildren Controller: ClassId={ClassId}, GraduationStatus={GraduationStatus}, DateOfBirthFrom={DateOfBirthFrom}, DateOfBirthTo={DateOfBirthTo}, GraduationDateFrom={GraduationDateFrom}, GraduationDateTo={GraduationDateTo}",
+                    filter.ClassId, filter.GraduationStatus, filter.DateOfBirthFrom, filter.DateOfBirthTo, filter.GraduationDateFrom, filter.GraduationDateTo);
+
                 var children = await _masterService.GetChildrenAsync(nurseryId, filter);
 
                 return Ok(new ApiResponse<List<ChildDto>> { Success = true, Data = children });

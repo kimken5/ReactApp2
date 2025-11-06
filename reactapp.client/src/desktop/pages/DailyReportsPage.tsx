@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { dailyReportService } from '../services/dailyReportService';
@@ -193,6 +193,10 @@ export function DailyReportsPage() {
     searchKeyword: '',
   });
 
+  // 日付入力フィールドのref
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
+
   // ページネーション
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
@@ -277,6 +281,29 @@ export function DailyReportsPage() {
     }
   };
 
+  // 日付変更ハンドラ（フォーカスセット付き）
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    const fieldName = e.target === startDateRef.current ? 'startDate' : 'endDate';
+    setFilter(prev => ({ ...prev, [fieldName]: value || undefined }));
+    // カレンダーで日付を選択した後、フォーカスをセット
+    setTimeout(() => {
+      e.target.focus();
+    }, 0);
+  };
+
+  // 日付クリアハンドラ
+  const handleClearDate = (fieldName: 'startDate' | 'endDate') => {
+    setFilter(prev => ({ ...prev, [fieldName]: undefined }));
+    // クリア後、対応する入力フィールドにフォーカスをセット
+    setTimeout(() => {
+      if (fieldName === 'startDate' && startDateRef.current) {
+        startDateRef.current.focus();
+      } else if (fieldName === 'endDate' && endDateRef.current) {
+        endDateRef.current.focus();
+      }
+    }, 0);
+  };
 
   const handleDelete = async (report: DailyReportDto) => {
     try {
@@ -539,13 +566,28 @@ export function DailyReportsPage() {
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
                 開始日
               </label>
-              <input
-                type="date"
-                id="startDate"
-                value={filter.startDate || ''}
-                onChange={e => setFilter(prev => ({ ...prev, startDate: e.target.value || undefined }))}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
-              />
+              <div className="relative">
+                <input
+                  ref={startDateRef}
+                  type="date"
+                  id="startDate"
+                  value={filter.startDate || ''}
+                  onChange={handleDateChange}
+                  className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+                />
+                {filter.startDate && (
+                  <button
+                    type="button"
+                    onClick={() => handleClearDate('startDate')}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="クリア"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* 終了日 */}
@@ -553,13 +595,28 @@ export function DailyReportsPage() {
               <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
                 終了日
               </label>
-              <input
-                type="date"
-                id="endDate"
-                value={filter.endDate || ''}
-                onChange={e => setFilter(prev => ({ ...prev, endDate: e.target.value || undefined }))}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
-              />
+              <div className="relative">
+                <input
+                  ref={endDateRef}
+                  type="date"
+                  id="endDate"
+                  value={filter.endDate || ''}
+                  onChange={handleDateChange}
+                  className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+                />
+                {filter.endDate && (
+                  <button
+                    type="button"
+                    onClick={() => handleClearDate('endDate')}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="クリア"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* ステータス選択 */}

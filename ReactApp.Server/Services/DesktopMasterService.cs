@@ -414,6 +414,9 @@ namespace ReactApp.Server.Services
         {
             try
             {
+                _logger.LogInformation("=== GetChildrenAsync: NurseryId={NurseryId}, DateOfBirthFrom={DateOfBirthFrom}, DateOfBirthTo={DateOfBirthTo}, GraduationDateFrom={GraduationDateFrom}, GraduationDateTo={GraduationDateTo}",
+                    nurseryId, filter.DateOfBirthFrom, filter.DateOfBirthTo, filter.GraduationDateFrom, filter.GraduationDateTo);
+
                 var query = _context.Children
                     .Where(c => c.NurseryId == nurseryId);
 
@@ -439,10 +442,34 @@ namespace ReactApp.Server.Services
                     query = query.Where(c => c.Name.ToLower().Contains(keyword));
                 }
 
+                // 卒園日フィルター (文字列からDateTimeに変換)
+                if (!string.IsNullOrWhiteSpace(filter.GraduationDateFrom) && DateTime.TryParse(filter.GraduationDateFrom, out DateTime graduationDateFrom))
+                {
+                    query = query.Where(c => c.GraduationDate >= graduationDateFrom);
+                }
+
+                if (!string.IsNullOrWhiteSpace(filter.GraduationDateTo) && DateTime.TryParse(filter.GraduationDateTo, out DateTime graduationDateTo))
+                {
+                    query = query.Where(c => c.GraduationDate <= graduationDateTo);
+                }
+
+                // 生年月日フィルター (文字列からDateTimeに変換)
+                if (!string.IsNullOrWhiteSpace(filter.DateOfBirthFrom) && DateTime.TryParse(filter.DateOfBirthFrom, out DateTime dateOfBirthFrom))
+                {
+                    query = query.Where(c => c.DateOfBirth >= dateOfBirthFrom);
+                }
+
+                if (!string.IsNullOrWhiteSpace(filter.DateOfBirthTo) && DateTime.TryParse(filter.DateOfBirthTo, out DateTime dateOfBirthTo))
+                {
+                    query = query.Where(c => c.DateOfBirth <= dateOfBirthTo);
+                }
+
                 var children = await query
                     .OrderBy(c => c.ClassId)
                     .ThenBy(c => c.Name)
                     .ToListAsync();
+
+                _logger.LogInformation("=== GetChildrenAsync: Query result count = {Count}", children.Count);
 
                 // クラス名を取得
                 var classIds = children.Where(c => !string.IsNullOrEmpty(c.ClassId)).Select(c => c.ClassId).Distinct().ToList();

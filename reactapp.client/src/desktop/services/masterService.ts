@@ -7,6 +7,8 @@ import type {
   CreateClassRequestDto,
   UpdateClassRequestDto,
   ClassFilterDto,
+  ClassCompositionDto,
+  UpdateClassCompositionRequestDto,
   ChildDto,
   CreateChildRequestDto,
   UpdateChildRequestDto,
@@ -67,6 +69,27 @@ export const masterService = {
   // クラス削除
   async deleteClass(classId: string): Promise<void> {
     await apiClient.delete(`/api/desktop/master/classes/${classId}`);
+  },
+
+  // ===== クラス構成管理 =====
+  // クラス構成取得
+  async getClassComposition(classId: string): Promise<ClassCompositionDto> {
+    const response = await apiClient.get<ApiResponse<ClassCompositionDto>>(
+      `/api/desktop/master/classes/${classId}/composition`
+    );
+    return response.data.data;
+  },
+
+  // クラス構成更新
+  async updateClassComposition(
+    classId: string,
+    request: UpdateClassCompositionRequestDto
+  ): Promise<ClassCompositionDto> {
+    const response = await apiClient.put<ApiResponse<ClassCompositionDto>>(
+      `/api/desktop/master/classes/${classId}/composition`,
+      request
+    );
+    return response.data.data;
   },
 
   // ===== 園児管理 =====

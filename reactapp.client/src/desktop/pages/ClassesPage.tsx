@@ -19,7 +19,6 @@ export function ClassesPage() {
 
   // フィルタ状態
   const [filter, setFilter] = useState<ClassFilterDto>({
-    academicYear: new Date().getFullYear(),
     searchKeyword: '',
   });
 
@@ -39,7 +38,7 @@ export function ClassesPage() {
   // フィルタ・ソート適用（検索キーワード以外）
   useEffect(() => {
     applyFilterAndSort();
-  }, [classes, filter.academicYear, sortField, sortDirection]);
+  }, [classes, sortField, sortDirection]);
 
   const loadClasses = async () => {
     try {
@@ -151,11 +150,6 @@ export function ClassesPage() {
   const applyFilterAndSort = () => {
     let filtered = [...classes];
 
-    // フィルタ適用
-    if (filter.academicYear) {
-      filtered = filtered.filter(c => c.academicYear === filter.academicYear);
-    }
-
     // 論理削除されたクラスは除外（IsActive = true のみ表示）
     filtered = filtered.filter(c => c.isActive === true);
 
@@ -205,6 +199,15 @@ export function ClassesPage() {
       setSortField(field);
       setSortDirection('asc');
     }
+  };
+
+  // フィルタリセット
+  const handleResetFilter = () => {
+    setFilter({
+      searchKeyword: '',
+    });
+    // リセット後、すぐにフィルタを適用
+    applyFilterAndSort();
   };
 
   const handleDelete = async (classItem: ClassDto) => {
@@ -293,36 +296,8 @@ export function ClassesPage() {
         {/* フィルタ */}
         <div className="bg-white rounded-md shadow-md border border-gray-200 mb-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            {/* 年度 */}
-            <div className="md:col-span-3">
-              <label htmlFor="academicYear" className="block text-sm font-medium text-gray-700 mb-2">
-                年度
-              </label>
-              <select
-                id="academicYear"
-                value={filter.academicYear || ''}
-                onChange={e =>
-                  setFilter(prev => ({
-                    ...prev,
-                    academicYear: e.target.value ? parseInt(e.target.value) : undefined,
-                  }))
-                }
-                className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-              >
-                <option value="">すべて</option>
-                {[...Array(5)].map((_, i) => {
-                  const year = new Date().getFullYear() - 2 + i;
-                  return (
-                    <option key={year} value={year}>
-                      {year}年度
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
             {/* 検索キーワード */}
-            <div className="md:col-span-6">
+            <div className="md:col-span-9">
               <label htmlFor="searchKeyword" className="block text-sm font-medium text-gray-700 mb-2">
                 検索（クラスID・名前・担当職員）
               </label>
@@ -340,10 +315,7 @@ export function ClassesPage() {
             {/* フィルタリセット */}
             <div className="md:col-span-3">
               <button
-                onClick={() => setFilter({
-                  academicYear: new Date().getFullYear(),
-                  searchKeyword: '',
-                })}
+                onClick={handleResetFilter}
                 className="px-3 py-2 bg-gray-50 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-100 hover:shadow-md transition-all duration-200 font-medium text-sm"
               >
                 フィルタをリセット
@@ -393,9 +365,6 @@ export function ClassesPage() {
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    年度
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     担当職員
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -406,7 +375,7 @@ export function ClassesPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentClasses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                       クラスが見つかりませんでした
                     </td>
                   </tr>
@@ -431,9 +400,6 @@ export function ClassesPage() {
                         >
                           {classItem.currentEnrollment} / {classItem.maxCapacity}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {classItem.academicYear}年
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {classItem.assignedStaffNames.length > 0
