@@ -31,11 +31,11 @@ namespace ReactApp.Server.Services
         Task<IEnumerable<DailyReportDto>> GetReportsByStaffIdAsync(int staffId);
 
         /// <summary>
-        /// 特定カテゴリの日報一覧取得
+        /// 特定レポート種別の日報一覧取得
         /// </summary>
-        /// <param name="category">カテゴリ名</param>
-        /// <returns>該当カテゴリの日報一覧</returns>
-        Task<IEnumerable<DailyReportDto>> GetReportsByCategoryAsync(string category);
+        /// <param name="reportKind">レポート種別</param>
+        /// <returns>該当レポート種別の日報一覧</returns>
+        Task<IEnumerable<DailyReportDto>> GetReportsByReportKindAsync(string reportKind);
 
         /// <summary>
         /// 公開済み日報一覧取得

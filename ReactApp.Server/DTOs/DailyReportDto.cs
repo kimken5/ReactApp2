@@ -45,10 +45,10 @@ namespace ReactApp.Server.DTOs
         public DateTime ReportDate { get; set; }
 
         /// <summary>
-        /// カテゴリ
-        /// 日報の分類（活動・食事・睡眠・ケガ・事故・喧嘩など）
+        /// レポート種別
+        /// 日報の分類（活動・食事・睡眠・健康・事故・行動）
         /// </summary>
-        public string Category { get; set; } = string.Empty;
+        public string ReportKind { get; set; } = string.Empty;
 
         /// <summary>
         /// タイトル
@@ -61,12 +61,6 @@ namespace ReactApp.Server.DTOs
         /// 日報の詳細内容
         /// </summary>
         public string Content { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ一覧
-        /// 日報に付与されたタグのリスト
-        /// </summary>
-        public List<string> Tags { get; set; } = new List<string>();
 
         /// <summary>
         /// 写真一覧
@@ -137,7 +131,7 @@ namespace ReactApp.Server.DTOs
 
         [Required]
         [StringLength(50)]
-        public string Category { get; set; } = string.Empty;
+        public string ReportKind { get; set; } = string.Empty;
 
         [Required]
         [StringLength(200)]
@@ -146,8 +140,6 @@ namespace ReactApp.Server.DTOs
         [Required]
         [StringLength(1000)]
         public string Content { get; set; } = string.Empty;
-
-        public List<string> Tags { get; set; } = new List<string>();
 
         public List<string> Photos { get; set; } = new List<string>();
 
@@ -176,15 +168,13 @@ namespace ReactApp.Server.DTOs
         public DateTime? ReportDate { get; set; }
 
         [StringLength(50)]
-        public string? Category { get; set; }
+        public string? ReportKind { get; set; }
 
         [StringLength(200)]
         public string? Title { get; set; }
 
         [StringLength(1000)]
         public string? Content { get; set; }
-
-        public List<string>? Tags { get; set; }
 
         public List<string>? Photos { get; set; }
 

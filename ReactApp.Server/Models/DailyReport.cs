@@ -66,12 +66,12 @@ namespace ReactApp.Server.Models
         public DateTime ReportDate { get; set; }
 
         /// <summary>
-        /// カテゴリ（必須）
+        /// レポート種別（必須）
         /// "activity"（活動）、"meal"（食事）、"sleep"（睡眠）、"health"（健康）、"incident"（事故）、"behavior"（行動）
         /// </summary>
         [Required]
         [StringLength(50)]
-        public string Category { get; set; } = string.Empty;
+        public string ReportKind { get; set; } = string.Empty;
 
         [Required]
         [StringLength(200)]
@@ -80,9 +80,6 @@ namespace ReactApp.Server.Models
         [Required]
         [StringLength(1000)]
         public string Content { get; set; } = string.Empty;
-
-        [StringLength(500)]
-        public string? Tags { get; set; } // JSON array of tags
 
         [StringLength(1000)]
         public string? Photos { get; set; } // JSON array of photo URLs

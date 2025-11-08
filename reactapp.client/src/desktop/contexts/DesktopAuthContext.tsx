@@ -95,9 +95,10 @@ export function DesktopAuthProvider({ children }: DesktopAuthProviderProps) {
         if (isDemoMode) {
           // デモ用のダミーデータ
           const demoNursery: NurseryInfo = {
-            nurseryId: 0,
-            nurseryName: 'デモ保育園',
+            id: 0,
+            name: 'デモ保育園',
             phoneNumber: '000-0000-0000',
+            currentAcademicYear: 2025,
           };
           console.log('DesktopAuthContext - Setting demo mode with nursery:', demoNursery);
           dispatch({

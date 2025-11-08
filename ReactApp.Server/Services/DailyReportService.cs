@@ -94,10 +94,10 @@ namespace ReactApp.Server.Services
             return dtos;
         }
 
-        public async Task<IEnumerable<DailyReportDto>> GetReportsByCategoryAsync(string category)
+        public async Task<IEnumerable<DailyReportDto>> GetReportsByReportKindAsync(string reportKind)
         {
             var reports = await _context.DailyReports
-                .Where(r => r.Category == category && r.Status == "published")
+                .Where(r => r.ReportKind == reportKind && r.Status == "published")
                 .OrderByDescending(r => r.ReportDate)
                 .ToListAsync();
 
@@ -229,10 +229,9 @@ namespace ReactApp.Server.Services
                 StaffNurseryId = staff.NurseryId,
                 StaffId = staffId,
                 ReportDate = dto.ReportDate,
-                Category = dto.Category,
+                ReportKind = dto.ReportKind,
                 Title = dto.Title,
                 Content = dto.Content,
-                Tags = string.Join(",", dto.Tags),
                 Photos = string.Join(",", dto.Photos),
                 Status = dto.Status ?? "draft",
                 PublishedAt = dto.Status == "published" ? DateTime.UtcNow : null,
@@ -255,9 +254,8 @@ namespace ReactApp.Server.Services
         public async Task<bool> UpdateReportAsync(int id, UpdateDailyReportDto dto)
         {
             _logger.LogInformation("UpdateReportAsync called for ReportId: {ReportId}", id);
-            _logger.LogInformation("Update DTO - Category: {Category}, Title: {Title}, Content: {Content}, Tags: {Tags}, Photos: {Photos}, Status: {Status}",
-                dto.Category, dto.Title, dto.Content?.Substring(0, Math.Min(50, dto.Content?.Length ?? 0)),
-                dto.Tags != null ? string.Join(",", dto.Tags) : "null",
+            _logger.LogInformation("Update DTO - ReportKind: {ReportKind}, Title: {Title}, Content: {Content}, Photos: {Photos}, Status: {Status}",
+                dto.ReportKind, dto.Title, dto.Content?.Substring(0, Math.Min(50, dto.Content?.Length ?? 0)),
                 dto.Photos != null ? string.Join(",", dto.Photos) : "null",
                 dto.Status);
 
@@ -290,14 +288,12 @@ namespace ReactApp.Server.Services
 
             if (dto.ReportDate.HasValue)
                 report.ReportDate = dto.ReportDate.Value;
-            if (!string.IsNullOrEmpty(dto.Category))
-                report.Category = dto.Category;
+            if (!string.IsNullOrEmpty(dto.ReportKind))
+                report.ReportKind = dto.ReportKind;
             if (!string.IsNullOrEmpty(dto.Title))
                 report.Title = dto.Title;
             if (!string.IsNullOrEmpty(dto.Content))
                 report.Content = dto.Content;
-            if (dto.Tags != null)
-                report.Tags = string.Join(",", dto.Tags);
             if (dto.Photos != null)
             {
                 report.Photos = string.Join(",", dto.Photos);
@@ -357,7 +353,7 @@ namespace ReactApp.Server.Services
                         ParentIds = parentIds,
                         NotificationType = "report",
                         Title = $"{child.Name}さんの日報が投稿されました",
-                        Content = $"カテゴリ: {report.Category} - {report.Title}",
+                        Content = $"レポート種別: {report.ReportKind} - {report.Title}",
                         DeliveryMethod = "push",
                         RelatedEntityId = report.Id,
                         RelatedEntityType = "DailyReport"

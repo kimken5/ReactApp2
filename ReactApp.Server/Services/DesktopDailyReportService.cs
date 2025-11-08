@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
-using ReactApp.Server.DTOs;
+using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
 using System.Text.Json;
 
@@ -60,9 +60,9 @@ namespace ReactApp.Server.Services
                     query = query.Where(r => r.ReportDate <= filter.EndDate.Value.Date);
                 }
 
-                if (!string.IsNullOrEmpty(filter.Category))
+                if (!string.IsNullOrEmpty(filter.ReportKind))
                 {
-                    query = query.Where(r => r.Category == filter.Category);
+                    query = query.Where(r => r.ReportKind == filter.ReportKind);
                 }
 
                 if (!string.IsNullOrEmpty(filter.Status))
@@ -75,9 +75,9 @@ namespace ReactApp.Server.Services
                     query = query.Where(r => r.ParentAcknowledged == filter.ParentAcknowledged.Value);
                 }
 
-                if (!string.IsNullOrEmpty(filter.Keyword))
+                if (!string.IsNullOrEmpty(filter.SearchKeyword))
                 {
-                    var keyword = filter.Keyword.ToLower();
+                    var keyword = filter.SearchKeyword.ToLower();
                     query = query.Where(r => r.Title.ToLower().Contains(keyword)
                         || r.Content.ToLower().Contains(keyword));
                 }
@@ -101,7 +101,16 @@ namespace ReactApp.Server.Services
                     var responseCount = await _context.DailyReportResponses
                         .CountAsync(r => r.DailyReportId == report.Id);
 
-                    result.Add(MapToDto(report, child?.Name ?? "不明", staff?.Name ?? "不明", responseCount));
+                    // クラス名を取得
+                    string? className = null;
+                    if (child?.ClassId != null)
+                    {
+                        var classInfo = await _context.Classes
+                            .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ClassId == child.ClassId);
+                        className = classInfo?.Name;
+                    }
+
+                    result.Add(MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount));
                 }
 
                 _logger.LogInformation(
@@ -138,11 +147,20 @@ namespace ReactApp.Server.Services
                 var responseCount = await _context.DailyReportResponses
                     .CountAsync(r => r.DailyReportId == report.Id);
 
+                // クラス名を取得
+                string? className = null;
+                if (child?.ClassId != null)
+                {
+                    var classInfo = await _context.Classes
+                        .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ClassId == child.ClassId);
+                    className = classInfo?.Name;
+                }
+
                 _logger.LogInformation(
                     "日報詳細取得成功: NurseryId={NurseryId}, ReportId={ReportId}",
                     nurseryId, reportId);
 
-                return MapToDto(report, child?.Name ?? "不明", staff?.Name ?? "不明", responseCount);
+                return MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount);
             }
             catch (Exception ex)
             {
@@ -182,10 +200,6 @@ namespace ReactApp.Server.Services
                 }
 
                 // JSON変換
-                var tagsJson = request.Tags != null && request.Tags.Any()
-                    ? JsonSerializer.Serialize(request.Tags)
-                    : null;
-
                 var photosJson = request.Photos != null && request.Photos.Any()
                     ? JsonSerializer.Serialize(request.Photos)
                     : null;
@@ -199,10 +213,9 @@ namespace ReactApp.Server.Services
                     StaffNurseryId = nurseryId,
                     StaffId = request.StaffId,
                     ReportDate = request.ReportDate.Date,
-                    Category = request.Category,
+                    ReportKind = request.ReportKind,
                     Title = request.Title,
                     Content = request.Content,
-                    Tags = tagsJson,
                     Photos = photosJson,
                     Status = status,
                     PublishedAt = status == "published" ? DateTime.UtcNow : null,
@@ -213,11 +226,20 @@ namespace ReactApp.Server.Services
                 _context.DailyReports.Add(report);
                 await _context.SaveChangesAsync();
 
+                // クラス名を取得
+                string? className = null;
+                if (child?.ClassId != null)
+                {
+                    var classInfo = await _context.Classes
+                        .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ClassId == child.ClassId);
+                    className = classInfo?.Name;
+                }
+
                 _logger.LogInformation(
                     "日報作成成功: NurseryId={NurseryId}, ReportId={ReportId}, ChildId={ChildId}, StaffId={StaffId}",
                     nurseryId, report.Id, request.ChildId, request.StaffId);
 
-                return MapToDto(report, child.Name, staff.Name, 0);
+                return MapToDto(report, child.Name, className, staff.Name, 0);
             }
             catch (Exception ex)
             {
@@ -241,39 +263,17 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"日報が見つかりません: ReportId={reportId}");
                 }
 
-                // 園児ID変更（下書き状態のみ）
-                if (request.ChildId.HasValue && request.ChildId.Value != report.ChildId)
-                {
-                    if (report.Status != "draft")
-                    {
-                        throw new InvalidOperationException("公開済みの日報は園児を変更できません");
-                    }
-
-                    var childForUpdate = await _context.Children
-                        .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ChildId == request.ChildId.Value);
-
-                    if (childForUpdate == null)
-                    {
-                        throw new InvalidOperationException($"園児が見つかりません: ChildId={request.ChildId.Value}");
-                    }
-
-                    report.ChildId = request.ChildId.Value;
-                }
-
                 // 日付更新
-                if (request.ReportDate.HasValue)
+                if (request.ReportDate.Date > DateTime.UtcNow.Date)
                 {
-                    if (request.ReportDate.Value.Date > DateTime.UtcNow.Date)
-                    {
-                        throw new InvalidOperationException("未来の日付の日報は作成できません");
-                    }
-                    report.ReportDate = request.ReportDate.Value.Date;
+                    throw new InvalidOperationException("未来の日付の日報は作成できません");
                 }
+                report.ReportDate = request.ReportDate.Date;
 
                 // その他のフィールド更新
-                if (!string.IsNullOrEmpty(request.Category))
+                if (!string.IsNullOrEmpty(request.ReportKind))
                 {
-                    report.Category = request.Category;
+                    report.ReportKind = request.ReportKind;
                 }
 
                 if (!string.IsNullOrEmpty(request.Title))
@@ -284,13 +284,6 @@ namespace ReactApp.Server.Services
                 if (!string.IsNullOrEmpty(request.Content))
                 {
                     report.Content = request.Content;
-                }
-
-                if (request.Tags != null)
-                {
-                    report.Tags = request.Tags.Any()
-                        ? JsonSerializer.Serialize(request.Tags)
-                        : null;
                 }
 
                 if (request.Photos != null)
@@ -329,11 +322,20 @@ namespace ReactApp.Server.Services
                 var responseCount = await _context.DailyReportResponses
                     .CountAsync(r => r.DailyReportId == report.Id);
 
+                // クラス名を取得
+                string? className = null;
+                if (child?.ClassId != null)
+                {
+                    var classInfo = await _context.Classes
+                        .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ClassId == child.ClassId);
+                    className = classInfo?.Name;
+                }
+
                 _logger.LogInformation(
                     "日報更新成功: NurseryId={NurseryId}, ReportId={ReportId}",
                     nurseryId, reportId);
 
-                return MapToDto(report, child?.Name ?? "不明", staff?.Name ?? "不明", responseCount);
+                return MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount);
             }
             catch (Exception ex)
             {
@@ -405,11 +407,20 @@ namespace ReactApp.Server.Services
                 var responseCount = await _context.DailyReportResponses
                     .CountAsync(r => r.DailyReportId == report.Id);
 
+                // クラス名を取得
+                string? className = null;
+                if (child?.ClassId != null)
+                {
+                    var classInfo = await _context.Classes
+                        .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ClassId == child.ClassId);
+                    className = classInfo?.Name;
+                }
+
                 _logger.LogInformation(
                     "日報公開成功: NurseryId={NurseryId}, ReportId={ReportId}",
                     nurseryId, reportId);
 
-                return MapToDto(report, child?.Name ?? "不明", staff?.Name ?? "不明", responseCount);
+                return MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount);
             }
             catch (Exception ex)
             {
@@ -443,7 +454,16 @@ namespace ReactApp.Server.Services
                     var responseCount = await _context.DailyReportResponses
                         .CountAsync(r => r.DailyReportId == report.Id);
 
-                    result.Add(MapToDto(report, child?.Name ?? "不明", staff?.Name ?? "不明", responseCount));
+                    // クラス名を取得
+                    string? className = null;
+                    if (child?.ClassId != null)
+                    {
+                        var classInfo = await _context.Classes
+                            .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ClassId == child.ClassId);
+                        className = classInfo?.Name;
+                    }
+
+                    result.Add(MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount));
                 }
 
                 _logger.LogInformation(
@@ -484,7 +504,16 @@ namespace ReactApp.Server.Services
                     var responseCount = await _context.DailyReportResponses
                         .CountAsync(r => r.DailyReportId == report.Id);
 
-                    result.Add(MapToDto(report, child?.Name ?? "不明", staff?.Name ?? "不明", responseCount));
+                    // クラス名を取得
+                    string? className = null;
+                    if (child?.ClassId != null)
+                    {
+                        var classInfo = await _context.Classes
+                            .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ClassId == child.ClassId);
+                        className = classInfo?.Name;
+                    }
+
+                    result.Add(MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount));
                 }
 
                 _logger.LogInformation(
@@ -502,21 +531,8 @@ namespace ReactApp.Server.Services
             }
         }
 
-        private DailyReportDto MapToDto(DailyReport report, string childName, string staffName, int responseCount)
+        private DailyReportDto MapToDto(DailyReport report, string childName, string? className, string staffName, int responseCount)
         {
-            List<string> tags = new();
-            if (!string.IsNullOrEmpty(report.Tags))
-            {
-                try
-                {
-                    tags = JsonSerializer.Deserialize<List<string>>(report.Tags) ?? new List<string>();
-                }
-                catch
-                {
-                    _logger.LogWarning("日報タグのJSON解析失敗: ReportId={ReportId}", report.Id);
-                }
-            }
-
             List<string> photos = new();
             if (!string.IsNullOrEmpty(report.Photos))
             {
@@ -533,23 +549,26 @@ namespace ReactApp.Server.Services
             return new DailyReportDto
             {
                 Id = report.Id,
+                NurseryId = report.NurseryId,
                 ChildId = report.ChildId,
                 ChildName = childName,
+                ClassName = className,
+                StaffNurseryId = report.StaffNurseryId,
                 StaffId = report.StaffId,
                 StaffName = staffName,
                 ReportDate = report.ReportDate,
-                Category = report.Category,
+                ReportKind = report.ReportKind,
                 Title = report.Title,
                 Content = report.Content,
-                Tags = tags,
                 Photos = photos,
                 Status = report.Status,
                 PublishedAt = report.PublishedAt,
                 ParentAcknowledged = report.ParentAcknowledged,
                 AcknowledgedAt = report.AcknowledgedAt,
+                CreatedByAdminUser = report.CreatedByAdminUser,
                 CreatedAt = report.CreatedAt,
                 UpdatedAt = report.UpdatedAt,
-                Responses = new List<DailyReportResponseDto>() // 簡易版ではレスポンスは空
+                ResponseCount = responseCount
             };
         }
     }

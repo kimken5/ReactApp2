@@ -45,11 +45,9 @@ namespace ReactApp.Server.Mapping
             CreateMap<DailyReport, DailyReportDto>()
                 .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => src.Child.Name))
                 .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.Staff.Name))
-                .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => ParseTags(src.Tags)))
                 .ForMember(dest => dest.Photos, opt => opt.MapFrom(src => ParsePhotos(src.Photos)));
 
             CreateMap<CreateDailyReportDto, DailyReport>()
-                .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => string.Join(",", src.Tags)))
                 .ForMember(dest => dest.Photos, opt => opt.MapFrom(src => string.Join(",", src.Photos)));
 
             // Daily Report Response DTOs

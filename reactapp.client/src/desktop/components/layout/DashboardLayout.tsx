@@ -75,7 +75,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { path: '/desktop/children', label: '園児管理', icon: 'baby' },
     { path: '/desktop/parents', label: '保護者管理', icon: 'user-group' },
     { path: '/desktop/staff', label: '職員管理', icon: 'badge' },
-    { path: '/desktop/dailyreports', label: '連絡帳管理', icon: 'document' },
+    { path: '/desktop/dailyreports', label: 'レポート管理', icon: 'document' },
     { path: '/desktop/photos', label: '写真管理', icon: 'camera' },
     { path: '/desktop/contact-notifications', label: '連絡通知管理', icon: 'clipboard' },
     { path: '/desktop/announcements', label: 'お知らせ管理', icon: 'megaphone' },
@@ -101,11 +101,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </button>
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-lg flex items-center justify-center text-white font-bold">
-                {state.nursery?.nurseryName?.charAt(0) || 'K'}
+                {state.nursery?.name?.charAt(0) || 'K'}
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold text-gray-800">{state.nursery?.nurseryName || '保育園管理'}</span>
-                <span className="text-sm text-gray-500">2025年度</span>
+                <span className="text-xl font-bold text-gray-800">{state.nursery?.name || '保育園管理'}</span>
+                <span className="text-sm text-gray-500">{state.nursery?.currentAcademicYear || 2025}年度</span>
               </div>
             </div>
           </div>

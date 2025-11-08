@@ -16,10 +16,9 @@ export interface DailyReportDto {
   staffId: number;
   staffName: string;
   reportDate: string; // ISO date string
-  category: string;
+  reportKind: string;
   title: string;
   content: string;
-  tags: string[];
   photos: string[];
   status: string; // "draft" | "published" | "archived"
   publishedAt?: string; // ISO datetime string
@@ -38,12 +37,11 @@ export interface CreateDailyReportRequestDto {
   childId: number;
   staffId: number;
   reportDate: string; // ISO date string
-  category: string;
+  reportKind: string;
   title: string;
   content: string;
-  tags?: string[];
-  photos?: string[];
-  status?: string; // "draft" or "published"
+  photos: string[];
+  status: string; // "draft" or "published"
 }
 
 /**
@@ -51,11 +49,10 @@ export interface CreateDailyReportRequestDto {
  */
 export interface UpdateDailyReportRequestDto {
   reportDate: string;
-  category: string;
+  reportKind: string;
   title: string;
   content: string;
-  tags?: string[];
-  photos?: string[];
+  photos: string[];
   status?: string;
 }
 
@@ -68,7 +65,7 @@ export interface DailyReportFilterDto {
   staffId?: number;
   startDate?: string; // ISO date string
   endDate?: string; // ISO date string
-  category?: string;
+  reportKind?: string;
   status?: string;
   parentAcknowledged?: boolean;
   searchKeyword?: string;

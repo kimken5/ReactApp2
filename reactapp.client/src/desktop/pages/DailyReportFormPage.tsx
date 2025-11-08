@@ -9,9 +9,17 @@ import type {
   UpdateDailyReportRequestDto,
 } from '../types/dailyReport';
 import type { ChildDto, StaffDto } from '../types/master';
+import {
+  MdSportsSoccer,
+  MdRestaurant,
+  MdNightsStay,
+  MdFavorite,
+  MdWarning,
+  MdEmojiPeople
+} from 'react-icons/md';
 
 /**
- * 日報作成/編集ページ
+ * レポート作成/編集ページ
  * 新規作成モードと編集モードの両方に対応
  */
 export function DailyReportFormPage() {
@@ -34,10 +42,9 @@ export function DailyReportFormPage() {
     childId: 0,
     staffId: 0,
     reportDate: new Date().toISOString().split('T')[0],
-    category: '',
+    reportKind: '',
     title: '',
     content: '',
-    tags: [],
     photos: [],
     status: 'draft',
   });
@@ -45,10 +52,9 @@ export function DailyReportFormPage() {
   // フォーム入力値の状態（更新用）
   const [updateFormData, setUpdateFormData] = useState<UpdateDailyReportRequestDto>({
     reportDate: new Date().toISOString().split('T')[0],
-    category: '',
+    reportKind: '',
     title: '',
     content: '',
-    tags: [],
     photos: [],
     status: 'draft',
   });
@@ -60,15 +66,20 @@ export function DailyReportFormPage() {
   const [childSearchQuery, setChildSearchQuery] = useState('');
   const [showChildDropdown, setShowChildDropdown] = useState(false);
 
-  // 定義済みタグ
-  const predefinedTags = [
-    { value: '活動', label: '活動🎨', emoji: '🎨' },
-    { value: '食事', label: '食事🍽️', emoji: '🍽️' },
-    { value: '睡眠', label: '睡眠😴', emoji: '😴' },
-    { value: 'ケガ', label: 'ケガ🩹', emoji: '🩹' },
-    { value: '事故', label: '事故⚠️', emoji: '⚠️' },
-    { value: '喧嘩', label: '喧嘩😤', emoji: '😤' },
+  // レポート種別の選択肢
+  const reportKindOptions = [
+    { value: 'activity', label: '活動', icon: MdSportsSoccer, color: 'text-blue-500' },
+    { value: 'meal', label: '食事', icon: MdRestaurant, color: 'text-orange-500' },
+    { value: 'sleep', label: '睡眠', icon: MdNightsStay, color: 'text-indigo-500' },
+    { value: 'health', label: '健康', icon: MdFavorite, color: 'text-red-500' },
+    { value: 'incident', label: '事故', icon: MdWarning, color: 'text-yellow-600' },
+    { value: 'behavior', label: '行動', icon: MdEmojiPeople, color: 'text-green-500' },
   ];
+
+  // 選択されているレポート種別（配列として管理）
+  const selectedReportKinds = isEditMode
+    ? updateFormData.reportKind.split(',').filter(k => k)
+    : createFormData.reportKind.split(',').filter(k => k);
 
   // フィルタリングされた園児リスト
   const filteredChildren = children.filter(child =>
@@ -111,10 +122,9 @@ export function DailyReportFormPage() {
       setExistingReport(data);
       setUpdateFormData({
         reportDate: data.reportDate.split('T')[0],
-        category: data.category,
+        reportKind: data.reportKind,
         title: data.title,
         content: data.content,
-        tags: data.tags || [],
         photos: data.photos || [],
         status: data.status,
       });
@@ -166,7 +176,7 @@ export function DailyReportFormPage() {
   // 園児選択（オートコンプリート）
   const handleChildSelect = (child: ChildDto) => {
     setCreateFormData(prev => ({ ...prev, childId: child.childId }));
-    setChildSearchQuery(child.name);
+    setChildSearchQuery(child.className ? `${child.name}（${child.className}）` : child.name);
     setShowChildDropdown(false);
 
     if (errors.childId) {
@@ -178,25 +188,29 @@ export function DailyReportFormPage() {
     }
   };
 
-  // タグトグル
-  const handleTagToggle = (tagValue: string) => {
-    const formData = isEditMode ? updateFormData : createFormData;
-    const tags = formData.tags || [];
+  // レポート種別チェックボックス変更ハンドラー
+  const handleReportKindToggle = (kind: string) => {
+    const currentKinds = isEditMode
+      ? updateFormData.reportKind.split(',').filter(k => k)
+      : createFormData.reportKind.split(',').filter(k => k);
 
-    const newTags = tags.includes(tagValue)
-      ? tags.filter(t => t !== tagValue)
-      : [...tags, tagValue];
+    const newKinds = currentKinds.includes(kind)
+      ? currentKinds.filter(k => k !== kind)
+      : [...currentKinds, kind];
+
+    const reportKindString = newKinds.join(',');
 
     if (isEditMode) {
-      setUpdateFormData(prev => ({ ...prev, tags: newTags }));
+      setUpdateFormData(prev => ({ ...prev, reportKind: reportKindString }));
     } else {
-      setCreateFormData(prev => ({ ...prev, tags: newTags }));
+      setCreateFormData(prev => ({ ...prev, reportKind: reportKindString }));
     }
 
-    if (errors.tags) {
+    // エラークリア
+    if (errors.reportKind) {
       setErrors(prev => {
         const newErrors = { ...prev };
-        delete newErrors.tags;
+        delete newErrors.reportKind;
         return newErrors;
       });
     }
@@ -269,8 +283,8 @@ export function DailyReportFormPage() {
       }
     }
 
-    if (!createFormData.tags || createFormData.tags.length === 0) {
-      newErrors.tags = '最低1つのタグを選択してください';
+    if (!createFormData.reportKind || createFormData.reportKind.split(',').filter(k => k).length === 0) {
+      newErrors.reportKind = 'レポート種別を少なくとも1つ選択してください';
     }
 
     if (!createFormData.title.trim()) {
@@ -305,8 +319,8 @@ export function DailyReportFormPage() {
       }
     }
 
-    if (!updateFormData.tags || updateFormData.tags.length === 0) {
-      newErrors.tags = '最低1つのタグを選択してください';
+    if (!updateFormData.reportKind || updateFormData.reportKind.split(',').filter(k => k).length === 0) {
+      newErrors.reportKind = 'レポート種別を少なくとも1つ選択してください';
     }
 
     if (!updateFormData.title.trim()) {
@@ -325,10 +339,8 @@ export function DailyReportFormPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // 保存処理
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  // 下書き保存処理
+  const handleSaveDraft = async () => {
     // バリデーション
     const isValid = isEditMode ? validateUpdate() : validateCreate();
     if (!isValid) {
@@ -339,37 +351,126 @@ export function DailyReportFormPage() {
       setIsSaving(true);
       setErrors({});
 
+      const draftData = isEditMode
+        ? { ...updateFormData, status: 'draft' }
+        : { ...createFormData, status: 'draft' };
+
       if (isEditMode && id) {
-        // 更新
-        await dailyReportService.updateDailyReport(Number(id), updateFormData);
-        setSuccessMessage('日報を更新しました');
+        // 更新：一覧に戻る
+        await dailyReportService.updateDailyReport(Number(id), draftData);
+        setSuccessMessage('下書きを保存しました');
+        setTimeout(() => {
+          navigate('/desktop/dailyreports');
+        }, 2000);
       } else {
-        // 作成
-        await dailyReportService.createDailyReport(createFormData);
-        setSuccessMessage('日報を作成しました');
-      }
+        // 作成：フォームをクリアして継続入力
+        await dailyReportService.createDailyReport(draftData);
+        setSuccessMessage('下書きを保存しました');
 
-      // 成功メッセージを3秒後に自動消去してリダイレクト
-      setTimeout(() => {
-        navigate('/desktop/dailyreports');
-      }, 3000);
-    } catch (error: any) {
-      console.error('日報の保存に失敗しました:', error);
-
-      // エラーメッセージを詳細に表示
-      if (error.response?.data?.errors) {
-        const apiErrors: Record<string, string> = {};
-        Object.entries(error.response.data.errors).forEach(([key, messages]) => {
-          if (Array.isArray(messages) && messages.length > 0) {
-            apiErrors[key.toLowerCase()] = messages[0];
-          }
+        // フォームをクリア
+        setCreateFormData({
+          childId: 0,
+          staffId: 0,
+          reportDate: new Date().toISOString().split('T')[0],
+          reportKind: '',
+          title: '',
+          content: '',
+          photos: [],
+          status: 'draft',
         });
-        setErrors(apiErrors);
-      } else {
-        setErrors({ general: '日報の保存に失敗しました' });
+        setChildSearchQuery('');
+        setPhotoInput('');
+
+        // スクロールをトップに戻す
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // 3秒後に成功メッセージを消去
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
       }
+    } catch (error: any) {
+      console.error('下書きの保存に失敗しました:', error);
+      handleError(error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // 送信処理
+  const handleSubmit = async () => {
+    // バリデーション
+    const isValid = isEditMode ? validateUpdate() : validateCreate();
+    if (!isValid) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setErrors({});
+
+      const publishedData = isEditMode
+        ? { ...updateFormData, status: 'published' }
+        : { ...createFormData, status: 'published' };
+
+      if (isEditMode && id) {
+        // 更新：一覧に戻る
+        await dailyReportService.updateDailyReport(Number(id), publishedData);
+        setSuccessMessage('レポートを送信しました');
+        setTimeout(() => {
+          navigate('/desktop/dailyreports');
+        }, 2000);
+      } else {
+        // 作成：フォームをクリアして継続入力
+        await dailyReportService.createDailyReport(publishedData);
+        setSuccessMessage('レポートを送信しました');
+
+        // フォームをクリア
+        setCreateFormData({
+          childId: 0,
+          staffId: 0,
+          reportDate: new Date().toISOString().split('T')[0],
+          reportKind: '',
+          title: '',
+          content: '',
+          photos: [],
+          status: 'draft',
+        });
+        setChildSearchQuery('');
+        setPhotoInput('');
+
+        // スクロールをトップに戻す
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // 3秒後に成功メッセージを消去
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
+      }
+    } catch (error: any) {
+      console.error('レポートの送信に失敗しました:', error);
+      handleError(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // エラーハンドリング
+  const handleError = (error: any) => {
+    console.error('Response data:', error.response?.data);
+    console.error('Request data:', isEditMode ? updateFormData : createFormData);
+
+    // エラーメッセージを詳細に表示
+    if (error.response?.data?.errors) {
+      const apiErrors: Record<string, string> = {};
+      Object.entries(error.response.data.errors).forEach(([key, messages]) => {
+        if (Array.isArray(messages) && messages.length > 0) {
+          apiErrors[key.toLowerCase()] = messages[0];
+        }
+      });
+      setErrors(apiErrors);
+    } else {
+      setErrors({ general: '処理に失敗しました' });
     }
   };
 
@@ -394,12 +495,12 @@ export function DailyReportFormPage() {
         {/* ヘッダー */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            {isEditMode ? '日報編集' : '日報新規作成'}
+            {isEditMode ? 'レポート編集' : 'レポート新規作成'}
           </h1>
           <p className="text-gray-600">
             {isEditMode
-              ? `日報「${existingReport?.title}」の情報を編集します`
-              : '新しい日報を作成します'}
+              ? `レポート「${existingReport?.title}」の情報を編集します`
+              : '新しいレポートを作成します'}
           </p>
         </div>
 
@@ -446,7 +547,7 @@ export function DailyReportFormPage() {
         )}
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
+        <div className="bg-white rounded-md shadow-md border border-gray-200">
           <div className="p-6 space-y-6">
             {/* 園児選択（作成時のみ - オートコンプリート） */}
             {!isEditMode && (
@@ -559,6 +660,39 @@ export function DailyReportFormPage() {
               {errors.reportDate && <p className="mt-1 text-sm text-red-600">{errors.reportDate}</p>}
             </div>
 
+            {/* レポート種別 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                レポート種別 <span className="text-red-600">*</span>
+              </label>
+              <div className={`grid grid-cols-3 gap-3 p-4 border rounded-lg ${
+                errors.reportKind ? 'border-red-500' : 'border-gray-300'
+              } ${isReadOnly ? 'bg-gray-50' : 'bg-white'}`}>
+                {reportKindOptions.map(option => {
+                  const Icon = option.icon;
+                  return (
+                    <label
+                      key={option.value}
+                      className={`flex items-center space-x-2 p-2 rounded hover:bg-gray-50 transition ${
+                        isReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedReportKinds.includes(option.value)}
+                        onChange={() => handleReportKindToggle(option.value)}
+                        disabled={isReadOnly || false}
+                        className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-400 focus:ring-2"
+                      />
+                      <Icon className={`w-5 h-5 ${option.color}`} />
+                      <span className="text-sm text-gray-700">{option.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {errors.reportKind && <p className="mt-1 text-sm text-red-600">{errors.reportKind}</p>}
+            </div>
+
             {/* タイトル */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
@@ -601,41 +735,6 @@ export function DailyReportFormPage() {
               />
               <p className="mt-1 text-xs text-gray-500">{formData.content.length}/1000文字</p>
               {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content}</p>}
-            </div>
-
-            {/* タグ選択（チェックボックス） */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                タグ <span className="text-red-600">*</span>
-              </label>
-              <p className="text-xs text-gray-500 mb-3">複数選択可能です</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {predefinedTags.map((tag) => {
-                  const isChecked = (formData.tags || []).includes(tag.value);
-                  return (
-                    <label
-                      key={tag.value}
-                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition ${
-                        isChecked
-                          ? 'border-orange-500 bg-orange-50'
-                          : 'border-gray-300 hover:border-orange-300'
-                      } ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => !isReadOnly && handleTagToggle(tag.value)}
-                        disabled={isReadOnly || false}
-                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-400"
-                      />
-                      <span className="ml-2 text-sm font-medium text-gray-700">
-                        {tag.label}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              {errors.tags && <p className="mt-2 text-sm text-red-600">{errors.tags}</p>}
             </div>
 
             {/* 写真 */}
@@ -686,42 +785,6 @@ export function DailyReportFormPage() {
               </div>
             </div>
 
-            {/* ステータス */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                ステータス <span className="text-red-600">*</span>
-              </label>
-              <div className="flex gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="draft"
-                    checked={formData.status === 'draft'}
-                    onChange={isEditMode ? handleUpdateChange : handleCreateChange}
-                    disabled={isReadOnly || false}
-                    className={`w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-400 ${
-                      isReadOnly ? 'cursor-not-allowed' : ''
-                    }`}
-                  />
-                  <span className="ml-2 text-sm text-gray-700">下書き</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="published"
-                    checked={formData.status === 'published'}
-                    onChange={isEditMode ? handleUpdateChange : handleCreateChange}
-                    disabled={isReadOnly || false}
-                    className={`w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-400 ${
-                      isReadOnly ? 'cursor-not-allowed' : ''
-                    }`}
-                  />
-                  <span className="ml-2 text-sm text-gray-700">公開済み</span>
-                </label>
-              </div>
-            </div>
           </div>
 
           {/* ボタン */}
@@ -734,39 +797,73 @@ export function DailyReportFormPage() {
               キャンセル
             </button>
             {!isReadOnly && (
-              <button
-                type="submit"
-                disabled={isSaving}
-                className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium transition ${
-                  isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
-                }`}
-              >
-                {isSaving ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    保存中...
-                  </span>
-                ) : (
-                  '保存する'
-                )}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  disabled={isSaving}
+                  className={`px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium transition ${
+                    isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 active:bg-gray-100'
+                  }`}
+                >
+                  {isSaving ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      保存中...
+                    </span>
+                  ) : (
+                    '下書き'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSaving}
+                  className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium transition ${
+                    isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
+                  }`}
+                >
+                  {isSaving ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      送信中...
+                    </span>
+                  ) : (
+                    '送信する'
+                  )}
+                </button>
+              </>
             )}
           </div>
-        </form>
+        </div>
       </div>
     </DashboardLayout>
   );

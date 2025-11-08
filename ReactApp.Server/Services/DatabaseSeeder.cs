@@ -354,25 +354,25 @@ namespace ReactApp.Server.Services
                 new DailyReport
                 {
                     NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, StaffId = staff[0].StaffId, ReportDate = new DateTime(2024, 1, 15),
-                    Category = "activity", Title = "積み木遊び", Content = "今日は積み木遊びを楽しんでいました。お友達と協力して大きなお城を作っていました。",
+                    ReportKind = "activity", Title = "積み木遊び", Content = "今日は積み木遊びを楽しんでいました。お友達と協力して大きなお城を作っていました。",
                     Status = "published", PublishedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
                 },
                 new DailyReport
                 {
                     NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, StaffId = staff[1].StaffId, ReportDate = new DateTime(2024, 1, 15),
-                    Category = "meal", Title = "給食の様子", Content = "給食は完食でした。苦手な野菜も頑張って食べていました。",
+                    ReportKind = "meal", Title = "給食の様子", Content = "給食は完食でした。苦手な野菜も頑張って食べていました。",
                     Status = "published", PublishedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
                 },
                 new DailyReport
                 {
                     NurseryId = children[2].NurseryId, ChildId = children[2].ChildId, StaffId = staff[0].StaffId, ReportDate = new DateTime(2024, 1, 16),
-                    Category = "health", Title = "健康状態", Content = "元気に過ごしています。鼻水が少し出ていますが、熱はありません。",
+                    ReportKind = "health", Title = "健康状態", Content = "元気に過ごしています。鼻水が少し出ていますが、熱はありません。",
                     Status = "published", PublishedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
                 },
                 new DailyReport
                 {
                     NurseryId = children[3].NurseryId, ChildId = children[3].ChildId, StaffId = staff[1].StaffId, ReportDate = new DateTime(2024, 1, 16),
-                    Category = "activity", Title = "お絵描き活動", Content = "お絵描きに夢中になって取り組んでいました。色使いがとても上手です。",
+                    ReportKind = "activity", Title = "お絵描き活動", Content = "お絵描きに夢中になって取り組んでいました。色使いがとても上手です。",
                     Status = "published", PublishedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
                 }
             };

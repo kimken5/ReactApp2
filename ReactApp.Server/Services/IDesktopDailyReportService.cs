@@ -1,4 +1,4 @@
-using ReactApp.Server.DTOs;
+using ReactApp.Server.DTOs.Desktop;
 
 namespace ReactApp.Server.Services
 {

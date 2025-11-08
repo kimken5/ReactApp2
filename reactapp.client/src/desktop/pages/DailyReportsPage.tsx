@@ -352,7 +352,7 @@ export function DailyReportsPage() {
       case 'published':
         return (
           <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
-            公開済み
+            送信済み
           </span>
         );
       case 'archived':
@@ -368,6 +368,21 @@ export function DailyReportsPage() {
           </span>
         );
     }
+  };
+
+  const getReportKindLabel = (reportKind: string) => {
+    const kindMap: Record<string, string> = {
+      'activity': '活動',
+      'meal': '食事',
+      'sleep': '睡眠',
+      'health': '健康',
+      'incident': '事故',
+      'behavior': '行動',
+    };
+
+    // カンマ区切りの場合は分割して変換
+    const kinds = reportKind.split(',').filter(k => k.trim());
+    return kinds.map(k => kindMap[k.trim()] || k).join(', ');
   };
 
   const getAcknowledgedBadge = (acknowledged: boolean) => {
@@ -414,8 +429,8 @@ export function DailyReportsPage() {
         {/* ヘッダー */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">日報管理</h1>
-            <p className="text-gray-600 mt-2">日報の一覧・作成・編集・削除を行います</p>
+            <h1 className="text-3xl font-bold text-gray-800">レポート管理</h1>
+            <p className="text-gray-600 mt-2">レポートの一覧・作成・編集・削除を行います</p>
           </div>
           <button
             onClick={() => navigate('/desktop/dailyreports/create')}
@@ -538,10 +553,10 @@ export function DailyReportsPage() {
               </select>
             </div>
 
-            {/* カテゴリ選択 */}
+            {/* レポート種別選択 */}
             <div>
               <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                カテゴリ選択
+                レポート種別
               </label>
               <select
                 id="category"
@@ -550,12 +565,12 @@ export function DailyReportsPage() {
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
               >
                 <option value="">すべて</option>
-                <option value="食事">食事</option>
-                <option value="睡眠">睡眠</option>
-                <option value="排泄">排泄</option>
-                <option value="遊び">遊び</option>
-                <option value="健康">健康</option>
-                <option value="その他">その他</option>
+                <option value="activity">活動</option>
+                <option value="meal">食事</option>
+                <option value="sleep">睡眠</option>
+                <option value="health">健康</option>
+                <option value="incident">事故</option>
+                <option value="behavior">行動</option>
               </select>
             </div>
           </div>
@@ -632,8 +647,7 @@ export function DailyReportsPage() {
               >
                 <option value="">すべて</option>
                 <option value="draft">下書き</option>
-                <option value="published">公開済み</option>
-                <option value="archived">アーカイブ済み</option>
+                <option value="published">送信済み</option>
               </select>
             </div>
 
@@ -724,7 +738,7 @@ export function DailyReportsPage() {
                     職員名
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    カテゴリ
+                    レポート種別
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     タイトル
@@ -769,7 +783,7 @@ export function DailyReportsPage() {
                         {report.staffName}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {report.category}
+                        {getReportKindLabel(report.reportKind)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">{report.title}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(report.status)}</td>

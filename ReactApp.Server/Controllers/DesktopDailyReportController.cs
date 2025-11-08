@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ReactApp.Server.DTOs;
+using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Services;
 using System.Security.Claims;
 
@@ -110,11 +110,12 @@ namespace ReactApp.Server.Controllers
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new ApiResponse<DailyReportDto>
+                    _logger.LogWarning("日報作成バリデーションエラー: {@ModelState}", ModelState);
+                    foreach (var error in ModelState)
                     {
-                        Success = false,
-                        Message = "入力データが不正です"
-                    });
+                        _logger.LogWarning("Field: {Key}, Errors: {@Errors}", error.Key, error.Value?.Errors.Select(e => e.ErrorMessage));
+                    }
+                    return BadRequest(ModelState);
                 }
 
                 var nurseryId = GetNurseryId();

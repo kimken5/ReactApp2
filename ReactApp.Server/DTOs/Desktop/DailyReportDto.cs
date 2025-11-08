@@ -16,10 +16,9 @@ namespace ReactApp.Server.DTOs.Desktop
         public int StaffId { get; set; }
         public string StaffName { get; set; } = string.Empty;
         public DateTime ReportDate { get; set; }
-        public string Category { get; set; } = string.Empty;
+        public string ReportKind { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
-        public List<string> Tags { get; set; } = new();
         public List<string> Photos { get; set; } = new();
         public string Status { get; set; } = string.Empty;
         public DateTime? PublishedAt { get; set; }
@@ -45,9 +44,9 @@ namespace ReactApp.Server.DTOs.Desktop
         [Required(ErrorMessage = "日報日付は必須です")]
         public DateTime ReportDate { get; set; }
 
-        [Required(ErrorMessage = "カテゴリは必須です")]
-        [StringLength(50, ErrorMessage = "カテゴリは50文字以内で入力してください")]
-        public string Category { get; set; } = string.Empty;
+        [Required(ErrorMessage = "レポート種別は必須です")]
+        [StringLength(50, ErrorMessage = "レポート種別は50文字以内で入力してください")]
+        public string ReportKind { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "タイトルは必須です")]
         [StringLength(200, ErrorMessage = "タイトルは200文字以内で入力してください")]
@@ -56,8 +55,6 @@ namespace ReactApp.Server.DTOs.Desktop
         [Required(ErrorMessage = "内容は必須です")]
         [StringLength(1000, ErrorMessage = "内容は1000文字以内で入力してください")]
         public string Content { get; set; } = string.Empty;
-
-        public List<string> Tags { get; set; } = new();
 
         public List<string> Photos { get; set; } = new();
 
@@ -74,9 +71,9 @@ namespace ReactApp.Server.DTOs.Desktop
         [Required(ErrorMessage = "日報日付は必須です")]
         public DateTime ReportDate { get; set; }
 
-        [Required(ErrorMessage = "カテゴリは必須です")]
-        [StringLength(50, ErrorMessage = "カテゴリは50文字以内で入力してください")]
-        public string Category { get; set; } = string.Empty;
+        [Required(ErrorMessage = "レポート種別は必須です")]
+        [StringLength(50, ErrorMessage = "レポート種別は50文字以内で入力してください")]
+        public string ReportKind { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "タイトルは必須です")]
         [StringLength(200, ErrorMessage = "タイトルは200文字以内で入力してください")]
@@ -85,8 +82,6 @@ namespace ReactApp.Server.DTOs.Desktop
         [Required(ErrorMessage = "内容は必須です")]
         [StringLength(1000, ErrorMessage = "内容は1000文字以内で入力してください")]
         public string Content { get; set; } = string.Empty;
-
-        public List<string> Tags { get; set; } = new();
 
         public List<string> Photos { get; set; } = new();
 
@@ -105,7 +100,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public int? StaffId { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public string? Category { get; set; }
+        public string? ReportKind { get; set; }
         public string? Status { get; set; }
         public bool? ParentAcknowledged { get; set; }
         public string? SearchKeyword { get; set; }

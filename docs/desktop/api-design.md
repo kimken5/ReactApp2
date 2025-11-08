@@ -907,10 +907,9 @@
         "staffId": 1,
         "staffName": "鈴木先生",
         "reportDate": "2025-10-23",
-        "category": "activity",
+        "reportKind": "activity",
         "title": "お散歩に行きました",
         "content": "公園でどんぐり拾いをしました...",
-        "tags": ["お散歩", "公園"],
         "photos": ["https://..."],
         "status": "published",
         "publishedAt": "2025-10-23T15:00:00Z",
@@ -941,10 +940,9 @@
   "childId": 1,                  // 園児ID (必須)
   "staffId": 1,                  // 作成スタッフID (必須)
   "reportDate": "2025-10-23",    // 日報日付 (必須)
-  "category": "activity|meal|sleep|health|incident|behavior", // カテゴリ (必須)
+  "reportKind": "activity|meal|sleep|health|incident|behavior", // レポート種別 (必須)
   "title": "string",             // タイトル (必須、200文字以内)
   "content": "string",           // 本文 (必須、1000文字以内)
-  "tags": ["string"],            // タグ (任意)
   "photos": ["string"],          // 写真URL配列 (任意)
   "status": "draft|published"    // ステータス (必須)
 }
@@ -1621,11 +1619,11 @@
     },
     "dailyReports": {
       "totalCount": 180,
-      "categoryBreakdown": [
-        { "category": "activity", "count": 120 },
-        { "category": "meal", "count": 30 },
-        { "category": "sleep", "count": 25 },
-        { "category": "health", "count": 5 }
+      "reportKindBreakdown": [
+        { "reportKind": "activity", "count": 120 },
+        { "reportKind": "meal", "count": 30 },
+        { "reportKind": "sleep", "count": 25 },
+        { "reportKind": "health", "count": 5 }
       ]
     },
     "photos": {

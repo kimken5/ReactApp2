@@ -179,21 +179,66 @@ EXEC sp_addextendedproperty 'MS_Description', '対応したスタッフID', 'SCH
 EXEC sp_addextendedproperty 'MS_Description', '管理者確認日時', 'SCHEMA', 'dbo', 'TABLE', 'AbsenceNotifications', 'COLUMN', 'AcknowledgedByAdminAt';
 ```
 
-### 1.7 DailyReports テーブル拡張
+### 1.7 DailyReports テーブル
 
-**追加理由**: 管理者による代理作成記録
+**変更内容**: スキーマ変更（CategoryをReportKindに変更、Tagsフィールドを削除）
+
+**最新スキーマ**:
 
 ```sql
--- 既存テーブルに以下のカラムを追加
-ALTER TABLE DailyReports ADD
-    CreatedByAdminUser BIT NOT NULL DEFAULT 0;  -- 管理者作成フラグ
+CREATE TABLE [dbo].[DailyReports] (
+    [Id] INT IDENTITY NOT NULL,
+    [NurseryId] INT NOT NULL,
+    [ChildId] INT NOT NULL,
+    [StaffNurseryId] INT NOT NULL,
+    [StaffId] INT NOT NULL,
+    [ReportDate] DATE NOT NULL,
+    [ReportKind] NVARCHAR(50) NOT NULL,  -- レポート種別（activity, meal, sleep, health, incident, behavior）
+    [Title] NVARCHAR(200) NOT NULL,
+    [Content] NVARCHAR(1000) NOT NULL,
+    [Photos] NVARCHAR(1000),  -- JSON配列形式の写真URL
+    [Status] NVARCHAR(20) DEFAULT N'draft' NOT NULL,
+    [PublishedAt] DATETIME2,
+    [ParentAcknowledged] BIT DEFAULT 0 NOT NULL,
+    [AcknowledgedAt] DATETIME2,
+    [CreatedByAdminUser] BIT DEFAULT 0 NOT NULL,  -- 管理者作成フラグ
+    [CreatedAt] DATETIME2 DEFAULT GETUTCDATE() NOT NULL,
+    [UpdatedAt] DATETIME2,
+    CONSTRAINT [PK_DailyReports] PRIMARY KEY ([Id])
+);
 
--- インデックス追加
-CREATE INDEX IX_DailyReports_CreatedByAdminUser ON DailyReports (CreatedByAdminUser);
+-- インデックス
+CREATE INDEX IX_DailyReports_Child_Date_Status ON [dbo].[DailyReports]([NurseryId], [ChildId], [ReportDate], [Status]);
+CREATE INDEX IX_DailyReports_Date_Status ON [dbo].[DailyReports]([ReportDate], [Status]);
+CREATE INDEX IX_DailyReports_Staff_Created ON [dbo].[DailyReports]([StaffNurseryId], [StaffId], [CreatedAt]);
 
--- カラムコメント追加
+-- カラムコメント
+EXEC sp_addextendedproperty 'MS_Description', '連絡帳ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'Id';
+EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'NurseryId';
+EXEC sp_addextendedproperty 'MS_Description', '園児ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'ChildId';
+EXEC sp_addextendedproperty 'MS_Description', '職員保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'StaffNurseryId';
+EXEC sp_addextendedproperty 'MS_Description', '職員ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'StaffId';
+EXEC sp_addextendedproperty 'MS_Description', '対象日', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'ReportDate';
+EXEC sp_addextendedproperty 'MS_Description', 'レポート種別', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'ReportKind';
+EXEC sp_addextendedproperty 'MS_Description', 'タイトル', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'Title';
+EXEC sp_addextendedproperty 'MS_Description', '内容', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'Content';
+EXEC sp_addextendedproperty 'MS_Description', '写真', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'Photos';
+EXEC sp_addextendedproperty 'MS_Description', 'ステータス', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'Status';
+EXEC sp_addextendedproperty 'MS_Description', '公開日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'PublishedAt';
+EXEC sp_addextendedproperty 'MS_Description', '保護者確認', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'ParentAcknowledged';
+EXEC sp_addextendedproperty 'MS_Description', '保護者日報確認日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'AcknowledgedAt';
 EXEC sp_addextendedproperty 'MS_Description', '管理者作成フラグ', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'CreatedByAdminUser';
+EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'CreatedAt';
+EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'UpdatedAt';
 ```
+
+**ReportKind値**:
+- `activity`: 活動
+- `meal`: 食事
+- `sleep`: 睡眠
+- `health`: 健康
+- `incident`: 事故
+- `behavior`: 行動
 
 ### 1.8 Photos テーブル拡張
 

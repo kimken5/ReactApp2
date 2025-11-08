@@ -489,13 +489,12 @@ namespace ReactApp.Server.Data
                 entity.HasIndex(e => new { e.StaffNurseryId, e.StaffId, e.CreatedAt })
                     .HasDatabaseName("IX_DailyReports_Staff_Created");
 
-                entity.HasIndex(e => new { e.Category, e.ReportDate })
-                    .HasDatabaseName("IX_DailyReports_Category_Date");
+                entity.HasIndex(e => new { e.ReportKind, e.ReportDate })
+                    .HasDatabaseName("IX_DailyReports_ReportKind_Date");
 
-                entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ReportKind).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Content).IsRequired().HasMaxLength(1000);
-                entity.Property(e => e.Tags).HasMaxLength(500);
                 entity.Property(e => e.Photos).HasMaxLength(1000);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("draft");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
