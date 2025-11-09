@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { DailyReportDetailModal } from '../components/DailyReportDetailModal';
+import { DailyReportEditModal } from '../components/DailyReportEditModal';
 import { dailyReportService } from '../services/dailyReportService';
 import { masterService } from '../services/masterService';
 import type { DailyReportDto, DailyReportFilterDto } from '../types/dailyReport';
@@ -10,131 +12,171 @@ import type { ChildDto, ClassDto, StaffDto } from '../types/master';
 const DEMO_REPORTS: DailyReportDto[] = [
   {
     id: 101,
+    nurseryId: 1,
     childId: 1,
     childName: '山田太郎',
     className: 'ひまわり組',
+    staffNurseryId: 1,
     staffId: 1,
     staffName: '佐藤花子',
     reportDate: '2025-10-26T00:00:00',
-    category: '食事',
+    reportKind: 'meal',
     title: '給食完食しました',
     content: '今日の給食は全部食べることができました。苦手な野菜も頑張って食べていました。',
+    photos: [],
     status: 'Published',
     parentAcknowledged: true,
+    createdByAdminUser: false,
     createdAt: '2025-10-26T09:00:00',
     updatedAt: '2025-10-26T09:00:00',
+    responseCount: 0,
   },
   {
     id: 102,
+    nurseryId: 1,
     childId: 2,
     childName: '鈴木花子',
     className: 'さくら組',
+    staffNurseryId: 1,
     staffId: 2,
     staffName: '田中一郎',
     reportDate: '2025-10-26T00:00:00',
-    category: '遊び',
+    reportKind: 'activity',
     title: 'お絵描きが上手になりました',
     content: 'クレヨンを使って、お母さんとお父さんの絵を描きました。色使いが上手になってきています。',
+    photos: [],
     status: 'Published',
     parentAcknowledged: false,
+    createdByAdminUser: false,
     createdAt: '2025-10-26T10:30:00',
     updatedAt: '2025-10-26T10:30:00',
+    responseCount: 0,
   },
   {
     id: 103,
+    nurseryId: 1,
     childId: 3,
     childName: '佐々木次郎',
     className: 'ひまわり組',
+    staffNurseryId: 1,
     staffId: 1,
     staffName: '佐藤花子',
     reportDate: '2025-10-25T00:00:00',
-    category: '睡眠',
+    reportKind: 'sleep',
     title: 'お昼寝の様子',
     content: 'お昼寝は2時間ぐっすり眠っていました。起きた後も機嫌が良かったです。',
+    photos: [],
     status: 'Published',
     parentAcknowledged: true,
+    createdByAdminUser: false,
     createdAt: '2025-10-25T14:30:00',
     updatedAt: '2025-10-25T14:30:00',
+    responseCount: 0,
   },
   {
     id: 104,
+    nurseryId: 1,
     childId: 1,
     childName: '山田太郎',
     className: 'ひまわり組',
+    staffNurseryId: 1,
     staffId: 3,
     staffName: '高橋美咲',
     reportDate: '2025-10-25T00:00:00',
-    category: '健康',
+    reportKind: 'health',
     title: '体調について',
     content: '朝少し咳が出ていましたが、日中は元気に過ごしていました。水分補給もしっかりしています。',
+    photos: [],
     status: 'Published',
     parentAcknowledged: false,
+    createdByAdminUser: false,
     createdAt: '2025-10-25T15:00:00',
     updatedAt: '2025-10-25T15:00:00',
+    responseCount: 0,
   },
   {
     id: 105,
+    nurseryId: 1,
     childId: 4,
     childName: '中村春子',
     className: 'たんぽぽ組',
+    staffNurseryId: 1,
     staffId: 2,
     staffName: '田中一郎',
     reportDate: '2025-10-24T00:00:00',
-    category: '遊び',
+    reportKind: 'activity',
     title: 'ブロック遊びで集中力発揮',
     content: 'ブロックで大きなお城を作りました。30分以上集中して取り組んでいて、完成度も高かったです。',
+    photos: [],
     status: 'Published',
     parentAcknowledged: true,
+    createdByAdminUser: false,
     createdAt: '2025-10-24T11:00:00',
     updatedAt: '2025-10-24T11:00:00',
+    responseCount: 0,
   },
   {
     id: 106,
+    nurseryId: 1,
     childId: 2,
     childName: '鈴木花子',
     className: 'さくら組',
+    staffNurseryId: 1,
     staffId: 1,
     staffName: '佐藤花子',
     reportDate: '2025-10-24T00:00:00',
-    category: '排泄',
+    reportKind: 'behavior',
     title: 'トイレトレーニング順調',
     content: 'トイレに自分から行けるようになりました。今日は失敗なく過ごせました。',
+    photos: [],
     status: 'Draft',
     parentAcknowledged: false,
+    createdByAdminUser: false,
     createdAt: '2025-10-24T13:30:00',
     updatedAt: '2025-10-24T13:30:00',
+    responseCount: 0,
   },
   {
     id: 107,
+    nurseryId: 1,
     childId: 5,
     childName: '小林優斗',
     className: 'ひまわり組',
+    staffNurseryId: 1,
     staffId: 3,
     staffName: '高橋美咲',
     reportDate: '2025-10-23T00:00:00',
-    category: '食事',
+    reportKind: 'meal',
     title: '野菜を頑張って食べました',
     content: 'ピーマンが苦手でしたが、小さく切ってあげると全部食べることができました。',
+    photos: [],
     status: 'Published',
     parentAcknowledged: true,
+    createdByAdminUser: false,
     createdAt: '2025-10-23T12:00:00',
     updatedAt: '2025-10-23T12:00:00',
+    responseCount: 0,
   },
   {
     id: 108,
+    nurseryId: 1,
     childId: 3,
     childName: '佐々木次郎',
     className: 'ひまわり組',
+    staffNurseryId: 1,
     staffId: 2,
     staffName: '田中一郎',
     reportDate: '2025-10-23T00:00:00',
-    category: 'その他',
+    reportKind: 'behavior',
     title: 'お友達と仲良く遊びました',
     content: 'お友達と砂場で遊び、協力して大きな山を作りました。仲良く遊べていました。',
+    photos: [],
     status: 'Draft',
     parentAcknowledged: false,
+    createdByAdminUser: false,
     createdAt: '2025-10-23T16:00:00',
     updatedAt: '2025-10-23T16:00:00',
+    responseCount: 0,
   },
 ];
 
@@ -174,6 +216,10 @@ export function DailyReportsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmReport, setDeleteConfirmReport] = useState<DailyReportDto | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // モーダル状態
+  const [detailModalReportId, setDetailModalReportId] = useState<number | null>(null);
+  const [editModalReportId, setEditModalReportId] = useState<number | null>(null);
 
   // マスタデータ
   const [children, setChildren] = useState<ChildDto[]>([]);
@@ -235,6 +281,7 @@ export function DailyReportsPage() {
     try {
       setIsLoading(true);
       setErrorMessage(null);
+      setCurrentPage(1); // フィルター実行時にページ番号を1にリセット
 
       if (isDemoMode) {
         // Demo mode: client-side filtering
@@ -249,11 +296,25 @@ export function DailyReportsPage() {
         if (filter.staffId) {
           filtered = filtered.filter(r => r.staffId === filter.staffId);
         }
-        if (filter.category) {
-          filtered = filtered.filter(r => r.category === filter.category);
+        if (filter.reportKind) {
+          // フィルターで選択された種別（カンマ区切り）
+          const filterKinds = filter.reportKind.split(',').map(k => k.trim());
+          filtered = filtered.filter(r => {
+            // レポートの種別（カンマ区切りの可能性あり）
+            const reportKinds = r.reportKind.split(',').map(k => k.trim());
+            // フィルター種別のいずれかがレポート種別に含まれているか
+            return filterKinds.some(fk => reportKinds.includes(fk));
+          });
         }
         if (filter.status) {
           filtered = filtered.filter(r => r.status === filter.status);
+        }
+        if (filter.hasPhoto !== undefined) {
+          filtered = filtered.filter(r =>
+            filter.hasPhoto
+              ? r.photos && r.photos.length > 0
+              : !r.photos || r.photos.length === 0
+          );
         }
         if (filter.searchKeyword) {
           const keyword = filter.searchKeyword.toLowerCase();
@@ -261,7 +322,8 @@ export function DailyReportsPage() {
             r =>
               r.title.toLowerCase().includes(keyword) ||
               r.content.toLowerCase().includes(keyword) ||
-              r.childName.toLowerCase().includes(keyword)
+              r.childName.toLowerCase().includes(keyword) ||
+              r.staffName.toLowerCase().includes(keyword)
           );
         }
 
@@ -270,6 +332,10 @@ export function DailyReportsPage() {
       } else {
         // Production mode: API filtering
         const filtered = await dailyReportService.getDailyReports(filter);
+        console.log('=== API Response ===');
+        console.log('Filter sent:', filter);
+        console.log('Results count:', filtered.length);
+        console.log('Results:', filtered.map(r => ({ id: r.id, reportKind: r.reportKind, title: r.title })));
         setFilteredReports(filtered);
         setHasSearched(true);
       }
@@ -555,13 +621,13 @@ export function DailyReportsPage() {
 
             {/* レポート種別選択 */}
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="reportKind" className="block text-sm font-medium text-gray-700 mb-2">
                 レポート種別
               </label>
               <select
-                id="category"
-                value={filter.category || ''}
-                onChange={e => setFilter(prev => ({ ...prev, category: e.target.value || undefined }))}
+                id="reportKind"
+                value={filter.reportKind || ''}
+                onChange={e => setFilter(prev => ({ ...prev, reportKind: e.target.value || undefined }))}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
               >
                 <option value="">すべて</option>
@@ -681,19 +747,51 @@ export function DailyReportsPage() {
             </div>
           </div>
 
-          {/* キーワード検索 */}
-          <div>
-            <label htmlFor="searchKeyword" className="block text-sm font-medium text-gray-700 mb-2">
-              キーワード検索
-            </label>
-            <input
-              type="text"
-              id="searchKeyword"
-              value={filter.searchKeyword || ''}
-              onChange={e => setFilter(prev => ({ ...prev, searchKeyword: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
-              placeholder="園児名、職員名、タイトル、内容で検索"
-            />
+          {/* 写真・キーワード検索 */}
+          <div className="grid grid-cols-4 gap-4">
+            {/* 写真フィルター */}
+            <div>
+              <label htmlFor="hasPhoto" className="block text-sm font-medium text-gray-700 mb-2">
+                写真
+              </label>
+              <select
+                id="hasPhoto"
+                value={
+                  filter.hasPhoto === undefined
+                    ? ''
+                    : filter.hasPhoto
+                      ? 'true'
+                      : 'false'
+                }
+                onChange={e =>
+                  setFilter(prev => ({
+                    ...prev,
+                    hasPhoto:
+                      e.target.value === '' ? undefined : e.target.value === 'true',
+                  }))
+                }
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+              >
+                <option value="">すべて</option>
+                <option value="true">有</option>
+                <option value="false">－</option>
+              </select>
+            </div>
+
+            {/* キーワード検索 */}
+            <div className="col-span-3">
+              <label htmlFor="searchKeyword" className="block text-sm font-medium text-gray-700 mb-2">
+                キーワード検索
+              </label>
+              <input
+                type="text"
+                id="searchKeyword"
+                value={filter.searchKeyword || ''}
+                onChange={e => setFilter(prev => ({ ...prev, searchKeyword: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+                placeholder="園児名、職員名、タイトル、内容で検索"
+              />
+            </div>
           </div>
 
           {/* 表示ボタン */}
@@ -732,9 +830,6 @@ export function DailyReportsPage() {
                     園児名
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    クラス
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     職員名
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -742,6 +837,9 @@ export function DailyReportsPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     タイトル
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    写真
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ステータス
@@ -775,9 +873,9 @@ export function DailyReportsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {report.childName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {report.className || '-'}
+                        {report.className && (
+                          <span className="text-gray-500"> ({report.className})</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {report.staffName}
@@ -786,6 +884,9 @@ export function DailyReportsPage() {
                         {getReportKindLabel(report.reportKind)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">{report.title}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        {report.photos && report.photos.length > 0 ? '有' : 'ー'}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(report.status)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getAcknowledgedBadge(report.parentAcknowledged)}
@@ -794,7 +895,7 @@ export function DailyReportsPage() {
                         <div className="flex gap-1">
                           {/* 詳細ボタン */}
                           <button
-                            onClick={() => navigate(`/desktop/dailyreports/${report.id}`)}
+                            onClick={() => setDetailModalReportId(report.id)}
                             className="relative group p-2 bg-green-50 text-green-600 rounded-md border border-green-200 hover:bg-green-100 hover:shadow-md transition-all duration-200"
                             title="詳細"
                           >
@@ -809,58 +910,44 @@ export function DailyReportsPage() {
 
                           {/* 編集ボタン */}
                           <button
-                            onClick={() => navigate(`/desktop/dailyreports/edit/${report.id}`)}
-                            disabled={isPublishedOrArchived(report.status)}
-                            className={`relative group p-2 rounded-md border transition-all duration-200 ${
-                              isPublishedOrArchived(report.status)
-                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:shadow-md'
-                            }`}
+                            onClick={() => setEditModalReportId(report.id)}
+                            className="relative group p-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200"
                             title="編集"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            {!isPublishedOrArchived(report.status) && (
-                              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                編集
-                              </span>
-                            )}
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              編集
+                            </span>
                           </button>
 
                           {/* 削除ボタン */}
                           <button
                             onClick={() => setDeleteConfirmReport(report)}
-                            disabled={isPublishedOrArchived(report.status)}
-                            className={`relative group p-2 rounded-md border transition-all duration-200 ${
-                              isPublishedOrArchived(report.status)
-                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:shadow-md'
-                            }`}
+                            className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
                             title="削除"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            {!isPublishedOrArchived(report.status) && (
-                              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                削除
-                              </span>
-                            )}
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              削除
+                            </span>
                           </button>
 
-                          {/* 公開ボタン */}
+                          {/* 送信ボタン */}
                           {isDraft(report.status) && (
                             <button
                               onClick={() => handlePublish(report)}
                               className="relative group p-2 bg-green-50 text-green-600 rounded-md border border-green-200 hover:bg-green-100 hover:shadow-md transition-all duration-200"
-                              title="公開"
+                              title="送信"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                公開
+                                送信
                               </span>
                             </button>
                           )}
@@ -920,35 +1007,73 @@ export function DailyReportsPage() {
       {/* 削除確認モーダル */}
       {deleteConfirmReport && (
         <>
+          {/* オーバーレイ */}
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
             onClick={() => setDeleteConfirmReport(null)}
           />
-          <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white rounded-md shadow-xl p-6 max-w-md w-full mx-4 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">日報を削除</h3>
-              <p className="text-gray-600 mb-6">
-                本当に日報「{deleteConfirmReport.title}」を削除しますか？
-                <br />
-                この操作は取り消せません。
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setDeleteConfirmReport(null)}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={() => handleDelete(deleteConfirmReport)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
-                >
-                  削除する
-                </button>
+
+          {/* モーダル */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl border border-gray-300 max-w-md w-full overflow-hidden">
+              {/* ヘッダー */}
+              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-yellow-50">
+                <h3 className="text-lg font-semibold text-gray-900">レポートを削除</h3>
+              </div>
+
+              {/* コンテンツ */}
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  本当にレポート「{deleteConfirmReport.title}」を削除しますか？
+                  <br />
+                  この操作は取り消せません。
+                </p>
+
+                {/* ボタン */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteConfirmReport(null)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirmReport)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    削除する
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </>
+      )}
+
+      {/* 詳細モーダル */}
+      {detailModalReportId && (
+        <DailyReportDetailModal
+          reportId={detailModalReportId}
+          onClose={() => setDetailModalReportId(null)}
+          onEdit={(reportId) => {
+            setDetailModalReportId(null);
+            setEditModalReportId(reportId);
+          }}
+        />
+      )}
+
+      {/* 編集モーダル */}
+      {editModalReportId && (
+        <DailyReportEditModal
+          reportId={editModalReportId}
+          onClose={() => setEditModalReportId(null)}
+          onSuccess={() => {
+            setEditModalReportId(null);
+            loadReports();
+            setSuccessMessage('日報を更新しました');
+            setTimeout(() => setSuccessMessage(null), 3000);
+          }}
+        />
       )}
     </DashboardLayout>
   );

@@ -360,19 +360,22 @@ export function DailyReportEditModal({ reportId, onClose, onSuccess }: DailyRepo
             >
               キャンセル
             </button>
-            <button
-              onClick={(e) => handleSubmit(e, 'draft')}
-              disabled={isSaving || !report}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? '保存中...' : '下書き保存'}
-            </button>
+            {/* 下書き保存ボタン: 送信済みの場合は非表示 */}
+            {report?.status !== 'published' && (
+              <button
+                onClick={(e) => handleSubmit(e, 'draft')}
+                disabled={isSaving || !report}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? '保存中...' : '下書き保存'}
+              </button>
+            )}
             <button
               onClick={(e) => handleSubmit(e, 'published')}
               disabled={isSaving || !report}
               className="px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? '送信中...' : '送信'}
+              {isSaving ? (report?.status === 'published' ? '更新中...' : '送信中...') : (report?.status === 'published' ? '更新' : '送信')}
             </button>
           </div>
         </div>

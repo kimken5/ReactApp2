@@ -190,7 +190,7 @@ namespace ReactApp.Server.Services
         public async Task<DailyReportDto?> GetReportByIdAsync(int id)
         {
             var report = await _context.DailyReports
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .FirstOrDefaultAsync(r => r.Id == id && r.IsActive);
 
             if (report == null) return null;
 
@@ -235,6 +235,7 @@ namespace ReactApp.Server.Services
                 Photos = string.Join(",", dto.Photos),
                 Status = dto.Status ?? "draft",
                 PublishedAt = dto.Status == "published" ? DateTime.UtcNow : null,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -321,7 +322,7 @@ namespace ReactApp.Server.Services
         public async Task<bool> PublishReportAsync(int id)
         {
             var report = await _context.DailyReports
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .FirstOrDefaultAsync(r => r.Id == id && r.IsActive);
 
             if (report == null || report.Status != "draft")
             {
@@ -392,15 +393,12 @@ namespace ReactApp.Server.Services
                 return false;
             }
 
-            if (report.Status == "published")
-            {
-                throw new BusinessException("公開済みのレポートは削除できません。アーカイブしてください。");
-            }
-
-            _context.DailyReports.Remove(report);
+            // 論理削除: IsActiveをfalseに設定
+            report.IsActive = false;
+            report.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Daily report deleted: {ReportId}", id);
+            _logger.LogInformation("Daily report deleted (logical): {ReportId}", id);
             return true;
         }
 

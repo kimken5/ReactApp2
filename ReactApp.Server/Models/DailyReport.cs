@@ -102,6 +102,14 @@ namespace ReactApp.Server.Models
         /// </summary>
         public DateTime? AcknowledgedAt { get; set; }
 
+        /// <summary>
+        /// アクティブフラグ（必須）
+        /// デフォルト: true
+        /// 論理削除フラグ（false = 削除済み）
+        /// </summary>
+        [Required]
+        public bool IsActive { get; set; } = true;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }

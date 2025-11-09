@@ -63,10 +63,7 @@ namespace ReactApp.Server.Services
                     query = query.Where(r => r.ReportDate <= filter.EndDate.Value.Date);
                 }
 
-                if (!string.IsNullOrEmpty(filter.ReportKind))
-                {
-                    query = query.Where(r => r.ReportKind == filter.ReportKind);
-                }
+                // レポート種別のフィルタリングはMapToDto後にメモリ上で実行（完全一致のため）
 
                 if (!string.IsNullOrEmpty(filter.Status))
                 {
@@ -78,12 +75,21 @@ namespace ReactApp.Server.Services
                     query = query.Where(r => r.ParentAcknowledged == filter.ParentAcknowledged.Value);
                 }
 
-                if (!string.IsNullOrEmpty(filter.SearchKeyword))
+                if (filter.HasPhoto.HasValue)
                 {
-                    var keyword = filter.SearchKeyword.ToLower();
-                    query = query.Where(r => r.Title.ToLower().Contains(keyword)
-                        || r.Content.ToLower().Contains(keyword));
+                    if (filter.HasPhoto.Value)
+                    {
+                        // 写真あり: Photosフィールドが空でない
+                        query = query.Where(r => !string.IsNullOrEmpty(r.Photos) && r.Photos != "[]");
+                    }
+                    else
+                    {
+                        // 写真なし: Photosフィールドが空または空配列
+                        query = query.Where(r => string.IsNullOrEmpty(r.Photos) || r.Photos == "[]");
+                    }
                 }
+
+                // キーワード検索はMapToDto後にメモリ上で実行（園児名・職員名を含むため）
 
                 // 日報取得とマッピング
                 var reports = await query
@@ -114,6 +120,42 @@ namespace ReactApp.Server.Services
                     }
 
                     result.Add(MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount));
+                }
+
+                // レポート種別フィルタリング（メモリ上で完全一致）
+                if (!string.IsNullOrEmpty(filter.ReportKind))
+                {
+                    _logger.LogInformation("フィルター前の件数: {Count}", result.Count);
+                    _logger.LogInformation("フィルター条件: ReportKind={ReportKind}", filter.ReportKind);
+
+                    var filterKinds = filter.ReportKind.Split(',').Select(k => k.Trim()).ToList();
+
+                    foreach (var report in result)
+                    {
+                        _logger.LogInformation("レポートID={Id}, ReportKind={ReportKind}", report.Id, report.ReportKind);
+                    }
+
+                    result = result.Where(r =>
+                    {
+                        var reportKinds = r.ReportKind.Split(',').Select(k => k.Trim()).ToList();
+                        var match = filterKinds.Any(fk => reportKinds.Contains(fk));
+                        _logger.LogInformation("レポートID={Id}, 一致={Match}, レポート種別={ReportKinds}", r.Id, match, string.Join(",", reportKinds));
+                        return match;
+                    }).ToList();
+
+                    _logger.LogInformation("フィルター後の件数: {Count}", result.Count);
+                }
+
+                // キーワード検索で園児名・職員名もフィルタリング（メモリ上で実行）
+                if (!string.IsNullOrEmpty(filter.SearchKeyword))
+                {
+                    var keyword = filter.SearchKeyword.ToLower();
+                    result = result.Where(r =>
+                        r.Title.ToLower().Contains(keyword) ||
+                        r.Content.ToLower().Contains(keyword) ||
+                        r.ChildName.ToLower().Contains(keyword) ||
+                        r.StaffName.ToLower().Contains(keyword)
+                    ).ToList();
                 }
 
                 _logger.LogInformation(
@@ -361,13 +403,9 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"日報が見つかりません: ReportId={reportId}");
                 }
 
-                // ビジネスルール: Publishedステータスの日報は削除不可
-                if (report.Status == "published")
-                {
-                    throw new InvalidOperationException("公開済みの日報は削除できません (BR-RM-001)");
-                }
-
-                _context.DailyReports.Remove(report);
+                // 論理削除: IsActiveをfalseに設定
+                report.IsActive = false;
+                report.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation(

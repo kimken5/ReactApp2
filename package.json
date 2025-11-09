@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "cd reactapp.client && npm run dev",
-    "dev:server": "cd ReactApp.Server && dotnet run",
+    "dev:server": "cd ReactApp.Server && dotnet run --launch-profile https",
     "build": "cd reactapp.client && npm run build && cd ../ReactApp.Server && dotnet build --configuration Release",
     "test": "npm run test:all",
     "test:all": "node scripts/test-utilities.js run",

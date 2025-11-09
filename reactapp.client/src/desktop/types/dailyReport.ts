@@ -68,6 +68,7 @@ export interface DailyReportFilterDto {
   reportKind?: string;
   status?: string;
   parentAcknowledged?: boolean;
+  hasPhoto?: boolean;
   searchKeyword?: string;
 }
 

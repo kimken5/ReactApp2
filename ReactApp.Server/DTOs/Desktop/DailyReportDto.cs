@@ -103,6 +103,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public string? ReportKind { get; set; }
         public string? Status { get; set; }
         public bool? ParentAcknowledged { get; set; }
+        public bool? HasPhoto { get; set; }
         public string? SearchKeyword { get; set; }
     }
 
