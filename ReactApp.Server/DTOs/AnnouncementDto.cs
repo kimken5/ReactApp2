@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ReactApp.Server.DTOs
 {
@@ -11,6 +12,7 @@ namespace ReactApp.Server.DTOs
         /// <summary>
         /// お知らせID
         /// </summary>
+        [JsonPropertyName("announcementId")]
         public int Id { get; set; }
 
         /// <summary>

@@ -118,14 +118,14 @@ namespace ReactApp.Server.Services
                 var responseStaffIds = responses.Select(r => new { r.NurseryId, r.StaffId }).Distinct().ToList();
                 var responseStaff = responseStaffIds.Any()
                     ? await _context.Staff
-                        .Where(s => responseStaffIds.Select(x => x.StaffId).Contains(s.StaffId))
+                        .Where(s => responseStaffIds.Any(x => x.NurseryId == s.NurseryId && x.StaffId == s.StaffId))
                         .ToDictionaryAsync(s => (s.NurseryId, s.StaffId), s => s.Name)
                     : new Dictionary<(int NurseryId, int StaffId), string>();
 
                 // 確認済みスタッフ情報を取得
                 var acknowledgedByStaff = acknowledgedByIds.Any()
                     ? await _context.Staff
-                        .Where(s => acknowledgedByIds.Select(x => x.StaffId).Contains(s.StaffId))
+                        .Where(s => acknowledgedByIds.Any(x => x.NurseryId == s.NurseryId && x.StaffId == s.StaffId))
                         .ToDictionaryAsync(s => (s.NurseryId, s.StaffId), s => s.Name)
                     : new Dictionary<(int NurseryId, int StaffId), string>();
 
@@ -264,7 +264,7 @@ namespace ReactApp.Server.Services
                 if (latestResponse != null)
                 {
                     var responseStaff = await _context.Staff
-                        .FirstOrDefaultAsync(s => s.StaffId == latestResponse.StaffId);
+                        .FirstOrDefaultAsync(s => s.NurseryId == latestResponse.NurseryId && s.StaffId == latestResponse.StaffId);
 
                     latestResponseDto = new ContactNotificationResponseDto
                     {

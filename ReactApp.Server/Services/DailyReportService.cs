@@ -213,7 +213,7 @@ namespace ReactApp.Server.Services
             _logger.LogInformation("Child found: ChildId={ChildId}, NurseryId={NurseryId}", child.ChildId, child.NurseryId);
 
             var staff = await _context.Staff
-                .FirstOrDefaultAsync(s => s.StaffId == staffId && s.IsActive);
+                .FirstOrDefaultAsync(s => s.NurseryId == child.NurseryId && s.StaffId == staffId && s.IsActive);
             if (staff == null)
             {
                 _logger.LogWarning("Staff not found: StaffId={StaffId}", staffId);

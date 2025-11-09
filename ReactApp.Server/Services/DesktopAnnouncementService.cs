@@ -69,7 +69,7 @@ namespace ReactApp.Server.Services
 
                 var staffIds = announcements.Select(a => a.StaffId).Distinct().ToList();
                 var staffNames = await _context.Staff
-                    .Where(s => staffIds.Contains(s.StaffId))
+                    .Where(s => s.NurseryId == nurseryId && staffIds.Contains(s.StaffId))
                     .ToDictionaryAsync(s => s.StaffId, s => s.Name);
 
                 var announcementDtos = new List<AnnouncementDto>();
@@ -107,7 +107,9 @@ namespace ReactApp.Server.Services
                     return null;
                 }
 
-                var staff = await _context.Staff.FindAsync(announcement.StaffId);
+                var staff = await _context.Staff
+                    .Where(s => s.NurseryId == nurseryId && s.StaffId == announcement.StaffId)
+                    .FirstOrDefaultAsync();
                 var staffName = staff?.Name ?? "不明";
 
                 var readCount = await _context.NotificationLogs
@@ -150,7 +152,7 @@ namespace ReactApp.Server.Services
 
                 _logger.LogInformation("お知らせを作成しました。AnnouncementId: {AnnouncementId}", announcement.Id);
 
-                var staff = await _context.Staff.FindAsync(staffId);
+                var staff = await _context.Staff.FindAsync(nurseryId, staffId);
                 return MapToDto(announcement, staff?.Name ?? "不明", 0, 0);
             }
             catch (Exception ex)
@@ -189,7 +191,7 @@ namespace ReactApp.Server.Services
 
                 _logger.LogInformation("お知らせを更新しました。AnnouncementId: {AnnouncementId}", announcementId);
 
-                var staff = await _context.Staff.FindAsync(announcement.StaffId);
+                var staff = await _context.Staff.FindAsync(nurseryId, announcement.StaffId);
                 var readCount = await _context.NotificationLogs
                     .CountAsync(nl => nl.RelatedEntityType == "Announcement" && nl.RelatedEntityId == announcementId && nl.ReadAt != null);
                 var commentCount = 0; // コメント機能は未実装
@@ -249,7 +251,7 @@ namespace ReactApp.Server.Services
 
                 _logger.LogInformation("お知らせを公開しました。AnnouncementId: {AnnouncementId}", announcementId);
 
-                var staff = await _context.Staff.FindAsync(announcement.StaffId);
+                var staff = await _context.Staff.FindAsync(nurseryId, announcement.StaffId);
                 var readCount = await _context.NotificationLogs
                     .CountAsync(nl => nl.RelatedEntityType == "Announcement" && nl.RelatedEntityId == announcementId && nl.ReadAt != null);
                 var commentCount = 0; // コメント機能は未実装
