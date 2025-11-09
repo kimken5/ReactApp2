@@ -14,13 +14,16 @@ namespace ReactApp.Server.Services
     {
         private readonly KindergartenDbContext _context;
         private readonly ILogger<DesktopDailyReportService> _logger;
+        private readonly IPhotoStorageService _photoStorageService;
 
         public DesktopDailyReportService(
             KindergartenDbContext context,
-            ILogger<DesktopDailyReportService> logger)
+            ILogger<DesktopDailyReportService> logger,
+            IPhotoStorageService photoStorageService)
         {
             _context = context;
             _logger = logger;
+            _photoStorageService = photoStorageService;
         }
 
         public async Task<List<DailyReportDto>> GetDailyReportsAsync(int nurseryId, DailyReportFilterDto filter)
@@ -538,7 +541,21 @@ namespace ReactApp.Server.Services
             {
                 try
                 {
-                    photos = JsonSerializer.Deserialize<List<string>>(report.Photos) ?? new List<string>();
+                    var rawPhotos = JsonSerializer.Deserialize<List<string>>(report.Photos) ?? new List<string>();
+
+                    // ファイル名だけの場合は完全なURLに変換
+                    photos = rawPhotos.Select(photo =>
+                    {
+                        // 既にURLの場合はそのまま返す (http:// または https:// で始まる)
+                        if (photo.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                            photo.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return photo;
+                        }
+
+                        // ファイル名だけの場合は完全なURLに変換
+                        return _photoStorageService.GetPhotoUrl(photo, isOriginal: true);
+                    }).ToList();
                 }
                 catch
                 {

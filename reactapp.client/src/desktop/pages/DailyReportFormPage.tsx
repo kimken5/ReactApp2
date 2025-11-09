@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { DailyReportPhotoUpload } from '../components/DailyReportPhotoUpload';
 import { dailyReportService } from '../services/dailyReportService';
 import { masterService } from '../services/masterService';
+import { apiClient } from '../services/apiClient';
 import type {
   DailyReportDto,
   CreateDailyReportRequestDto,
@@ -59,12 +61,12 @@ export function DailyReportFormPage() {
     status: 'draft',
   });
 
-  // 動的入力用の一時値
-  const [photoInput, setPhotoInput] = useState('');
-
   // 園児オートコンプリート用の状態
   const [childSearchQuery, setChildSearchQuery] = useState('');
   const [showChildDropdown, setShowChildDropdown] = useState(false);
+
+  // 写真アップロード用の状態（ReportCreate.tsxと同じ仕様）
+  const [uploadedPhotos, setUploadedPhotos] = useState<File[]>([]);
 
   // レポート種別の選択肢
   const reportKindOptions = [
@@ -128,6 +130,22 @@ export function DailyReportFormPage() {
         photos: data.photos || [],
         status: data.status,
       });
+
+      // 写真URLをFile配列に変換（ReportCreate.tsxと同じロジック）
+      if (data.photos && data.photos.length > 0) {
+        try {
+          console.log('既存写真データ:', data.photos);
+          // URLからダミーFileオブジェクトを作成（size=0で既存写真と判定）
+          const photoFiles = data.photos.map(url => {
+            return new File([], url.trim(), { type: 'image/jpeg' });
+          });
+          setUploadedPhotos(photoFiles);
+          console.log('写真をFileオブジェクトに変換:', photoFiles);
+        } catch (e) {
+          console.error('写真の変換エラー:', e);
+          setUploadedPhotos([]);
+        }
+      }
     } catch (error) {
       console.error('日報情報の取得に失敗しました:', error);
       setErrors({ general: '日報情報の取得に失敗しました' });
@@ -216,25 +234,11 @@ export function DailyReportFormPage() {
     }
   };
 
-  // 写真追加
-  const handleAddPhoto = () => {
-    if (!photoInput.trim()) return;
+  // 写真変更ハンドラ（ReportCreate.tsxと同じ仕様）
+  const handlePhotosChange = (newPhotos: File[]) => {
+    setUploadedPhotos(newPhotos);
 
-    const formData = isEditMode ? updateFormData : createFormData;
-    const photos = formData.photos || [];
-
-    if (photos.includes(photoInput.trim())) {
-      setErrors(prev => ({ ...prev, photos: 'この写真URLは既に追加されています' }));
-      return;
-    }
-
-    if (isEditMode) {
-      setUpdateFormData(prev => ({ ...prev, photos: [...(prev.photos || []), photoInput.trim()] }));
-    } else {
-      setCreateFormData(prev => ({ ...prev, photos: [...(prev.photos || []), photoInput.trim()] }));
-    }
-
-    setPhotoInput('');
+    // エラークリア
     if (errors.photos) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -244,19 +248,74 @@ export function DailyReportFormPage() {
     }
   };
 
-  // 写真削除
-  const handleRemovePhoto = (index: number) => {
-    if (isEditMode) {
-      setUpdateFormData(prev => ({
-        ...prev,
-        photos: (prev.photos || []).filter((_, i) => i !== index),
-      }));
-    } else {
-      setCreateFormData(prev => ({
-        ...prev,
-        photos: (prev.photos || []).filter((_, i) => i !== index),
-      }));
+  // 写真をAzure Blob Storageにアップロードする関数（ReportCreate.tsxと同じロジック）
+  const uploadPhotosToAzure = async (photos: File[], childId: number, staffId: number): Promise<string[]> => {
+    const uploadedFileNames: string[] = [];
+
+    for (const photo of photos) {
+      // 既存の写真（size=0のダミーファイル）はスキップ
+      if (photo.size === 0) {
+        uploadedFileNames.push(photo.name);
+        console.log('既存の写真をスキップ:', photo.name);
+        continue;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('File', photo);  // Desktop用は'File'
+        formData.append('StaffId', staffId.toString());  // 必須フィールド
+        formData.append('Description', '日報写真');
+        formData.append('PublishedAt', new Date().toISOString());
+        formData.append('VisibilityLevel', 'class');
+        formData.append('Status', 'published');
+        // Desktop用にはChildIdsは不要（日報保存時に関連付けられる）
+
+        console.log('写真アップロード開始:', {
+          fileName: photo.name,
+          fileSize: photo.size,
+          childId: childId,
+          formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
+            key,
+            value: value instanceof File ? `File(${value.name})` : value
+          }))
+        });
+
+        const response = await apiClient.post('/api/desktop/photos', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        console.log('写真アップロードレスポンス:', response);
+
+        if (response.data && response.data.data) {
+          // Desktop APIのレスポンス形式: { success: true, data: PhotoDto, message: string }
+          // PhotoDtoはfilePathプロパティに完全なAzure Blob Storage URLを含む
+          const photoUrl = response.data.data.filePath || response.data.data.fileName;
+          if (photoUrl) {
+            uploadedFileNames.push(photoUrl);
+            console.log('写真アップロード成功 - URL:', photoUrl);
+          } else {
+            console.error('写真URLが取得できませんでした:', response.data);
+            throw new Error(`写真URLの取得に失敗しました: ${photo.name}`);
+          }
+        } else {
+          console.error('無効なレスポンス形式:', response);
+          throw new Error(`無効なレスポンス: ${photo.name}`);
+        }
+      } catch (error: any) {
+        console.error('写真アップロードエラー詳細:', {
+          error,
+          response: error.response,
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+        throw new Error(`写真のアップロードに失敗しました: ${photo.name} (${error.response?.status || error.message})`);
+      }
     }
+
+    return uploadedFileNames;
   };
 
   // バリデーション（作成）
@@ -351,9 +410,22 @@ export function DailyReportFormPage() {
       setIsSaving(true);
       setErrors({});
 
+      // 写真をAzure Blob Storageにアップロード（ReportCreate.tsxと同じロジック）
+      console.log('写真アップロード開始:', uploadedPhotos.length, '枚');
+      const childId = isEditMode ? existingReport?.childId : createFormData.childId;
+      const staffId = isEditMode ? existingReport?.staffId : createFormData.staffId;
+      if (!childId) {
+        throw new Error('園児IDが取得できません');
+      }
+      if (!staffId) {
+        throw new Error('職員IDが取得できません');
+      }
+      const photoFileNames = await uploadPhotosToAzure(uploadedPhotos, childId, staffId);
+      console.log('写真アップロード完了:', photoFileNames);
+
       const draftData = isEditMode
-        ? { ...updateFormData, status: 'draft' }
-        : { ...createFormData, status: 'draft' };
+        ? { ...updateFormData, photos: photoFileNames, status: 'draft' }
+        : { ...createFormData, photos: photoFileNames, status: 'draft' };
 
       if (isEditMode && id) {
         // 更新：一覧に戻る
@@ -379,7 +451,7 @@ export function DailyReportFormPage() {
           status: 'draft',
         });
         setChildSearchQuery('');
-        setPhotoInput('');
+        setUploadedPhotos([]);
 
         // スクロールをトップに戻す
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -409,9 +481,22 @@ export function DailyReportFormPage() {
       setIsSaving(true);
       setErrors({});
 
+      // 写真をAzure Blob Storageにアップロード（ReportCreate.tsxと同じロジック）
+      console.log('写真アップロード開始:', uploadedPhotos.length, '枚');
+      const childId = isEditMode ? existingReport?.childId : createFormData.childId;
+      const staffId = isEditMode ? existingReport?.staffId : createFormData.staffId;
+      if (!childId) {
+        throw new Error('園児IDが取得できません');
+      }
+      if (!staffId) {
+        throw new Error('職員IDが取得できません');
+      }
+      const photoFileNames = await uploadPhotosToAzure(uploadedPhotos, childId, staffId);
+      console.log('写真アップロード完了:', photoFileNames);
+
       const publishedData = isEditMode
-        ? { ...updateFormData, status: 'published' }
-        : { ...createFormData, status: 'published' };
+        ? { ...updateFormData, photos: photoFileNames, status: 'published' }
+        : { ...createFormData, photos: photoFileNames, status: 'published' };
 
       if (isEditMode && id) {
         // 更新：一覧に戻る
@@ -437,7 +522,7 @@ export function DailyReportFormPage() {
           status: 'draft',
         });
         setChildSearchQuery('');
-        setPhotoInput('');
+        setUploadedPhotos([]);
 
         // スクロールをトップに戻す
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -737,53 +822,15 @@ export function DailyReportFormPage() {
               {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content}</p>}
             </div>
 
-            {/* 写真 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">写真（任意）</label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={photoInput}
-                  onChange={e => setPhotoInput(e.target.value)}
-                  onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddPhoto())}
-                  disabled={isReadOnly || false}
-                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
-                    isReadOnly ? 'bg-gray-50 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="写真URLを入力してEnterキーまたは追加ボタンを押す"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddPhoto}
-                  disabled={isReadOnly || false}
-                  className={`px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium transition ${
-                    isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
-                  }`}
-                >
-                  追加
-                </button>
-              </div>
-              {errors.photos && <p className="mt-1 text-sm text-red-600">{errors.photos}</p>}
-              <div className="space-y-2 mt-2">
-                {(formData.photos || []).map((photo, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg"
-                  >
-                    <span className="text-sm text-gray-700 truncate flex-1">{photo}</span>
-                    {!isReadOnly && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePhoto(index)}
-                        className="ml-2 text-red-600 hover:text-red-800"
-                      >
-                        削除
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* 写真アップロード */}
+            <DailyReportPhotoUpload
+              uploadedPhotos={uploadedPhotos}
+              onPhotosChange={handlePhotosChange}
+              disabled={isReadOnly || false}
+              maxPhotos={10}
+              maxFileSize={10 * 1024 * 1024}
+            />
+            {errors.photos && <p className="mt-1 text-sm text-red-600">{errors.photos}</p>}
 
           </div>
 
