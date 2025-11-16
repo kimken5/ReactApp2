@@ -268,7 +268,7 @@ export function DailyReportFormPage() {
         formData.append('PublishedAt', new Date().toISOString());
         formData.append('VisibilityLevel', 'class');
         formData.append('Status', 'published');
-        // Desktop用にはChildIdsは不要（日報保存時に関連付けられる）
+        formData.append('IsReportCreate', 'true');  // 日報作成フラグ: 写真管理画面には表示されない
 
         console.log('写真アップロード開始:', {
           fileName: photo.name,

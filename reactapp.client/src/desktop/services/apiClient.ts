@@ -7,7 +7,7 @@ import type { ApiResponse } from '../types/auth';
  * JWT自動付与、トークンリフレッシュ、エラーハンドリング
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7154';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7118';
 
 // Axios インスタンス作成
 const apiClient: AxiosInstance = axios.create({

@@ -86,6 +86,10 @@ namespace ReactApp.Server.DTOs.Desktop
 
         // 主要被写体の園児ID（任意）
         public int? PrimaryChildId { get; set; }
+
+        // レポート作成フラグ（デフォルト: false）
+        // 日報作成時にアップロードする場合はtrue、写真管理画面からアップロードする場合はfalse
+        public bool IsReportCreate { get; set; } = false;
     }
 
     /// <summary>

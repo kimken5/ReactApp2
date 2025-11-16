@@ -23,6 +23,7 @@ import { ContactNotificationDetailPage } from './pages/ContactNotificationDetail
 import { CalendarPage } from './pages/CalendarPage';
 import { AnnouncementsPage } from './pages/AnnouncementsPage';
 import { AnnouncementFormPage } from './pages/AnnouncementFormPage';
+import { AttendancePage } from './pages/AttendancePage';
 
 /**
  * デスクトップアプリ用ルーター
@@ -283,6 +284,16 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <CalendarPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 出欠表管理 */}
+      <Route
+        path="/attendance"
+        element={
+          <ProtectedRoute>
+            <AttendancePage />
           </ProtectedRoute>
         }
       />

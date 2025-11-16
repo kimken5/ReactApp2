@@ -53,6 +53,7 @@ namespace ReactApp.Server.Data
         public DbSet<AcademicYear> AcademicYears { get; set; }
         public DbSet<PromotionHistory> PromotionHistories { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<DailyAttendance> DailyAttendances { get; set; }
         public DbSet<AttendanceStatistic> AttendanceStatistics { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -963,6 +964,37 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.AttendanceRate).HasColumnType("DECIMAL(5,2)").HasDefaultValue(0.00m);
                 entity.Property(e => e.LastCalculatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            });
+
+            // DailyAttendances configuration
+            modelBuilder.Entity<DailyAttendance>(entity =>
+            {
+                // 複合主キー (NurseryId, ChildId, AttendanceDate)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.AttendanceDate });
+
+                // パフォーマンス最適化インデックス
+                entity.HasIndex(e => new { e.NurseryId, e.AttendanceDate, e.Status })
+                    .HasDatabaseName("IX_DailyAttendances_Date_Status");
+
+                entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.AttendanceDate })
+                    .HasDatabaseName("IX_DailyAttendances_Child_Date")
+                    .IsDescending(false, false, true); // 日付降順
+
+                entity.HasIndex(e => e.AbsenceNotificationId)
+                    .HasDatabaseName("IX_DailyAttendances_AbsenceNotification")
+                    .HasFilter("[AbsenceNotificationId] IS NOT NULL");
+
+                entity.HasIndex(e => new { e.NurseryId, e.IsActive })
+                    .HasDatabaseName("IX_DailyAttendances_IsActive")
+                    .HasFilter("[IsActive] = 1");
+
+                // カラム設定
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("blank");
+                entity.Property(e => e.ArrivalTime).HasColumnType("TIME");
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.RecordedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
             });
         }
     }

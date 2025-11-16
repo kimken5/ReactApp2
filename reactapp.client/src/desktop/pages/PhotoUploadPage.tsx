@@ -33,6 +33,9 @@ export function PhotoUploadPage() {
   const [requiresConsent, setRequiresConsent] = useState(true);
   const [selectedChildIds, setSelectedChildIds] = useState<number[]>([]);
   const [primaryChildId, setPrimaryChildId] = useState<number | null>(null);
+  const [childSelectionMode, setChildSelectionMode] = useState<'individual' | 'class'>('individual');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
 
   // Master data
   const [children, setChildren] = useState<ChildDto[]>([]);
@@ -121,7 +124,17 @@ export function PhotoUploadPage() {
     setImageDimensions(null);
   };
 
-  // Handle child selection
+  // Handle child selection mode change
+  const handleSelectionModeChange = (mode: 'individual' | 'class') => {
+    setChildSelectionMode(mode);
+    // Clear selections when changing mode
+    setSelectedChildIds([]);
+    setSelectedClassIds([]);
+    setPrimaryChildId(null);
+    setSearchQuery('');
+  };
+
+  // Handle individual child selection
   const handleChildToggle = (childId: number) => {
     setSelectedChildIds((prev) => {
       if (prev.includes(childId)) {
@@ -137,6 +150,51 @@ export function PhotoUploadPage() {
         return [...prev, childId];
       }
     });
+  };
+
+  // Handle class selection
+  const handleClassToggle = (classId: string) => {
+    setSelectedClassIds((prev) => {
+      if (prev.includes(classId)) {
+        // Remove class
+        const newClassIds = prev.filter((id) => id !== classId);
+        // Remove children from this class
+        const childrenInClass = children.filter((c) => c.classId === classId).map((c) => c.childId);
+        setSelectedChildIds((prevChildIds) => prevChildIds.filter((id) => !childrenInClass.includes(id)));
+        return newClassIds;
+      } else {
+        // Add class
+        const newClassIds = [...prev, classId];
+        // Add all children from this class
+        const childrenInClass = children.filter((c) => c.classId === classId).map((c) => c.childId);
+        setSelectedChildIds((prevChildIds) => [...new Set([...prevChildIds, ...childrenInClass])]);
+        return newClassIds;
+      }
+    });
+  };
+
+  // Filter children by search query
+  const filteredChildren = children.filter((child) => {
+    if (!searchQuery) return true;
+    const name = child.name;
+    const furigana = child.furigana || '';
+    return (
+      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      furigana.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
+  // Handle search input with autocomplete
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // Handle selecting child from autocomplete
+  const handleSelectFromAutocomplete = (childId: number) => {
+    if (!selectedChildIds.includes(childId)) {
+      setSelectedChildIds((prev) => [...prev, childId]);
+    }
+    setSearchQuery('');
   };
 
   // Validate form
@@ -350,8 +408,8 @@ export function PhotoUploadPage() {
               >
                 <option value="">職員を選択してください</option>
                 {staffList.map((staff) => (
-                  <option key={staff.id} value={staff.id}>
-                    {staff.lastName} {staff.firstName}
+                  <option key={staff.staffId} value={staff.staffId}>
+                    {staff.name}
                   </option>
                 ))}
               </select>
@@ -501,38 +559,191 @@ export function PhotoUploadPage() {
               <p className="mt-1 text-xs text-gray-500">保護者の同意が必要な写真の場合はチェックしてください</p>
             </div>
 
-            {/* Child Selection */}
+            {/* Child Selection Mode */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                写っている園児 <span className="text-red-500">*</span>
+                園児選択方法 <span className="text-red-500">*</span>
               </label>
-              <div className="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto">
-                {children.length === 0 ? (
-                  <p className="text-sm text-gray-500">園児データがありません</p>
-                ) : (
-                  <div className="space-y-2">
-                    {children.map((child) => (
-                      <label key={child.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedChildIds.includes(child.id)}
-                          onChange={() => handleChildToggle(child.id)}
-                          disabled={isLoading}
-                          className="h-4 w-4 text-orange-600 focus:ring-orange-400 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">
-                          {child.lastName} {child.firstName}
-                          {child.className && <span className="text-gray-500 ml-2">({child.className})</span>}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+              <div className="flex gap-6">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="individual"
+                    checked={childSelectionMode === 'individual'}
+                    onChange={() => handleSelectionModeChange('individual')}
+                    disabled={isLoading}
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">個別選択</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="class"
+                    checked={childSelectionMode === 'class'}
+                    onChange={() => handleSelectionModeChange('class')}
+                    disabled={isLoading}
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">クラス毎</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Individual Child Selection with Autocomplete */}
+            {childSelectionMode === 'individual' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  写っている園児 <span className="text-red-500">*</span>
+                </label>
+
+                {/* Search/Autocomplete Input */}
+                <div className="relative mb-3">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    disabled={isLoading}
+                    placeholder="園児名またはふりがなで検索..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100"
+                  />
+
+                  {/* Autocomplete Dropdown */}
+                  {searchQuery && filteredChildren.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredChildren.map((child) => (
+                        <button
+                          key={child.childId}
+                          type="button"
+                          onClick={() => handleSelectFromAutocomplete(child.childId)}
+                          disabled={isLoading || selectedChildIds.includes(child.childId)}
+                          className="w-full text-left px-4 py-2 hover:bg-orange-50 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>
+                              {child.name}
+                              {child.furigana && <span className="text-gray-500 text-xs ml-2">({child.furigana})</span>}
+                            </span>
+                            {child.className && (
+                              <span className="text-gray-500 text-xs">{child.className}</span>
+                            )}
+                          </div>
+                          {selectedChildIds.includes(child.childId) && (
+                            <span className="text-green-600 text-xs">✓ 選択済み</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {searchQuery && filteredChildren.length === 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3">
+                      <p className="text-sm text-gray-500">該当する園児が見つかりません</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected Children Display */}
+                <div className="border border-gray-300 rounded-lg p-4 min-h-[100px]">
+                  {selectedChildIds.length === 0 ? (
+                    <p className="text-sm text-gray-500">選択された園児はいません</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedChildIds.map((childId) => {
+                        const child = children.find((c) => c.childId === childId);
+                        if (!child) return null;
+                        return (
+                          <div key={childId} className="flex items-center justify-between bg-orange-50 px-3 py-2 rounded">
+                            <span className="text-sm text-gray-700">
+                              {child.name}
+                              {child.className && <span className="text-gray-500 ml-2">({child.className})</span>}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleChildToggle(childId)}
+                              disabled={isLoading}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                            >
+                              削除
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                {fieldErrors.childIds && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.childIds}</p>
                 )}
               </div>
-              {fieldErrors.childIds && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.childIds}</p>
-              )}
-            </div>
+            )}
+
+            {/* Class-based Child Selection */}
+            {childSelectionMode === 'class' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  クラス選択 <span className="text-red-500">*</span>
+                </label>
+
+                <div className="border border-gray-300 rounded-lg p-4 space-y-3">
+                  {classes.length === 0 ? (
+                    <p className="text-sm text-gray-500">クラスデータがありません</p>
+                  ) : (
+                    classes.map((classItem) => {
+                      const childrenInClass = children.filter((c) => c.classId === classItem.classId);
+                      const isClassSelected = selectedClassIds.includes(classItem.classId);
+
+                      return (
+                        <div key={classItem.classId} className="border border-gray-200 rounded-lg p-3">
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isClassSelected}
+                              onChange={() => handleClassToggle(classItem.classId)}
+                              disabled={isLoading}
+                              className="h-4 w-4 text-orange-600 focus:ring-orange-400 rounded"
+                            />
+                            <span className="ml-3 text-sm font-medium text-gray-700">
+                              {classItem.name}
+                              <span className="ml-2 text-gray-500 font-normal">
+                                ({childrenInClass.length}名)
+                              </span>
+                            </span>
+                          </label>
+
+                          {isClassSelected && childrenInClass.length > 0 && (
+                            <div className="mt-2 ml-7 pl-3 border-l-2 border-orange-200">
+                              <div className="flex flex-wrap gap-2">
+                                {childrenInClass.map((child) => (
+                                  <span
+                                    key={child.childId}
+                                    className="inline-block bg-orange-50 text-orange-800 text-xs px-2 py-1 rounded"
+                                  >
+                                    {child.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {selectedChildIds.length > 0 && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      選択中の園児: <span className="font-medium">{selectedChildIds.length}名</span>
+                    </p>
+                  </div>
+                )}
+
+                {fieldErrors.childIds && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.childIds}</p>
+                )}
+              </div>
+            )}
 
             {/* Primary Child Selection */}
             {selectedChildIds.length > 0 && (
@@ -550,7 +761,7 @@ export function PhotoUploadPage() {
                     <span className="ml-2 text-sm text-gray-700">指定なし</span>
                   </label>
                   {selectedChildIds.map((childId) => {
-                    const child = children.find((c) => c.id === childId);
+                    const child = children.find((c) => c.childId === childId);
                     if (!child) return null;
                     return (
                       <label key={childId} className="flex items-center">
@@ -562,7 +773,7 @@ export function PhotoUploadPage() {
                           className="h-4 w-4 text-orange-600 focus:ring-orange-400"
                         />
                         <span className="ml-2 text-sm text-gray-700">
-                          {child.lastName} {child.firstName}
+                          {child.name}
                         </span>
                       </label>
                     );

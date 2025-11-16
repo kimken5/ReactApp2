@@ -410,7 +410,70 @@ EXEC sp_addextendedproperty 'MS_Description', '操作日時', 'SCHEMA', 'dbo', '
 - 連絡の確認・返信
 - お知らせの配信
 
-### 2.4 AttendanceStatistics（出席統計キャッシュ）
+### 2.4 DailyAttendances（日次出欠表）
+
+**目的**: 園児の日々の出欠状況を記録・管理
+
+```sql
+CREATE TABLE DailyAttendances (
+    NurseryId INT NOT NULL,
+    ChildId INT NOT NULL,
+    AttendanceDate DATE NOT NULL,
+    CONSTRAINT PK_DailyAttendances PRIMARY KEY (NurseryId, ChildId, AttendanceDate),
+    Status NVARCHAR(20) NOT NULL DEFAULT 'blank',  -- blank(未記録), present(出席), absent(欠席), late(遅刻)
+    ArrivalTime TIME NULL,  -- 到着時刻（遅刻の場合など）
+    Notes NVARCHAR(500) NULL,  -- 備考（体調、様子など）
+    AbsenceNotificationId INT NULL,  -- 欠席連絡ID（欠席連絡経由の場合）
+    RecordedByStaffId INT NULL,  -- 記録スタッフID
+    RecordedByStaffNurseryId INT NULL,  -- 記録スタッフ保育園ID
+    RecordedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),  -- 記録日時
+    UpdatedByStaffId INT NULL,  -- 更新スタッフID
+    UpdatedByStaffNurseryId INT NULL,  -- 更新スタッフ保育園ID
+    UpdatedAt DATETIME2 NULL,  -- 更新日時
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),  -- 作成日時
+    IsActive BIT NOT NULL DEFAULT 1  -- 論理削除フラグ
+);
+
+-- インデックス作成
+CREATE INDEX IX_DailyAttendances_Date_Status ON DailyAttendances (NurseryId, AttendanceDate, Status);
+CREATE INDEX IX_DailyAttendances_Child_Date ON DailyAttendances (NurseryId, ChildId, AttendanceDate DESC);
+CREATE INDEX IX_DailyAttendances_AbsenceNotification ON DailyAttendances (AbsenceNotificationId) WHERE AbsenceNotificationId IS NOT NULL;
+CREATE INDEX IX_DailyAttendances_IsActive ON DailyAttendances (NurseryId, IsActive) WHERE IsActive = 1;
+
+-- テーブルコメント
+EXEC sp_addextendedproperty 'MS_Description', '日次出欠表テーブル', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances';
+
+-- カラムコメント
+EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'NurseryId';
+EXEC sp_addextendedproperty 'MS_Description', '園児ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'ChildId';
+EXEC sp_addextendedproperty 'MS_Description', '出欠日', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'AttendanceDate';
+EXEC sp_addextendedproperty 'MS_Description', '出欠ステータス', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'Status';
+EXEC sp_addextendedproperty 'MS_Description', '到着時刻', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'ArrivalTime';
+EXEC sp_addextendedproperty 'MS_Description', '備考', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'Notes';
+EXEC sp_addextendedproperty 'MS_Description', '欠席連絡ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'AbsenceNotificationId';
+EXEC sp_addextendedproperty 'MS_Description', '記録スタッフID', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'RecordedByStaffId';
+EXEC sp_addextendedproperty 'MS_Description', '記録スタッフ保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'RecordedByStaffNurseryId';
+EXEC sp_addextendedproperty 'MS_Description', '記録日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'RecordedAt';
+EXEC sp_addextendedproperty 'MS_Description', '更新スタッフID', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'UpdatedByStaffId';
+EXEC sp_addextendedproperty 'MS_Description', '更新スタッフ保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'UpdatedByStaffNurseryId';
+EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'UpdatedAt';
+EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'CreatedAt';
+EXEC sp_addextendedproperty 'MS_Description', '論理削除フラグ', 'SCHEMA', 'dbo', 'TABLE', 'DailyAttendances', 'COLUMN', 'IsActive';
+```
+
+**ビジネスルール**
+- 複合主キー (NurseryId, ChildId, AttendanceDate)
+- Status値: 'blank' (未記録), 'present' (出席), 'absent' (欠席), 'late' (遅刻)
+- 欠席連絡経由で作成された場合は AbsenceNotificationId が設定される
+- 過去30日以前のデータは編集不可（閲覧のみ）
+
+**外部キー制約** (論理的な関係、EF Coreでは無視)
+- NurseryId, ChildId → Children(NurseryId, ChildId)
+- AbsenceNotificationId → ContactNotifications(Id)
+- RecordedByStaffNurseryId, RecordedByStaffId → Staff(NurseryId, StaffId)
+- UpdatedByStaffNurseryId, UpdatedByStaffId → Staff(NurseryId, StaffId)
+
+### 2.5 AttendanceStatistics（出席統計キャッシュ）
 
 **目的**: 出席状況レポートのパフォーマンス向上のため、日次・月次集計データをキャッシュ
 
@@ -488,7 +551,8 @@ EXEC sp_addextendedproperty 'MS_Description', '最終計算日時', 'SCHEMA', 'd
 
 ### Phase 4: 新規テーブル作成（履歴・集計系）
 12. PromotionHistory テーブル作成
-13. AttendanceStatistics テーブル作成
+13. DailyAttendances テーブル作成
+14. AttendanceStatistics テーブル作成
 
 ## 4. データ移行スクリプト
 
@@ -772,7 +836,30 @@ public class AuditLog
 }
 ```
 
-### 7.4 AttendanceStatistic.cs
+### 7.4 DailyAttendance.cs
+
+```csharp
+public class DailyAttendance
+{
+    public int NurseryId { get; set; }
+    public int ChildId { get; set; }
+    public DateTime AttendanceDate { get; set; }
+    public string Status { get; set; }  // "blank", "present", "absent", "late"
+    public TimeSpan? ArrivalTime { get; set; }
+    public string? Notes { get; set; }
+    public int? AbsenceNotificationId { get; set; }
+    public int? RecordedByStaffId { get; set; }
+    public int? RecordedByStaffNurseryId { get; set; }
+    public DateTime RecordedAt { get; set; }
+    public int? UpdatedByStaffId { get; set; }
+    public int? UpdatedByStaffNurseryId { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public bool IsActive { get; set; }
+}
+```
+
+### 7.5 AttendanceStatistic.cs
 
 ```csharp
 public class AttendanceStatistic
@@ -821,9 +908,10 @@ public class AttendanceStatistic
 | AcademicYears | 年度管理、年度切り替え |
 | PromotionHistory | 進級履歴の記録 |
 | AuditLogs | 操作ログ、セキュリティ監査 |
+| DailyAttendances | 日次出欠状況の記録・管理 |
 | AttendanceStatistics | 出席統計の高速化 |
 
-**合計: 4テーブル（新規作成）**
+**合計: 5テーブル（新規作成）**
 
 ### 8.3 次のステップ
 

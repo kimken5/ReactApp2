@@ -772,9 +772,264 @@
 
 ## 3. 業務管理API
 
-### 3.1 連絡管理（欠席・遅刻・お迎え）
+### 3.1 出欠表管理
 
-#### 3.1.1 当日の連絡一覧取得
+#### 3.1.1 出欠状況取得
+
+指定した日付・クラスの出欠状況を取得する。
+
+**エンドポイント**: `GET /api/desktop/attendance/{nurseryId}/{classId}/{date}`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**パスパラメータ**:
+- `nurseryId` (number): 保育園ID
+- `classId` (string): クラスID
+- `date` (date): 対象日 (YYYY-MM-DD)
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "nurseryId": 1,
+      "childId": 1,
+      "childName": "田中花子",
+      "attendanceDate": "2025-10-24",
+      "status": "present",
+      "arrivalTime": "08:30:00",
+      "notes": "元気に登園しました",
+      "absenceNotificationId": null,
+      "recordedByStaffId": 5,
+      "recordedByStaffName": "鈴木先生",
+      "recordedAt": "2025-10-24T08:35:00Z",
+      "updatedByStaffId": null,
+      "updatedByStaffName": null,
+      "updatedAt": null,
+      "isActive": true
+    },
+    {
+      "nurseryId": 1,
+      "childId": 2,
+      "childName": "佐藤太郎",
+      "attendanceDate": "2025-10-24",
+      "status": "absent",
+      "arrivalTime": null,
+      "notes": "風邪",
+      "absenceNotificationId": 123,
+      "recordedByStaffId": null,
+      "recordedByStaffName": null,
+      "recordedAt": "2025-10-24T07:15:00Z",
+      "updatedByStaffId": null,
+      "updatedByStaffName": null,
+      "updatedAt": null,
+      "isActive": true
+    }
+  ]
+}
+```
+
+---
+
+#### 3.1.2 出欠履歴取得
+
+指定した日付範囲・クラス・園児の出欠履歴を取得する。
+
+**エンドポイント**: `GET /api/desktop/attendance/{nurseryId}/{classId}/history`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**パスパラメータ**:
+- `nurseryId` (number): 保育園ID
+- `classId` (string): クラスID
+
+**クエリパラメータ**:
+- `startDate` (date, 必須): 開始日
+- `endDate` (date, 必須): 終了日
+- `childId` (number, 任意): 園児ID（指定時は個別園児の履歴）
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "nurseryId": 1,
+      "childId": 1,
+      "childName": "田中花子",
+      "attendanceDate": "2025-10-23",
+      "status": "present",
+      "arrivalTime": "08:25:00",
+      "notes": null,
+      "absenceNotificationId": null,
+      "recordedByStaffId": 5,
+      "recordedByStaffName": "鈴木先生",
+      "recordedAt": "2025-10-23T08:30:00Z",
+      "isActive": true
+    }
+  ],
+  "summary": {
+    "totalDays": 10,
+    "presentDays": 9,
+    "absentDays": 1,
+    "lateDays": 0,
+    "attendanceRate": 90.0
+  }
+}
+```
+
+---
+
+#### 3.1.3 出欠ステータス更新
+
+園児の出欠ステータスを記録・更新する。
+
+**エンドポイント**: `PUT /api/desktop/attendance/{nurseryId}/{childId}/{date}`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**パスパラメータ**:
+- `nurseryId` (number): 保育園ID
+- `childId` (number): 園児ID
+- `date` (date): 対象日 (YYYY-MM-DD)
+
+**リクエスト**:
+```json
+{
+  "status": "present|absent|late",   // ステータス (必須)
+  "arrivalTime": "08:30:00",         // 到着時刻 (任意、遅刻の場合推奨)
+  "notes": "string",                 // 備考 (任意、500文字以内)
+  "recordedByStaffId": 5,            // 記録スタッフID (必須)
+  "recordedByStaffNurseryId": 1      // 記録スタッフ保育園ID (必須)
+}
+```
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "出欠ステータスを更新しました",
+  "data": {
+    "nurseryId": 1,
+    "childId": 1,
+    "childName": "田中花子",
+    "attendanceDate": "2025-10-24",
+    "status": "present",
+    "arrivalTime": "08:30:00",
+    "notes": null,
+    "recordedByStaffId": 5,
+    "recordedByStaffName": "鈴木先生",
+    "recordedAt": "2025-10-24T08:35:00Z",
+    "isActive": true
+  }
+}
+```
+
+**エラーレスポンス**:
+- `400 Bad Request`: 過去30日以前のデータは編集不可
+- `409 Conflict`: 「欠席」→「出席」への変更警告
+
+**ビジネスルール**:
+- BR-AT-004: 「未記録」→「出席」「欠席」「遅刻」への変更は自由
+- BR-AT-005: 「欠席」→「出席」への変更は警告を表示
+- BR-AT-006: 過去30日以前のデータは編集不可
+
+---
+
+#### 3.1.4 備考更新
+
+出欠記録の備考のみを更新する。
+
+**エンドポイント**: `PUT /api/desktop/attendance/{nurseryId}/{childId}/{date}/notes`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**パスパラメータ**:
+- `nurseryId` (number): 保育園ID
+- `childId` (number): 園児ID
+- `date` (date): 対象日 (YYYY-MM-DD)
+
+**リクエスト**:
+```json
+{
+  "notes": "string",                 // 備考 (必須、500文字以内)
+  "updatedByStaffId": 5,             // 更新スタッフID (必須)
+  "updatedByStaffNurseryId": 1       // 更新スタッフ保育園ID (必須)
+}
+```
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "備考を更新しました",
+  "data": {
+    "nurseryId": 1,
+    "childId": 1,
+    "attendanceDate": "2025-10-24",
+    "notes": "体調良好、午睡も十分取れました",
+    "updatedByStaffId": 5,
+    "updatedByStaffName": "鈴木先生",
+    "updatedAt": "2025-10-24T15:00:00Z"
+  }
+}
+```
+
+---
+
+#### 3.1.5 一括出席登録
+
+クラス全員を「出席」ステータスに一括登録する（未記録の園児のみ対象）。
+
+**エンドポイント**: `POST /api/desktop/attendance/bulk-present`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**リクエスト**:
+```json
+{
+  "nurseryId": 1,                    // 保育園ID (必須)
+  "classId": "sakura",               // クラスID (必須)
+  "date": "2025-10-24",              // 対象日 (必須)
+  "recordedByStaffId": 5,            // 記録スタッフID (必須)
+  "recordedByStaffNurseryId": 1      // 記録スタッフ保育園ID (必須)
+}
+```
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "10人の園児を一括で出席に登録しました",
+  "data": {
+    "totalChildren": 12,
+    "registeredCount": 10,
+    "skippedCount": 2,
+    "skippedChildren": [
+      {
+        "childId": 2,
+        "childName": "佐藤太郎",
+        "reason": "既に欠席として登録済み"
+      },
+      {
+        "childId": 5,
+        "childName": "山田次郎",
+        "reason": "既に遅刻として登録済み"
+      }
+    ]
+  }
+}
+```
+
+**ビジネスルール**:
+- BR-AT-007: 一括出席は「未記録」の園児のみ対象
+
+---
+
+### 3.2 連絡管理（欠席・遅刻・お迎え）
+
+#### 3.2.1 当日の連絡一覧取得
 
 **エンドポイント**: `GET /api/desktop/contacts/today`
 
@@ -815,7 +1070,7 @@
 
 ---
 
-#### 3.1.2 連絡履歴検索
+#### 3.2.2 連絡履歴検索
 
 **エンドポイント**: `GET /api/desktop/contacts/history`
 
@@ -846,7 +1101,7 @@
 
 ---
 
-#### 3.1.3 連絡に返信・確認済みにする
+#### 3.2.3 連絡に返信・確認済みにする
 
 **エンドポイント**: `PUT /api/desktop/contacts/{notificationId}/respond`
 
@@ -875,9 +1130,9 @@
 
 ---
 
-### 3.2 日報管理
+### 3.3 日報管理
 
-#### 3.2.1 日報一覧取得
+#### 3.3.1 日報一覧取得
 
 **エンドポイント**: `GET /api/desktop/reports`
 
@@ -928,7 +1183,7 @@
 
 ---
 
-#### 3.2.2 日報作成
+#### 3.3.2 日報作成
 
 **エンドポイント**: `POST /api/desktop/reports`
 
@@ -963,7 +1218,7 @@
 
 ---
 
-#### 3.2.3 日報更新
+#### 3.3.3 日報更新
 
 **エンドポイント**: `PUT /api/desktop/reports/{reportId}`
 
@@ -985,7 +1240,7 @@
 
 ---
 
-#### 3.2.4 日報削除
+#### 3.3.4 日報削除
 
 **エンドポイント**: `DELETE /api/desktop/reports/{reportId}`
 
@@ -1007,9 +1262,9 @@
 
 ---
 
-### 3.3 カレンダー・イベント管理
+### 3.4 カレンダー・イベント管理
 
-#### 3.3.1 イベント一覧取得
+#### 3.4.1 イベント一覧取得
 
 **エンドポイント**: `GET /api/desktop/events`
 
@@ -1049,7 +1304,7 @@
 
 ---
 
-#### 3.3.2 イベント作成
+#### 3.4.2 イベント作成
 
 **エンドポイント**: `POST /api/desktop/events`
 
@@ -1086,7 +1341,7 @@
 
 ---
 
-#### 3.3.3 イベント更新
+#### 3.4.3 イベント更新
 
 **エンドポイント**: `PUT /api/desktop/events/{eventId}`
 
@@ -1108,7 +1363,7 @@
 
 ---
 
-#### 3.3.4 イベント削除
+#### 3.4.4 イベント削除
 
 **エンドポイント**: `DELETE /api/desktop/events/{eventId}`
 
@@ -1127,9 +1382,9 @@
 
 ---
 
-### 3.4 お知らせ管理
+### 3.5 お知らせ管理
 
-#### 3.4.1 お知らせ一覧取得
+#### 3.5.1 お知らせ一覧取得
 
 **エンドポイント**: `GET /api/desktop/announcements`
 
@@ -1190,7 +1445,7 @@
 
 ---
 
-#### 3.4.2 お知らせ作成
+#### 3.5.2 お知らせ作成
 
 **エンドポイント**: `POST /api/desktop/announcements`
 
@@ -1232,7 +1487,7 @@
 
 ---
 
-#### 3.4.3 お知らせ更新
+#### 3.5.3 お知らせ更新
 
 **エンドポイント**: `PUT /api/desktop/announcements/{announcementId}`
 
@@ -1254,7 +1509,7 @@
 
 ---
 
-#### 3.4.4 お知らせ削除
+#### 3.5.4 お知らせ削除
 
 **エンドポイント**: `DELETE /api/desktop/announcements/{announcementId}`
 
@@ -1273,9 +1528,9 @@
 
 ---
 
-### 3.5 写真管理
+### 3.6 写真管理
 
-#### 3.5.1 写真一覧取得
+#### 3.6.1 写真一覧取得
 
 **エンドポイント**: `GET /api/desktop/photos`
 
@@ -1334,7 +1589,7 @@
 
 ---
 
-#### 3.5.2 写真アップロード
+#### 3.6.2 写真アップロード
 
 **エンドポイント**: `POST /api/desktop/photos`
 
@@ -1363,7 +1618,7 @@
 
 ---
 
-#### 3.5.3 写真更新
+#### 3.6.3 写真更新
 
 **エンドポイント**: `PUT /api/desktop/photos/{photoId}`
 
@@ -1395,7 +1650,7 @@
 
 ---
 
-#### 3.5.4 写真削除
+#### 3.6.4 写真削除
 
 **エンドポイント**: `DELETE /api/desktop/photos/{photoId}`
 
@@ -1414,7 +1669,7 @@
 
 ---
 
-#### 3.5.5 写真一括ダウンロード
+#### 3.6.5 写真一括ダウンロード
 
 **エンドポイント**: `POST /api/desktop/photos/bulk-download`
 

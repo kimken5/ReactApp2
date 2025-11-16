@@ -243,6 +243,9 @@ builder.Services.AddScoped<IDesktopContactNotificationService, DesktopContactNot
 // Desktop Dashboard Service
 builder.Services.AddScoped<IDesktopDashboardService, DesktopDashboardService>();
 
+// Desktop Attendance Service
+builder.Services.AddScoped<IDesktopAttendanceService, DesktopAttendanceService>();
+
 // SignalR Services
 builder.Services.AddScoped<ISignalRService, SignalRService>();
 

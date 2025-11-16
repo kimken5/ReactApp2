@@ -27,8 +27,10 @@ namespace ReactApp.Server.Services
 
         public async Task<List<PhotoDto>> GetPhotosAsync(int nurseryId, PhotoFilterDto filter)
         {
+            // 写真管理画面では、IsReportCreate=falseの写真のみを表示
+            // 日報専用写真（IsReportCreate=true）は除外
             var query = _context.Photos
-                .Where(p => p.UploadedByStaffNurseryId == nurseryId && p.IsActive);
+                .Where(p => p.UploadedByStaffNurseryId == nurseryId && p.IsActive && !p.IsReportCreate);
 
             // フィルタ適用
             if (filter.ChildId.HasValue)
@@ -152,6 +154,7 @@ namespace ReactApp.Server.Services
                 Status = request.Status,
                 RequiresConsent = request.RequiresConsent,
                 UploadedByAdminUser = true, // デスクトップアプリからのアップロードはtrue
+                IsReportCreate = request.IsReportCreate, // 日報作成フラグ
                 IsActive = true
             };
 
