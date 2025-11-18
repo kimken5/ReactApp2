@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.DTOs.Desktop;
+using ReactApp.Server.Models;
 
 namespace ReactApp.Server.Services
 {
@@ -148,10 +149,24 @@ namespace ReactApp.Server.Services
             try
             {
                 var today = DateTime.UtcNow.Date;
+                // StaffIdとStaffNurseryIdはEventsテーブルに存在しないため、必要なプロパティのみを明示的にSelect
                 var events = await _context.Events
                     .Where(e => e.NurseryId == nurseryId &&
                                 e.StartDateTime.Date == today)
                     .OrderBy(e => e.StartDateTime)
+                    .Select(e => new Event
+                    {
+                        Id = e.Id,
+                        NurseryId = e.NurseryId,
+                        Title = e.Title,
+                        Category = e.Category,
+                        StartDateTime = e.StartDateTime,
+                        EndDateTime = e.EndDateTime,
+                        IsAllDay = e.IsAllDay,
+                        TargetAudience = e.TargetAudience,
+                        TargetClassId = e.TargetClassId,
+                        TargetGradeLevel = e.TargetGradeLevel
+                    })
                     .ToListAsync();
 
                 var todayEvents = new List<TodayEventDto>();

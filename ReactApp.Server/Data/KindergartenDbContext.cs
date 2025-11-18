@@ -106,6 +106,30 @@ namespace ReactApp.Server.Data
             modelBuilder.Entity<PhotoConsent>().Ignore(p => p.Child);
             modelBuilder.Entity<PhotoConsent>().Ignore(p => p.Parent);
 
+            // PERFORMANCE: Event configuration
+            modelBuilder.Entity<Event>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("Events");
+
+                // Eventsテーブルには StaffId と StaffNurseryId カラムは存在しません
+                // EF Coreがこれらのプロパティをマッピングしないように明示的に設定
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.NurseryId).IsRequired();
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.StartDateTime).IsRequired();
+                entity.Property(e => e.EndDateTime).IsRequired();
+                entity.Property(e => e.IsAllDay).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.RecurrencePattern).IsRequired().HasMaxLength(20).HasDefaultValue("none");
+                entity.Property(e => e.TargetAudience).IsRequired().HasMaxLength(20).HasDefaultValue("all");
+                entity.Property(e => e.RequiresPreparation).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.LastModified).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+            });
+
             // PERFORMANCE: Parent configuration with optimized indexes
             modelBuilder.Entity<Parent>(entity =>
             {
