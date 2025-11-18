@@ -34,27 +34,34 @@ namespace ReactApp.Server.Services
 
                 foreach (var cls in classes)
                 {
-                    // Get children in this class
+                    // Get children in this class (複合主キーを考慮)
                     var childrenIds = await _context.Children
-                        .Where(c => c.ClassId == cls.ClassId)
+                        .Where(c => c.NurseryId == nurseryId && c.ClassId == cls.ClassId)
                         .Select(c => c.ChildId)
                         .ToListAsync();
 
                     // Count notifications for today
-                    var absenceCount = await _context.AbsenceNotifications
-                        .CountAsync(an => childrenIds.Contains(an.ChildId) &&
-                                         an.Ymd.Date == date.Date &&
-                                         an.NotificationType == "absence");
+                    var absenceCount = 0;
+                    var lateCount = 0;
+                    var pickupCount = 0;
 
-                    var lateCount = await _context.AbsenceNotifications
-                        .CountAsync(an => childrenIds.Contains(an.ChildId) &&
-                                         an.Ymd.Date == date.Date &&
-                                         an.NotificationType == "lateness");
+                    if (childrenIds.Any())
+                    {
+                        absenceCount = await _context.AbsenceNotifications
+                            .CountAsync(an => childrenIds.Contains(an.ChildId) &&
+                                             an.Ymd.Date == date.Date &&
+                                             an.NotificationType == "absence");
 
-                    var pickupCount = await _context.AbsenceNotifications
-                        .CountAsync(an => childrenIds.Contains(an.ChildId) &&
-                                         an.Ymd.Date == date.Date &&
-                                         an.NotificationType == "pickup");
+                        lateCount = await _context.AbsenceNotifications
+                            .CountAsync(an => childrenIds.Contains(an.ChildId) &&
+                                             an.Ymd.Date == date.Date &&
+                                             an.NotificationType == "lateness");
+
+                        pickupCount = await _context.AbsenceNotifications
+                            .CountAsync(an => childrenIds.Contains(an.ChildId) &&
+                                             an.Ymd.Date == date.Date &&
+                                             an.NotificationType == "pickup");
+                    }
 
                     statistics.Add(new ClassContactStatisticsDto
                     {
@@ -89,8 +96,17 @@ namespace ReactApp.Server.Services
 
                 foreach (var report in reports)
                 {
-                    var child = await _context.Children.FindAsync(report.ChildId);
-                    var className = child != null ? (await _context.Classes.FindAsync(child.ClassId))?.Name ?? "不明" : "不明";
+                    // ChildテーブルはNurseryIdとChildIdの複合キーを持つため、両方を指定する必要がある
+                    var child = await _context.Children
+                        .FirstOrDefaultAsync(c => c.NurseryId == nurseryId && c.ChildId == report.ChildId);
+
+                    var className = "不明";
+                    if (child != null)
+                    {
+                        var classEntity = await _context.Classes
+                            .FirstOrDefaultAsync(c => c.NurseryId == child.NurseryId && c.ClassId == child.ClassId);
+                        className = classEntity?.Name ?? "不明";
+                    }
 
                     var statusDisplay = report.Status switch
                     {

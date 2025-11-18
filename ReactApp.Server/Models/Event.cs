@@ -20,6 +20,12 @@ public class Event
     [StringLength(50)]
     public string? TargetClassId { get; set; } // 特定クラス向けの場合（例: "1-A", "2-B"）
 
+    public int? TargetChildId { get; set; } // 特定園児向けの場合
+
+    public int? StaffId { get; set; } // イベント作成/担当スタッフID
+
+    public int? StaffNurseryId { get; set; } // スタッフの保育園ID（複合キー用）
+
     [Required]
     [StringLength(200)]
     public string Title { get; set; } = string.Empty;

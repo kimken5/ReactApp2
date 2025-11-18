@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { attendanceService } from '../services/attendanceService';
 import { masterService } from '../services/masterService';
@@ -13,9 +14,15 @@ interface ChildAttendanceGrid {
 }
 
 export function AttendancePage() {
+  const [searchParams] = useSearchParams();
+
+  // URLパラメータからclassIdとdateを取得
+  const urlClassId = searchParams.get('classId');
+  const urlDate = searchParams.get('date');
+
   const [classes, setClasses] = useState<ClassDto[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>(''); // 初期値を空文字列に
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedClassId, setSelectedClassId] = useState<string>(urlClassId || ''); // URLパラメータがあれば優先
+  const [selectedDate, setSelectedDate] = useState<string>(urlDate || new Date().toISOString().split('T')[0]);
   const [attendanceGrid, setAttendanceGrid] = useState<ChildAttendanceGrid[]>([]);
   const [dateRange, setDateRange] = useState<string[]>([]); // 5日間の日付配列
   const [loading, setLoading] = useState(false);

@@ -20,7 +20,7 @@ export function ContactNotificationsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  
+
   // モーダル関連
   const [selectedNotification, setSelectedNotification] = useState<ContactNotificationDto | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -37,13 +37,17 @@ export function ContactNotificationsPage() {
     return `${year}-${month}-${day}`;
   };
 
-  // フィルタ状態（デフォルトで今日の日付をセット）
+  // URLパラメータからclassIdとdateを取得
+  const urlClassId = searchParams.get('classId');
+  const urlDate = searchParams.get('date');
+
+  // フィルタ状態（デフォルトで今日の日付をセット、URLパラメータがあれば優先）
   const [filters, setFilters] = useState<ContactNotificationFilterDto>({
-    startDate: getTodayString(),
+    startDate: urlDate || getTodayString(),
     endDate: undefined,
     notificationType: undefined,
     status: undefined,
-    classId: undefined,
+    classId: urlClassId || undefined,
     searchKeyword: '',
     acknowledgedByAdminUser: undefined,
   });

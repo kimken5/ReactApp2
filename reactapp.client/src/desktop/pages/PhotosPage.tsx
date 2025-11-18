@@ -139,12 +139,12 @@ export function PhotosPage() {
     loadMasterData();
   }, []);
 
-  // フィルタ適用
+  // フィルタ適用（表示ボタンクリック時のみ）
   useEffect(() => {
     if (hasSearched) {
       applyFilters();
     }
-  }, [photos, filter, hasSearched]);
+  }, [photos, hasSearched]);
 
   const loadMasterData = async () => {
     try {
@@ -253,28 +253,16 @@ export function PhotosPage() {
     loadPhotos();
   };
 
-  // 日付変更ハンドラ（フォーカスセット付き）
+  // 日付変更ハンドラ（フィルター処理は実行しない）
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
     const fieldName = e.target === startDateRef.current ? 'startDate' : 'endDate';
     setFilter(prev => ({ ...prev, [fieldName]: value || undefined }));
-    // カレンダーで日付を選択した後、フォーカスをセット
-    setTimeout(() => {
-      e.target.focus();
-    }, 0);
   };
 
-  // 日付クリアハンドラ
+  // 日付クリアハンドラ（フィルター処理は実行しない）
   const handleClearDate = (fieldName: 'startDate' | 'endDate') => {
     setFilter(prev => ({ ...prev, [fieldName]: undefined }));
-    // クリア後、対応する入力フィールドにフォーカスをセット
-    setTimeout(() => {
-      if (fieldName === 'startDate' && startDateRef.current) {
-        startDateRef.current.focus();
-      } else if (fieldName === 'endDate' && endDateRef.current) {
-        endDateRef.current.focus();
-      }
-    }, 0);
   };
 
   const handleDelete = async (photo: PhotoDto) => {

@@ -14,22 +14,16 @@ export function PhotoUploadPage() {
   const navigate = useNavigate();
 
   // Form state
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [fileSize, setFileSize] = useState<number>(0);
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [fileSizes, setFileSizes] = useState<number[]>([]);
+  const [imageDimensionsList, setImageDimensionsList] = useState<Array<{ width: number; height: number }>>([]);
 
   const [description, setDescription] = useState('');
-  const [publishedAt, setPublishedAt] = useState(() => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
-  });
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
   const [visibilityLevel, setVisibilityLevel] = useState<'class' | 'grade' | 'all'>('class');
   const [targetClassId, setTargetClassId] = useState<string>('');
   const [targetGrade, setTargetGrade] = useState<number | null>(null);
-  const [status, setStatus] = useState<'draft' | 'published'>('published');
   const [requiresConsent, setRequiresConsent] = useState(true);
   const [selectedChildIds, setSelectedChildIds] = useState<number[]>([]);
   const [primaryChildId, setPrimaryChildId] = useState<number | null>(null);
@@ -68,26 +62,44 @@ export function PhotoUploadPage() {
     }
   };
 
-  // Handle file selection
+  // Handle file selection (multiple files)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
+    const files = e.target.files;
+    if (!files || files.length === 0) {
       resetFileState();
       return;
     }
 
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      setFieldErrors((prev) => ({ ...prev, file: '画像ファイル（JPEG、PNG、WebP）のみアップロード可能です' }));
-      resetFileState();
-      return;
-    }
-
-    // Validate file size (50MB max)
     const maxSize = 50 * 1024 * 1024; // 50MB in bytes
-    if (file.size > maxSize) {
-      setFieldErrors((prev) => ({ ...prev, file: 'ファイルサイズは50MB以下にしてください' }));
+    const newFiles: File[] = [];
+    const newPreviewUrls: string[] = [];
+    const newFileSizes: number[] = [];
+    const newImageDimensions: Array<{ width: number; height: number }> = [];
+
+    let hasError = false;
+    let errorMessage = '';
+
+    // Validate all files
+    Array.from(files).forEach((file) => {
+      if (!validTypes.includes(file.type)) {
+        hasError = true;
+        errorMessage = '画像ファイル（JPEG、PNG、WebP）のみアップロード可能です';
+        return;
+      }
+
+      if (file.size > maxSize) {
+        hasError = true;
+        errorMessage = 'ファイルサイズは50MB以下にしてください';
+        return;
+      }
+
+      newFiles.push(file);
+      newFileSizes.push(file.size);
+    });
+
+    if (hasError) {
+      setFieldErrors((prev) => ({ ...prev, file: errorMessage }));
       resetFileState();
       return;
     }
@@ -98,30 +110,49 @@ export function PhotoUploadPage() {
       return rest;
     });
 
-    setSelectedFile(file);
-    setFileSize(file.size);
+    setSelectedFiles(newFiles);
+    setFileSizes(newFileSizes);
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageUrl = event.target?.result as string;
-      setPreviewUrl(imageUrl);
+    // Create previews for all files
+    newFiles.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string;
 
-      // Extract image dimensions
-      const img = new Image();
-      img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height });
+        setPreviewUrls((prev) => {
+          const updated = [...prev];
+          updated[index] = imageUrl;
+          return updated;
+        });
+
+        // Extract image dimensions
+        const img = new Image();
+        img.onload = () => {
+          setImageDimensionsList((prev) => {
+            const updated = [...prev];
+            updated[index] = { width: img.width, height: img.height };
+            return updated;
+          });
+        };
+        img.src = imageUrl;
       };
-      img.src = imageUrl;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    });
   };
 
   const resetFileState = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setFileSize(0);
-    setImageDimensions(null);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+    setFileSizes([]);
+    setImageDimensionsList([]);
+  };
+
+  // Remove a specific file
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+    setFileSizes((prev) => prev.filter((_, i) => i !== index));
+    setImageDimensionsList((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Handle child selection mode change
@@ -201,19 +232,8 @@ export function PhotoUploadPage() {
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       errors.file = '画像ファイルを選択してください';
-    }
-
-    if (!publishedAt) {
-      errors.publishedAt = '公開日時を入力してください';
-    } else {
-      // Check if publishedAt is in the future
-      const publishedDate = new Date(publishedAt);
-      const now = new Date();
-      if (publishedDate > now) {
-        errors.publishedAt = '公開日時は現在時刻以前を指定してください';
-      }
     }
 
     if (!selectedStaffId) {
@@ -244,9 +264,8 @@ export function PhotoUploadPage() {
     return Object.keys(errors).length === 0;
   };
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle save as draft (multiple files)
+  const handleSaveDraft = async () => {
     setErrorMessage(null);
 
     if (!validateForm()) {
@@ -254,35 +273,89 @@ export function PhotoUploadPage() {
       return;
     }
 
-    if (!selectedFile || !selectedStaffId) {
+    if (selectedFiles.length === 0 || !selectedStaffId) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const request: UploadPhotoRequestDto = {
-        file: selectedFile,
-        description: description.trim() || undefined,
-        publishedAt: new Date(publishedAt).toISOString(),
-        visibilityLevel,
-        targetClassId: visibilityLevel === 'class' ? targetClassId : undefined,
-        targetGrade: visibilityLevel === 'grade' ? targetGrade ?? undefined : undefined,
-        status,
-        requiresConsent,
-        staffId: selectedStaffId,
-        childIds: selectedChildIds,
-        primaryChildId: primaryChildId || undefined,
-      };
+      // Upload all files sequentially
+      const uploadedPhotos = [];
+      for (const file of selectedFiles) {
+        const request: UploadPhotoRequestDto = {
+          file,
+          description: description.trim() || undefined,
+          publishedAt: new Date().toISOString(), // 現在時刻
+          visibilityLevel,
+          targetClassId: visibilityLevel === 'class' ? targetClassId : undefined,
+          targetGrade: visibilityLevel === 'grade' ? targetGrade ?? undefined : undefined,
+          status: 'draft',
+          requiresConsent,
+          staffId: selectedStaffId,
+          childIds: selectedChildIds,
+          primaryChildId: primaryChildId || undefined,
+        };
 
-      const uploadedPhoto = await photoService.uploadPhoto(request);
+        const uploadedPhoto = await photoService.uploadPhoto(request);
+        uploadedPhotos.push(uploadedPhoto);
+      }
 
-      // Navigate to photo detail page
-      navigate(`/desktop/photos/${uploadedPhoto.id}`);
+      // Navigate to photo list page after all uploads complete
+      navigate('/desktop/photos');
     } catch (error: any) {
-      console.error('写真のアップロードに失敗しました:', error);
+      console.error('下書き保存に失敗しました:', error);
       setErrorMessage(
-        error.response?.data?.message || '写真のアップロードに失敗しました。もう一度お試しください。'
+        error.response?.data?.message || '下書き保存に失敗しました。もう一度お試しください。'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle publish (multiple files)
+  const handlePublish = async () => {
+    setErrorMessage(null);
+
+    if (!validateForm()) {
+      setErrorMessage('入力内容に誤りがあります。各項目を確認してください。');
+      return;
+    }
+
+    if (selectedFiles.length === 0 || !selectedStaffId) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Upload all files sequentially
+      const uploadedPhotos = [];
+      for (const file of selectedFiles) {
+        const request: UploadPhotoRequestDto = {
+          file,
+          description: description.trim() || undefined,
+          publishedAt: new Date().toISOString(), // 現在時刻
+          visibilityLevel,
+          targetClassId: visibilityLevel === 'class' ? targetClassId : undefined,
+          targetGrade: visibilityLevel === 'grade' ? targetGrade ?? undefined : undefined,
+          status: 'published',
+          requiresConsent,
+          staffId: selectedStaffId,
+          childIds: selectedChildIds,
+          primaryChildId: primaryChildId || undefined,
+        };
+
+        const uploadedPhoto = await photoService.uploadPhoto(request);
+        uploadedPhotos.push(uploadedPhoto);
+      }
+
+      // Navigate to photo list page after all uploads complete
+      navigate('/desktop/photos');
+    } catch (error: any) {
+      console.error('公開に失敗しました:', error);
+      setErrorMessage(
+        error.response?.data?.message || '公開に失敗しました。もう一度お試しください。'
       );
     } finally {
       setIsLoading(false);
@@ -311,8 +384,8 @@ export function PhotoUploadPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="bg-white shadow-md rounded-lg border border-gray-200 p-6 space-y-6">
+        <div className="bg-white shadow-md rounded-lg border border-gray-200">
+          <div className="p-6 space-y-6">
             {/* File upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -321,6 +394,7 @@ export function PhotoUploadPage() {
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
+                multiple
                 onChange={handleFileChange}
                 disabled={isLoading}
                 className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -329,25 +403,45 @@ export function PhotoUploadPage() {
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.file}</p>
               )}
               <p className="mt-1 text-xs text-gray-500">
-                JPEG、PNG、WebP形式のみ対応。最大ファイルサイズ: 50MB
+                JPEG、PNG、WebP形式のみ対応。最大ファイルサイズ: 50MB（複数選択可能）
               </p>
 
-              {/* Preview */}
-              {previewUrl && (
-                <div className="mt-4 space-y-2">
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="max-w-md rounded-lg shadow-md"
-                    style={{ maxHeight: '400px', objectFit: 'contain' }}
-                  />
-                  <div className="text-sm text-gray-600">
-                    <p>ファイルサイズ: {formatFileSize(fileSize)}</p>
-                    {imageDimensions && (
-                      <p>
-                        画像サイズ: {imageDimensions.width} × {imageDimensions.height} px
-                      </p>
-                    )}
+              {/* Preview (multiple files) */}
+              {previewUrls.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm font-medium text-gray-700">
+                    選択中の写真: {selectedFiles.length}枚
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {previewUrls.map((url, index) => (
+                      <div key={index} className="relative border border-gray-300 rounded-lg p-2 bg-gray-50">
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-40 object-cover rounded-lg"
+                        />
+                        <div className="mt-2 text-xs text-gray-600">
+                          <p className="truncate">{selectedFiles[index]?.name}</p>
+                          <p>サイズ: {formatFileSize(fileSizes[index])}</p>
+                          {imageDimensionsList[index] && (
+                            <p>
+                              {imageDimensionsList[index].width} × {imageDimensionsList[index].height} px
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(index)}
+                          disabled={isLoading}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 disabled:opacity-50"
+                          title="削除"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -372,26 +466,6 @@ export function PhotoUploadPage() {
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.description}</p>
               )}
               <p className="mt-1 text-xs text-gray-500">{description.length} / 500 文字</p>
-            </div>
-
-            {/* Published At */}
-            <div>
-              <label htmlFor="publishedAt" className="block text-sm font-medium text-gray-700 mb-2">
-                公開日時 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="datetime-local"
-                id="publishedAt"
-                value={publishedAt}
-                onChange={(e) => setPublishedAt(e.target.value)}
-                disabled={isLoading}
-                max={new Date().toISOString().slice(0, 16)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:bg-gray-100"
-              />
-              {fieldErrors.publishedAt && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.publishedAt}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">現在時刻以前を指定してください</p>
             </div>
 
             {/* Staff Selection */}
@@ -512,37 +586,6 @@ export function PhotoUploadPage() {
                 )}
               </div>
             )}
-
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                ステータス <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-6">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="draft"
-                    checked={status === 'draft'}
-                    onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
-                    disabled={isLoading}
-                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">下書き</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="published"
-                    checked={status === 'published'}
-                    onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
-                    disabled={isLoading}
-                    className="h-4 w-4 text-orange-600 focus:ring-orange-400"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">公開済み</span>
-                </label>
-              </div>
-            </div>
 
             {/* Requires Consent */}
             <div>
@@ -787,47 +830,80 @@ export function PhotoUploadPage() {
 
           </div>
 
-          {/* フッター（アップロード・キャンセルボタン） */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-md flex justify-end gap-3">
+          {/* フッター（キャンセル・下書き・公開ボタン） */}
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-end space-x-3">
             <button
               type="button"
               onClick={handleCancel}
               disabled={isLoading}
-              className="px-6 py-2 border border-gray-200 text-gray-700 rounded-md font-medium hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 active:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               キャンセル
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={handleSaveDraft}
               disabled={isLoading}
-              className="px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className={`px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium transition ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 active:bg-gray-100'
+              }`}
             >
-              {isLoading && (
-                <svg
-                  className="animate-spin h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
+              {isLoading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  保存中...
+                </span>
+              ) : (
+                '下書き'
               )}
-              {isLoading ? 'アップロード中...' : 'アップロード'}
+            </button>
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={isLoading}
+              className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium transition ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
+              }`}
+            >
+              {isLoading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  公開中...
+                </span>
+              ) : (
+                '公開'
+              )}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </DashboardLayout>
   );

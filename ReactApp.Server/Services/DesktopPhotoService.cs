@@ -56,7 +56,9 @@ namespace ReactApp.Server.Services
 
             if (filter.EndDate.HasValue)
             {
-                query = query.Where(p => p.PublishedAt <= filter.EndDate.Value);
+                // 終了日の23:59:59まで含める（翌日の00:00:00未満）
+                var endDateInclusive = filter.EndDate.Value.AddDays(1);
+                query = query.Where(p => p.PublishedAt < endDateInclusive);
             }
 
             if (!string.IsNullOrEmpty(filter.VisibilityLevel))

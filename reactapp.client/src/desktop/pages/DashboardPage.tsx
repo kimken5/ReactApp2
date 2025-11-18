@@ -1,5 +1,13 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { useDesktopAuth } from '../contexts/DesktopAuthContext';
+import { dashboardService } from '../services/DashboardService';
+import type {
+  ClassContactStatistics,
+  RecentDailyReport,
+  TodayEvent
+} from '../services/DashboardService';
 
 /**
  * デスクトップアプリ用ダッシュボードページ
@@ -7,6 +15,58 @@ import { useDesktopAuth } from '../contexts/DesktopAuthContext';
 
 export function DashboardPage() {
   const { state } = useDesktopAuth();
+  const navigate = useNavigate();
+  const [classStats, setClassStats] = useState<ClassContactStatistics[]>([]);
+  const [recentReports, setRecentReports] = useState<RecentDailyReport[]>([]);
+  const [todayEvents, setTodayEvents] = useState<TodayEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      console.log('🔍 Dashboard: Loading data...');
+      const [stats, reports, events] = await Promise.all([
+        dashboardService.getClassContactStatistics(),
+        dashboardService.getRecentDailyReports(3),
+        dashboardService.getTodayEvents(),
+      ]);
+      console.log('✅ Class Stats:', stats);
+      console.log('✅ Recent Reports:', reports);
+      console.log('✅ Today Events:', events);
+      setClassStats(stats);
+      setRecentReports(reports);
+      setTodayEvents(events);
+    } catch (error) {
+      console.error('❌ ダッシュボードデータの取得に失敗しました', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClassClick = (classId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    navigate(`/desktop/contact-notifications?classId=${classId}&date=${today}`);
+  };
+
+  const handleAttendanceClick = (e: React.MouseEvent, classId: string) => {
+    e.stopPropagation(); // カードのクリックイベントを停止
+    const today = new Date().toISOString().split('T')[0];
+    navigate(`/desktop/attendance?classId=${classId}&date=${today}`);
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-gray-600">読み込み中...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -14,14 +74,18 @@ export function DashboardPage() {
         {/* 各クラスの連絡状況 */}
         <div className="mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <ClassNotificationCard className="さくら組" absence={2} late={1} pickup={0} />
-            <ClassNotificationCard className="ひまわり組" absence={1} late={0} pickup={1} />
-            <ClassNotificationCard className="すみれ組" absence={0} late={0} pickup={0} />
-            <ClassNotificationCard className="ばら組" absence={2} late={1} pickup={2} />
-            <ClassNotificationCard className="もも組" absence={0} late={1} pickup={0} />
-            <ClassNotificationCard className="たんぽぽ組" absence={1} late={0} pickup={1} />
-            <ClassNotificationCard className="ゆり組" absence={0} late={0} pickup={0} />
-            <ClassNotificationCard className="つくし組" absence={3} late={2} pickup={1} />
+            {classStats.map((stat) => (
+              <ClassNotificationCard
+                key={stat.classId}
+                classId={stat.classId}
+                className={stat.className}
+                absence={stat.absenceCount}
+                late={stat.lateCount}
+                pickup={stat.pickupCount}
+                onClassClick={handleClassClick}
+                onAttendanceClick={handleAttendanceClick}
+              />
+            ))}
           </div>
         </div>
 
@@ -30,45 +94,41 @@ export function DashboardPage() {
           <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">最近の連絡帳</h2>
             <div className="space-y-3">
-              <ActivityItem
-                title="さくら組 - 田中太郎くん"
-                time="10分前"
-                status="公開済み"
-                statusColor="green"
-              />
-              <ActivityItem
-                title="ひまわり組 - 佐藤花子さん"
-                time="30分前"
-                status="下書き"
-                statusColor="gray"
-              />
-              <ActivityItem
-                title="すみれ組 - 鈴木次郎くん"
-                time="1時間前"
-                status="公開済み"
-                statusColor="green"
-              />
+              {recentReports.length > 0 ? (
+                recentReports.map((report) => (
+                  <ActivityItem
+                    key={report.reportId}
+                    title={`${report.className} - ${report.childName}`}
+                    time={report.timeAgo}
+                    status={report.statusDisplay}
+                    statusColor={report.status === 'published' ? 'green' : 'gray'}
+                  />
+                ))
+              ) : (
+                <div className="text-sm text-gray-500 text-center py-4">
+                  まだ連絡帳がありません
+                </div>
+              )}
             </div>
           </div>
 
           <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">今日の予定</h2>
             <div className="space-y-3">
-              <EventItem
-                title="避難訓練"
-                time="10:30 - 11:00"
-                type="全体"
-              />
-              <EventItem
-                title="身体測定（さくら組）"
-                time="14:00 - 14:30"
-                type="クラス"
-              />
-              <EventItem
-                title="職員会議"
-                time="17:00 - 18:00"
-                type="職員"
-              />
+              {todayEvents.length > 0 ? (
+                todayEvents.map((event) => (
+                  <EventItem
+                    key={event.eventId}
+                    title={event.title}
+                    time={event.timeRange}
+                    type={event.eventTypeDisplay}
+                  />
+                ))
+              ) : (
+                <div className="text-sm text-gray-500 text-center py-4">
+                  今日の予定はありません
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -77,7 +137,7 @@ export function DashboardPage() {
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">クイックアクション</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <QuickActionButton iconType="document" label="連絡帳作成" href="/desktop/daily-reports/create" />
+            <QuickActionButton iconType="document" label="連絡帳作成" href="/desktop/dailyreports/create" />
             <QuickActionButton iconType="user-add" label="園児登録" href="/desktop/children/create" />
             <QuickActionButton iconType="camera" label="写真アップロード" href="/desktop/photos/upload" />
             <QuickActionButton iconType="megaphone" label="お知らせ作成" href="/desktop/announcements/create" />
@@ -91,16 +151,51 @@ export function DashboardPage() {
 // サブコンポーネント
 
 interface ClassNotificationCardProps {
+  classId: string;
   className: string;
   absence: number;
   late: number;
   pickup: number;
+  onClassClick: (classId: string) => void;
+  onAttendanceClick: (e: React.MouseEvent, classId: string) => void;
 }
 
-function ClassNotificationCard({ className, absence, late, pickup }: ClassNotificationCardProps) {
+function ClassNotificationCard({
+  classId,
+  className,
+  absence,
+  late,
+  pickup,
+  onClassClick,
+  onAttendanceClick,
+}: ClassNotificationCardProps) {
   return (
-    <div className="bg-white rounded-md shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200">
-      <h3 className="text-gray-800 font-semibold text-base mb-3">{className}</h3>
+    <div
+      onClick={() => onClassClick(classId)}
+      className="bg-white rounded-md shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-gray-800 font-semibold text-base">{className}</h3>
+        <button
+          onClick={(e) => onAttendanceClick(e, classId)}
+          className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+          title="出欠表を開く"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+            />
+          </svg>
+        </button>
+      </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-600">欠席連絡</span>
