@@ -53,17 +53,19 @@ export function ClassesPage() {
         // デモデータを設定
         const demoClasses: ClassDto[] = [
           {
+            nurseryId: 1,
             classId: 'sakura-2025',
             name: 'さくら組',
             ageGroupMin: 5,
             ageGroupMax: 6,
             currentEnrollment: 18,
             maxCapacity: 20,
-            academicYear: 2025,
             assignedStaffNames: ['田中 花子', '佐藤 太郎'],
             isActive: true,
+            createdAt: '2025-04-01T00:00:00',
           },
           {
+            nurseryId: 1,
             classId: 'himawari-2025',
             name: 'ひまわり組',
             ageGroupMin: 4,
@@ -72,8 +74,10 @@ export function ClassesPage() {
             maxCapacity: 20,
             assignedStaffNames: ['鈴木 次郎'],
             isActive: true,
+            createdAt: '2025-04-01T00:00:00',
           },
           {
+            nurseryId: 1,
             classId: 'sumire-2025',
             name: 'すみれ組',
             ageGroupMin: 3,
@@ -82,8 +86,10 @@ export function ClassesPage() {
             maxCapacity: 18,
             assignedStaffNames: ['山田 美咲', '伊藤 健一'],
             isActive: true,
+            createdAt: '2025-04-01T00:00:00',
           },
           {
+            nurseryId: 1,
             classId: 'bara-2025',
             name: 'ばら組',
             ageGroupMin: 2,
@@ -92,8 +98,10 @@ export function ClassesPage() {
             maxCapacity: 15,
             assignedStaffNames: ['高橋 さくら'],
             isActive: true,
+            createdAt: '2025-04-01T00:00:00',
           },
           {
+            nurseryId: 1,
             classId: 'momo-2025',
             name: 'もも組',
             ageGroupMin: 1,
@@ -102,8 +110,10 @@ export function ClassesPage() {
             maxCapacity: 12,
             assignedStaffNames: ['渡辺 京子', '中村 優子'],
             isActive: true,
+            createdAt: '2025-04-01T00:00:00',
           },
           {
+            nurseryId: 1,
             classId: 'tanpopo-2025',
             name: 'たんぽぽ組',
             ageGroupMin: 0,
@@ -112,8 +122,10 @@ export function ClassesPage() {
             maxCapacity: 10,
             assignedStaffNames: ['小林 愛', '加藤 まり'],
             isActive: true,
+            createdAt: '2025-04-01T00:00:00',
           },
           {
+            nurseryId: 1,
             classId: 'yuri-2025',
             name: 'ゆり組',
             ageGroupMin: 4,
@@ -122,8 +134,10 @@ export function ClassesPage() {
             maxCapacity: 20,
             assignedStaffNames: ['佐々木 明'],
             isActive: true,
+            createdAt: '2025-04-01T00:00:00',
           },
           {
+            nurseryId: 1,
             classId: 'tsukushi-2025',
             name: 'つくし組',
             ageGroupMin: 3,
@@ -132,6 +146,7 @@ export function ClassesPage() {
             maxCapacity: 18,
             assignedStaffNames: ['松本 由美'],
             isActive: true,
+            createdAt: '2025-04-01T00:00:00',
           },
         ];
         setClasses(demoClasses);

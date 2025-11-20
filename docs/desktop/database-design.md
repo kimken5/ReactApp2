@@ -46,26 +46,26 @@ EXEC sp_addextendedproperty 'MS_Description', '現在の年度', 'SCHEMA', 'dbo'
 
 ### 1.2 Classes テーブル拡張
 
-**追加理由**: 年度管理、過去クラスの履歴管理に必要
+**追加理由**: 有効/無効フラグによるクラス管理に必要
 
 ```sql
 -- 既存テーブルに以下のカラムを追加
 ALTER TABLE Classes ADD
-    AcademicYear INT NOT NULL DEFAULT YEAR(GETDATE()),  -- 年度
     IsActive BIT NOT NULL DEFAULT 1;  -- 有効/無効フラグ
 
 -- インデックス追加
-CREATE INDEX IX_Classes_AcademicYear ON Classes (NurseryId, AcademicYear);
 CREATE INDEX IX_Classes_IsActive ON Classes (NurseryId, IsActive) WHERE IsActive = 1;
 
 -- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '年度（西暦）', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'AcademicYear';
-EXEC sp_addextendedproperty 'MS_Description', '有効フラグ（年度終了後は無効化）', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'IsActive';
+EXEC sp_addextendedproperty 'MS_Description', '有効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'IsActive';
 ```
 
 **ビジネスルール**
-- 同一年度内でClassIdは一意
-- IsActive=0のクラスは過去年度のクラスとして保持
+- ClassIdは保育園内で一意
+- IsActive=0のクラスは無効化されたクラスとして保持
+
+**変更履歴**
+- 2025-11-20: AcademicYearカラムを削除（年度管理はAcademicYearsテーブルとStaffClassAssignments.AcademicYearで管理）
 
 ### 1.3 Children テーブル拡張
 
@@ -573,14 +573,10 @@ WHERE NOT EXISTS (
 );
 ```
 
-### 4.2 Classesテーブルへの年度情報追加
+### 4.2 ~~Classesテーブルへの年度情報追加~~（削除済み）
 
-```sql
--- 既存のClassesレコードに現在年度を設定
-UPDATE Classes
-SET AcademicYear = YEAR(GETDATE())
-WHERE AcademicYear IS NULL OR AcademicYear = 0;
-```
+**変更履歴**
+- 2025-11-20: AcademicYearカラム削除により、このセクションは不要となりました
 
 ### 4.3 StaffClassAssignmentsテーブルへの年度情報追加
 
@@ -890,7 +886,7 @@ public class AttendanceStatistic
 | テーブル | 追加カラム数 | 主な目的 |
 |---------|------------|---------|
 | Nurseries | 5 | ログイン認証、セキュリティ、年度管理 |
-| Classes | 2 | 年度管理、有効/無効フラグ |
+| Classes | 1 | 有効/無効フラグ（~~AcademicYear削除済み~~） |
 | Children | 5 | 卒園管理、血液型、出席記録 |
 | Staff | 7 | 詳細情報、入退社管理、緊急連絡先 |
 | StaffClassAssignments | 3 | 年度別クラス割り当て |

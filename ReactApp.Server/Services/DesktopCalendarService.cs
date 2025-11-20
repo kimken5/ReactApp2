@@ -95,25 +95,29 @@ public class DesktopCalendarService : IDesktopCalendarService
         try
         {
             var now = DateTime.UtcNow;
-            var eventEntity = new Event
-            {
-                NurseryId = nurseryId,
-                Title = request.Title,
-                Category = request.Category,
-                StartDateTime = request.StartDateTime,
-                EndDateTime = request.EndDateTime,
-                Description = request.Description,
-                IsAllDay = request.IsAllDay,
-                TargetClassId = request.TargetClassId,
-                TargetGradeLevel = request.TargetGrade,
-                CreatedBy = createdBy,
-                CreatedAt = now,
-                LastModified = now,
-                IsActive = true,
-                RecurrencePattern = "none",
-                TargetAudience = "all",
-                RequiresPreparation = false
-            };
+
+            // Eventエンティティを作成（デフォルト値は Model の初期化子で設定済み）
+            var eventEntity = new Event();
+
+            // 明示的にプロパティを設定
+            eventEntity.NurseryId = nurseryId;
+            eventEntity.Title = request.Title;
+            eventEntity.Category = request.Category;
+            eventEntity.StartDateTime = request.StartDateTime;
+            eventEntity.EndDateTime = request.EndDateTime;
+            eventEntity.Description = request.Description;
+            eventEntity.TargetClassId = request.TargetClassId;
+            eventEntity.TargetGradeLevel = request.TargetGrade;
+            eventEntity.CreatedBy = createdBy;
+            eventEntity.CreatedAt = now;
+            eventEntity.LastModified = now;
+
+            // リクエストからの値を設定（デフォルト値はモデルで既に設定されている）
+            eventEntity.IsAllDay = request.IsAllDay;
+
+            // デバッグログ: イベントエンティティの状態を確認
+            _logger.LogInformation("イベント作成前の状態: IsAllDay={IsAllDay}, RecurrencePattern={RecurrencePattern}, TargetAudience={TargetAudience}, RequiresPreparation={RequiresPreparation}, IsActive={IsActive}",
+                eventEntity.IsAllDay, eventEntity.RecurrencePattern, eventEntity.TargetAudience, eventEntity.RequiresPreparation, eventEntity.IsActive);
 
             _context.Set<Event>().Add(eventEntity);
             await _context.SaveChangesAsync();

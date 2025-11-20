@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ReactApp.Server.Data;
 
@@ -11,9 +12,11 @@ using ReactApp.Server.Data;
 namespace ReactApp.Server.Migrations
 {
     [DbContext(typeof(KindergartenDbContext))]
-    partial class KindergartenDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251120051513_FixEventStaffRelationship")]
+    partial class FixEventStaffRelationship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -621,6 +624,9 @@ namespace ReactApp.Server.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasColumnOrder(1);
+
+                    b.Property<int>("AcademicYear")
+                        .HasColumnType("int");
 
                     b.Property<int>("AgeGroupMax")
                         .HasColumnType("int");

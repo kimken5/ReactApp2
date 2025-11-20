@@ -13,7 +13,6 @@ namespace ReactApp.Server.DTOs.Desktop
         public int AgeGroupMin { get; set; }
         public int AgeGroupMax { get; set; }
         public int MaxCapacity { get; set; }
-        public int AcademicYear { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
@@ -47,8 +46,6 @@ namespace ReactApp.Server.DTOs.Desktop
         [Required(ErrorMessage = "定員は必須です")]
         [Range(1, 100, ErrorMessage = "定員は1～100の範囲で入力してください")]
         public int MaxCapacity { get; set; }
-
-        public int? AcademicYear { get; set; }
     }
 
     /// <summary>
@@ -72,8 +69,6 @@ namespace ReactApp.Server.DTOs.Desktop
         [Range(1, 100, ErrorMessage = "定員は1～100の範囲で入力してください")]
         public int MaxCapacity { get; set; }
 
-        public int? AcademicYear { get; set; }
-
         public bool? IsActive { get; set; }
     }
 
@@ -82,7 +77,6 @@ namespace ReactApp.Server.DTOs.Desktop
     /// </summary>
     public class ClassFilterDto
     {
-        public int? AcademicYear { get; set; }
         public int? AgeGroupMin { get; set; }
         public int? AgeGroupMax { get; set; }
         public bool? IsActive { get; set; }

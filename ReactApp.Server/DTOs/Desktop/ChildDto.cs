@@ -63,9 +63,46 @@ namespace ReactApp.Server.DTOs.Desktop
         public string? SpecialInstructions { get; set; }
 
         /// <summary>
-        /// 関連付ける保護者IDのリスト
+        /// 保護者の登録方法: "select" (既存保護者選択) または "create" (新規作成)
+        /// </summary>
+        public string ParentRegistrationMode { get; set; } = "select";
+
+        /// <summary>
+        /// 関連付ける既存保護者IDのリスト（ParentRegistrationMode = "select" の場合）
         /// </summary>
         public List<int> ParentIds { get; set; } = new();
+
+        /// <summary>
+        /// 新規作成する保護者1の情報（ParentRegistrationMode = "create" の場合）
+        /// </summary>
+        public CreateParentWithChildDto? Parent1 { get; set; }
+
+        /// <summary>
+        /// 新規作成する保護者2の情報（ParentRegistrationMode = "create" の場合・任意）
+        /// </summary>
+        public CreateParentWithChildDto? Parent2 { get; set; }
+    }
+
+    /// <summary>
+    /// 園児と同時に保護者を作成する際のDTO
+    /// </summary>
+    public class CreateParentWithChildDto
+    {
+        [Required(ErrorMessage = "電話番号は必須です")]
+        [Phone(ErrorMessage = "有効な電話番号を入力してください")]
+        [StringLength(15, ErrorMessage = "電話番号は15文字以内で入力してください")]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "氏名は必須です")]
+        [StringLength(100, ErrorMessage = "氏名は100文字以内で入力してください")]
+        public string Name { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "有効なメールアドレスを入力してください")]
+        [StringLength(200, ErrorMessage = "メールアドレスは200文字以内で入力してください")]
+        public string? Email { get; set; }
+
+        [StringLength(200, ErrorMessage = "住所は200文字以内で入力してください")]
+        public string? Address { get; set; }
     }
 
     /// <summary>

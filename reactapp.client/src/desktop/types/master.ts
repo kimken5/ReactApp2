@@ -36,7 +36,6 @@ export interface ClassDto {
   ageGroupMin: number;
   ageGroupMax: number;
   maxCapacity: number;
-  academicYear: number;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -50,7 +49,6 @@ export interface CreateClassRequestDto {
   ageGroupMin: number;
   ageGroupMax: number;
   maxCapacity: number;
-  academicYear?: number;
 }
 
 export interface UpdateClassRequestDto {
@@ -58,12 +56,10 @@ export interface UpdateClassRequestDto {
   ageGroupMin: number;
   ageGroupMax: number;
   maxCapacity: number;
-  academicYear?: number;
   isActive?: boolean;
 }
 
 export interface ClassFilterDto {
-  academicYear?: number;
   ageGroupMin?: number;
   ageGroupMax?: number;
   isActive?: boolean;
@@ -128,7 +124,17 @@ export interface CreateChildRequestDto {
   bloodType?: string;
   medicalNotes?: string;
   specialInstructions?: string;
+  parentRegistrationMode: 'select' | 'create';
   parentIds: number[];
+  parent1?: CreateParentWithChildDto;
+  parent2?: CreateParentWithChildDto;
+}
+
+export interface CreateParentWithChildDto {
+  phoneNumber: string;
+  name: string;
+  email?: string;
+  address?: string;
 }
 
 export interface UpdateChildRequestDto {

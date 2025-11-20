@@ -71,6 +71,7 @@ namespace ReactApp.Server.Data
             modelBuilder.Entity<Staff>().Ignore(s => s.ClassAssignments);
             modelBuilder.Entity<Staff>().Ignore(s => s.CreatedReports);
             modelBuilder.Entity<Staff>().Ignore(s => s.AbsenceResponses);
+            modelBuilder.Entity<Staff>().Ignore(s => s.CreatedEvents);
             modelBuilder.Entity<Announcement>().Ignore(a => a.Staff);
             modelBuilder.Entity<AbsenceNotification>().Ignore(a => a.Parent);
             modelBuilder.Entity<AbsenceNotification>().Ignore(a => a.Child);
@@ -106,29 +107,7 @@ namespace ReactApp.Server.Data
             modelBuilder.Entity<PhotoConsent>().Ignore(p => p.Child);
             modelBuilder.Entity<PhotoConsent>().Ignore(p => p.Parent);
 
-            // PERFORMANCE: Event configuration
-            modelBuilder.Entity<Event>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.ToTable("Events");
-
-                // Eventsテーブルには StaffId と StaffNurseryId カラムは存在しません
-                // EF Coreがこれらのプロパティをマッピングしないように明示的に設定
-                entity.Property(e => e.Id).ValueGeneratedOnAdd();
-                entity.Property(e => e.NurseryId).IsRequired();
-                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.StartDateTime).IsRequired();
-                entity.Property(e => e.EndDateTime).IsRequired();
-                entity.Property(e => e.IsAllDay).IsRequired().HasDefaultValue(false);
-                entity.Property(e => e.RecurrencePattern).IsRequired().HasMaxLength(20).HasDefaultValue("none");
-                entity.Property(e => e.TargetAudience).IsRequired().HasMaxLength(20).HasDefaultValue("all");
-                entity.Property(e => e.RequiresPreparation).IsRequired().HasDefaultValue(false);
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.LastModified).IsRequired().HasDefaultValueSql("GETUTCDATE()");
-            });
+            // Event設定は ConfigureEvent メソッドで実施（重複を避けるため）
 
             // PERFORMANCE: Parent configuration with optimized indexes
             modelBuilder.Entity<Parent>(entity =>
@@ -549,22 +528,33 @@ namespace ReactApp.Server.Data
             modelBuilder.Entity<Event>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.ToTable("Events");
+
+                // インデックス設定
                 entity.HasIndex(e => new { e.NurseryId, e.StartDateTime });
                 entity.HasIndex(e => e.Category);
                 entity.HasIndex(e => e.TargetAudience);
                 entity.HasIndex(e => e.IsActive);
 
+                // プロパティ設定
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.NurseryId).IsRequired();
+                entity.Property(e => e.TargetGradeLevel);
+                entity.Property(e => e.TargetClassId).HasMaxLength(50);
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(1000);
                 entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.StartDateTime).IsRequired();
+                entity.Property(e => e.EndDateTime).IsRequired();
+                entity.Property(e => e.IsAllDay).IsRequired().HasDefaultValue(false);
                 entity.Property(e => e.RecurrencePattern).IsRequired().HasMaxLength(20).HasDefaultValue("none");
-                entity.Property(e => e.TargetAudience).HasMaxLength(20).HasDefaultValue("all");
+                entity.Property(e => e.TargetAudience).IsRequired().HasMaxLength(20).HasDefaultValue("all");
+                entity.Property(e => e.RequiresPreparation).IsRequired().HasDefaultValue(false);
                 entity.Property(e => e.PreparationInstructions).HasMaxLength(500);
+                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
                 entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.TargetClassId).HasMaxLength(50);
-                entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.LastModified).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.LastModified).IsRequired().HasDefaultValueSql("GETUTCDATE()");
             });
         }
 

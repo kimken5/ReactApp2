@@ -8,6 +8,7 @@ import type {
   UpdateChildRequestDto,
   ClassDto,
   ParentDto,
+  CreateParentWithChildDto,
 } from '../types/master';
 
 /**
@@ -26,6 +27,9 @@ export function ChildFormPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // 保護者登録モード: 'select' = 既存選択, 'create' = 新規作成
+  const [parentMode, setParentMode] = useState<'select' | 'create'>('select');
+
   // フォーム状態
   const [formData, setFormData] = useState({
     name: '',
@@ -42,6 +46,23 @@ export function ChildFormPage() {
     withdrawalReason: '',
     isActive: true,
   });
+
+  // 保護者作成用フォーム状態
+  const [parent1Data, setParent1Data] = useState<CreateParentWithChildDto>({
+    phoneNumber: '',
+    name: '',
+    email: '',
+    address: '',
+  });
+
+  const [parent2Data, setParent2Data] = useState<CreateParentWithChildDto>({
+    phoneNumber: '',
+    name: '',
+    email: '',
+    address: '',
+  });
+
+  const [enableParent2, setEnableParent2] = useState(false);
 
   // オートコンプリート用状態
   const [parentSearchQuery, setParentSearchQuery] = useState('');
@@ -116,6 +137,60 @@ export function ChildFormPage() {
     }
   };
 
+  // 保護者1データ変更
+  const handleParent1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    if (name === 'phoneNumber') {
+      // 電話番号のハイフン自動挿入
+      const cleaned = value.replace(/\D/g, '');
+      let formatted = cleaned;
+      if (cleaned.length > 3 && cleaned.length <= 7) {
+        formatted = `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
+      } else if (cleaned.length > 7) {
+        formatted = `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7, 11)}`;
+      }
+      setParent1Data(prev => ({ ...prev, [name]: formatted }));
+    } else {
+      setParent1Data(prev => ({ ...prev, [name]: value }));
+    }
+
+    if (errors[`parent1.${name}`]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`parent1.${name}`];
+        return newErrors;
+      });
+    }
+  };
+
+  // 保護者2データ変更
+  const handleParent2Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    if (name === 'phoneNumber') {
+      // 電話番号のハイフン自動挿入
+      const cleaned = value.replace(/\D/g, '');
+      let formatted = cleaned;
+      if (cleaned.length > 3 && cleaned.length <= 7) {
+        formatted = `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
+      } else if (cleaned.length > 7) {
+        formatted = `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7, 11)}`;
+      }
+      setParent2Data(prev => ({ ...prev, [name]: formatted }));
+    } else {
+      setParent2Data(prev => ({ ...prev, [name]: value }));
+    }
+
+    if (errors[`parent2.${name}`]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`parent2.${name}`];
+        return newErrors;
+      });
+    }
+  };
+
   // 保護者選択変更ハンドラ
   const handleParentToggle = (parentId: number) => {
     setFormData(prev => {
@@ -128,6 +203,10 @@ export function ChildFormPage() {
 
   // オートコンプリート: 保護者を追加
   const handleAddParent = (parent: ParentDto) => {
+    if (formData.parentIds.length >= 2) {
+      alert('保護者は最大2名まで登録できます');
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       parentIds: [...prev.parentIds, parent.id]
@@ -151,7 +230,8 @@ export function ChildFormPage() {
     return parents.filter(parent => {
       if (formData.parentIds.includes(parent.id)) return false;
       const name = parent.name || '';
-      return name.toLowerCase().includes(query);
+      const phoneNumber = parent.phoneNumber || '';
+      return name.toLowerCase().includes(query) || phoneNumber.includes(query);
     }).slice(0, 10);
   };
 
@@ -182,8 +262,31 @@ export function ChildFormPage() {
       newErrors.gender = '性別は必須です';
     }
 
-    if (!isEditMode && formData.parentIds.length === 0) {
-      newErrors.parentIds = '保護者を1人以上選択してください';
+    // 新規作成時の保護者バリデーション
+    if (!isEditMode) {
+      if (parentMode === 'select') {
+        if (formData.parentIds.length === 0) {
+          newErrors.parentIds = '保護者を1人以上選択してください';
+        }
+      } else if (parentMode === 'create') {
+        // 保護者1（必須）
+        if (!parent1Data.phoneNumber.trim()) {
+          newErrors['parent1.phoneNumber'] = '保護者1の電話番号は必須です';
+        }
+        if (!parent1Data.name.trim()) {
+          newErrors['parent1.name'] = '保護者1の氏名は必須です';
+        }
+
+        // 保護者2（有効化されている場合のみ）
+        if (enableParent2) {
+          if (!parent2Data.phoneNumber.trim()) {
+            newErrors['parent2.phoneNumber'] = '保護者2の電話番号は必須です';
+          }
+          if (!parent2Data.name.trim()) {
+            newErrors['parent2.name'] = '保護者2の氏名は必須です';
+          }
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -230,7 +333,20 @@ export function ChildFormPage() {
           bloodType: formData.bloodType || undefined,
           medicalNotes: formData.medicalNotes || undefined,
           specialInstructions: formData.specialInstructions || undefined,
-          parentIds: formData.parentIds,
+          parentRegistrationMode: parentMode,
+          parentIds: parentMode === 'select' ? formData.parentIds : [],
+          parent1: parentMode === 'create' ? {
+            phoneNumber: parent1Data.phoneNumber,
+            name: parent1Data.name,
+            email: parent1Data.email || undefined,
+            address: parent1Data.address || undefined,
+          } : undefined,
+          parent2: parentMode === 'create' && enableParent2 ? {
+            phoneNumber: parent2Data.phoneNumber,
+            name: parent2Data.name,
+            email: parent2Data.email || undefined,
+            address: parent2Data.address || undefined,
+          } : undefined,
         };
         await masterService.createChild(createRequest);
       }
@@ -294,6 +410,7 @@ export function ChildFormPage() {
           <div className="p-6 space-y-6">
             {/* 基本情報セクション */}
             <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">基本情報</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 氏名 */}
                 <div>
@@ -446,6 +563,7 @@ export function ChildFormPage() {
 
             {/* 医療・特記事項セクション */}
             <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">医療・特記事項</h2>
               <div className="space-y-4">
                 {/* 医療メモ */}
                 <div>
@@ -481,92 +599,296 @@ export function ChildFormPage() {
               </div>
             </div>
 
-            {/* 保護者選択セクション（新規作成時のみ） */}
+            {/* 保護者セクション（新規作成時のみ） */}
             {!isEditMode && (
               <div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  保護者選択 <span className="text-red-600">*</span>
+                  保護者登録 <span className="text-red-600">*</span>
                 </h2>
 
-                {/* オートコンプリート検索 */}
-                <div className="mb-4 relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    保護者を追加
-                  </label>
-                  <input
-                    type="text"
-                    value={parentSearchQuery}
-                    onChange={(e) => {
-                      setParentSearchQuery(e.target.value);
-                      setShowParentSuggestions(true);
-                    }}
-                    onFocus={() => setShowParentSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowParentSuggestions(false), 200)}
-                    placeholder="保護者名を入力..."
-                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                  />
-
-                  {/* 候補リスト */}
-                  {showParentSuggestions && parentSearchQuery && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                      {getFilteredParents().length === 0 ? (
-                        <div className="px-4 py-3 text-gray-500 text-sm">
-                          該当する保護者が見つかりません
-                        </div>
-                      ) : (
-                        getFilteredParents().map((parent) => (
-                          <button
-                            key={parent.id}
-                            type="button"
-                            onClick={() => handleAddParent(parent)}
-                            className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0"
-                          >
-                            <div className="font-medium text-gray-900">{parent.name || '名前未登録'}</div>
-                            <div className="text-sm text-gray-600">{parent.phoneNumber}</div>
-                            {parent.email && <div className="text-sm text-gray-600">{parent.email}</div>}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
+                {/* 保護者登録モード切り替え */}
+                <div className="mb-6">
+                  <div className="flex gap-4 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setParentMode('select')}
+                      className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                        parentMode === 'select'
+                          ? 'bg-orange-500 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      既存保護者を選択
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParentMode('create')}
+                      className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                        parentMode === 'create'
+                          ? 'bg-orange-500 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      新規保護者を作成
+                    </button>
+                  </div>
                 </div>
 
-                {/* 選択済み保護者一覧 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    選択済み保護者 ({getSelectedParents().length}人)
-                  </label>
-                  {getSelectedParents().length === 0 ? (
-                    <div className="px-4 py-3 border border-gray-200 rounded-md bg-gray-50 text-gray-500 text-sm">
-                      保護者が選択されていません
+                {/* 既存保護者選択モード */}
+                {parentMode === 'select' && (
+                  <div>
+                    {/* オートコンプリート検索 */}
+                    <div className="mb-4 relative">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        保護者を追加（最大2名）
+                      </label>
+                      <input
+                        type="text"
+                        value={parentSearchQuery}
+                        onChange={(e) => {
+                          setParentSearchQuery(e.target.value);
+                          setShowParentSuggestions(true);
+                        }}
+                        onFocus={() => setShowParentSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowParentSuggestions(false), 200)}
+                        placeholder="保護者名または電話番号を入力..."
+                        className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                        disabled={formData.parentIds.length >= 2}
+                      />
+
+                      {/* 候補リスト */}
+                      {showParentSuggestions && parentSearchQuery && formData.parentIds.length < 2 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {getFilteredParents().length === 0 ? (
+                            <div className="px-4 py-3 text-gray-500 text-sm">
+                              該当する保護者が見つかりません
+                            </div>
+                          ) : (
+                            getFilteredParents().map((parent) => (
+                              <button
+                                key={parent.id}
+                                type="button"
+                                onClick={() => handleAddParent(parent)}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="font-medium text-gray-900">{parent.name || '名前未登録'}</div>
+                                <div className="text-sm text-gray-600">{parent.phoneNumber}</div>
+                                {parent.email && <div className="text-sm text-gray-600">{parent.email}</div>}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {getSelectedParents().map((parent) => (
-                        <div
-                          key={parent.id}
-                          className="flex items-start justify-between p-4 border border-gray-200 rounded-md bg-white"
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900">{parent.name || '名前未登録'}</div>
-                            <div className="text-sm text-gray-600">{parent.phoneNumber}</div>
-                            {parent.email && <div className="text-sm text-gray-600">{parent.email}</div>}
-                          </div>
+
+                    {/* 選択済み保護者一覧 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        選択済み保護者 ({getSelectedParents().length}人)
+                      </label>
+                      {getSelectedParents().length === 0 ? (
+                        <div className="px-4 py-3 border border-gray-200 rounded-md bg-gray-50 text-gray-500 text-sm">
+                          保護者が選択されていません
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {getSelectedParents().map((parent) => (
+                            <div
+                              key={parent.id}
+                              className="flex items-start justify-between p-4 border border-gray-200 rounded-md bg-white"
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{parent.name || '名前未登録'}</div>
+                                <div className="text-sm text-gray-600">{parent.phoneNumber}</div>
+                                {parent.email && <div className="text-sm text-gray-600">{parent.email}</div>}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveParent(parent.id)}
+                                className="ml-4 px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition border border-red-200"
+                              >
+                                削除
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {errors.parentIds && (
+                      <p className="mt-2 text-sm text-red-600">{errors.parentIds}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* 新規保護者作成モード */}
+                {parentMode === 'create' && (
+                  <div className="space-y-6">
+                    {/* 保護者1（必須） */}
+                    <div className="p-6 border border-gray-300 rounded-lg">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        保護者1 <span className="text-red-600">*</span>
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            電話番号 <span className="text-red-600">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            name="phoneNumber"
+                            value={parent1Data.phoneNumber}
+                            onChange={handleParent1Change}
+                            className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
+                              errors['parent1.phoneNumber'] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="例: 090-1234-5678"
+                          />
+                          {errors['parent1.phoneNumber'] && (
+                            <p className="mt-1 text-sm text-red-600">{errors['parent1.phoneNumber']}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            氏名 <span className="text-red-600">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="name"
+                            value={parent1Data.name}
+                            onChange={handleParent1Change}
+                            className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
+                              errors['parent1.name'] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="例: 山田 花子"
+                          />
+                          {errors['parent1.name'] && (
+                            <p className="mt-1 text-sm text-red-600">{errors['parent1.name']}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            メールアドレス
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            value={parent1Data.email}
+                            onChange={handleParent1Change}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                            placeholder="例: example@example.com"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            住所
+                          </label>
+                          <input
+                            type="text"
+                            name="address"
+                            value={parent1Data.address}
+                            onChange={handleParent1Change}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                            placeholder="例: 東京都渋谷区..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 保護者2追加ボタン */}
+                    {!enableParent2 && (
+                      <button
+                        type="button"
+                        onClick={() => setEnableParent2(true)}
+                        className="w-full px-6 py-3 bg-white border-2 border-dashed border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                      >
+                        + 保護者2を追加
+                      </button>
+                    )}
+
+                    {/* 保護者2（任意） */}
+                    {enableParent2 && (
+                      <div className="p-6 border border-gray-300 rounded-lg">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-semibold text-gray-800">保護者2（任意）</h3>
                           <button
                             type="button"
-                            onClick={() => handleRemoveParent(parent.id)}
-                            className="ml-4 px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition border border-red-200"
+                            onClick={() => {
+                              setEnableParent2(false);
+                              setParent2Data({ phoneNumber: '', name: '', email: '', address: '' });
+                            }}
+                            className="px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition border border-red-200"
                           >
                             削除
                           </button>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {errors.parentIds && (
-                  <p className="mt-2 text-sm text-red-600">{errors.parentIds}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              電話番号 <span className="text-red-600">*</span>
+                            </label>
+                            <input
+                              type="tel"
+                              name="phoneNumber"
+                              value={parent2Data.phoneNumber}
+                              onChange={handleParent2Change}
+                              className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
+                                errors['parent2.phoneNumber'] ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              placeholder="例: 090-1234-5678"
+                            />
+                            {errors['parent2.phoneNumber'] && (
+                              <p className="mt-1 text-sm text-red-600">{errors['parent2.phoneNumber']}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              氏名 <span className="text-red-600">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              name="name"
+                              value={parent2Data.name}
+                              onChange={handleParent2Change}
+                              className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
+                                errors['parent2.name'] ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              placeholder="例: 山田 太郎"
+                            />
+                            {errors['parent2.name'] && (
+                              <p className="mt-1 text-sm text-red-600">{errors['parent2.name']}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              メールアドレス
+                            </label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={parent2Data.email}
+                              onChange={handleParent2Change}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                              placeholder="例: example@example.com"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              住所
+                            </label>
+                            <input
+                              type="text"
+                              name="address"
+                              value={parent2Data.address}
+                              onChange={handleParent2Change}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                              placeholder="例: 東京都渋谷区..."
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -574,6 +896,7 @@ export function ChildFormPage() {
             {/* 卒園・退園情報セクション（編集時のみ） */}
             {isEditMode && (
               <div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">卒園・退園情報</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 卒園日 */}
                   <div>

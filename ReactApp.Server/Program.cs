@@ -473,6 +473,18 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
+        // Add Events default constraints
+        var eventDefaultsPath = Path.Combine(Directory.GetCurrentDirectory(), "scripts", "add_event_default_constraints.sql");
+        if (File.Exists(eventDefaultsPath))
+        {
+            var eventDefaultsScript = await File.ReadAllTextAsync(eventDefaultsPath);
+            if (!string.IsNullOrEmpty(eventDefaultsScript))
+            {
+                await context.Database.ExecuteSqlRawAsync(eventDefaultsScript);
+                Log.Information("Eventsテーブルデフォルト制約追加スクリプト実行完了");
+            }
+        }
+
         // Fix Parent Id IDENTITY column
         var fixParentIdPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "fix_parent_id_identity.sql");
         Log.Information($"ParentsテーブルIDENTITY変換: スクリプトパス = {fixParentIdPath}");

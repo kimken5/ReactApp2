@@ -126,11 +126,6 @@ namespace ReactApp.Server.Services
                     .Where(c => c.NurseryId == nurseryId);
 
                 // フィルタ適用
-                if (filter.AcademicYear.HasValue)
-                {
-                    query = query.Where(c => c.AcademicYear == filter.AcademicYear.Value);
-                }
-
                 if (filter.AgeGroupMin.HasValue)
                 {
                     query = query.Where(c => c.AgeGroupMin >= filter.AgeGroupMin.Value);
@@ -153,8 +148,7 @@ namespace ReactApp.Server.Services
                 }
 
                 var classes = await query
-                    .OrderBy(c => c.AcademicYear)
-                    .ThenBy(c => c.ClassId)
+                    .OrderBy(c => c.ClassId)
                     .ToListAsync();
 
                 // クラスごとの在籍数と担当職員を取得
@@ -184,7 +178,6 @@ namespace ReactApp.Server.Services
                     AgeGroupMin = c.AgeGroupMin,
                     AgeGroupMax = c.AgeGroupMax,
                     MaxCapacity = c.MaxCapacity,
-                    AcademicYear = c.AcademicYear,
                     IsActive = c.IsActive,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt,
@@ -237,7 +230,6 @@ namespace ReactApp.Server.Services
                     AgeGroupMin = classEntity.AgeGroupMin,
                     AgeGroupMax = classEntity.AgeGroupMax,
                     MaxCapacity = classEntity.MaxCapacity,
-                    AcademicYear = classEntity.AcademicYear,
                     IsActive = classEntity.IsActive,
                     CreatedAt = classEntity.CreatedAt,
                     UpdatedAt = classEntity.UpdatedAt,
@@ -277,7 +269,6 @@ namespace ReactApp.Server.Services
                     AgeGroupMin = request.AgeGroupMin,
                     AgeGroupMax = request.AgeGroupMax,
                     MaxCapacity = request.MaxCapacity,
-                    AcademicYear = request.AcademicYear ?? DateTime.UtcNow.Year,
                     IsActive = true,
                     CreatedAt = now
                 };
@@ -295,7 +286,6 @@ namespace ReactApp.Server.Services
                     AgeGroupMin = classEntity.AgeGroupMin,
                     AgeGroupMax = classEntity.AgeGroupMax,
                     MaxCapacity = classEntity.MaxCapacity,
-                    AcademicYear = classEntity.AcademicYear,
                     IsActive = classEntity.IsActive,
                     CreatedAt = classEntity.CreatedAt,
                     UpdatedAt = classEntity.UpdatedAt,
@@ -330,11 +320,6 @@ namespace ReactApp.Server.Services
                 classEntity.AgeGroupMin = request.AgeGroupMin;
                 classEntity.AgeGroupMax = request.AgeGroupMax;
                 classEntity.MaxCapacity = request.MaxCapacity;
-
-                if (request.AcademicYear.HasValue)
-                {
-                    classEntity.AcademicYear = request.AcademicYear.Value;
-                }
 
                 if (request.IsActive.HasValue)
                 {
@@ -623,36 +608,93 @@ namespace ReactApp.Server.Services
                     NurseryId = nurseryId,
                     ChildId = newChildId,
                     Name = request.Name,
+                    Furigana = request.Furigana,
                     DateOfBirth = request.DateOfBirth,
                     Gender = request.Gender,
                     ClassId = request.ClassId,
                     BloodType = request.BloodType,
                     MedicalNotes = request.MedicalNotes,
                     SpecialInstructions = request.SpecialInstructions,
+                    GraduationStatus = "Active", // 新規作成時はActiveに設定
                     IsActive = true,
                     CreatedAt = now
                 };
 
                 _context.Children.Add(child);
 
-                // 保護者との関連付け
-                if (request.ParentIds != null && request.ParentIds.Any())
+                var createdParentIds = new List<int>();
+
+                // 保護者の登録方法により分岐
+                _logger.LogInformation("保護者登録モード: {Mode}, Parent1: {Parent1}, Parent2: {Parent2}",
+                    request.ParentRegistrationMode,
+                    request.Parent1 != null ? $"{request.Parent1.Name} ({request.Parent1.PhoneNumber})" : "null",
+                    request.Parent2 != null ? $"{request.Parent2.Name} ({request.Parent2.PhoneNumber})" : "null");
+
+                if (request.ParentRegistrationMode == "create")
                 {
-                    foreach (var parentId in request.ParentIds)
+                    // 新規保護者作成モード
+                    _logger.LogInformation("新規保護者作成モードで実行します");
+
+                    if (request.Parent1 != null)
+                    {
+                        _logger.LogInformation("保護者1を作成開始: {Name}, {Phone}", request.Parent1.Name, request.Parent1.PhoneNumber);
+                        var parent1 = await CreateParentForChildAsync(request.Parent1, now);
+                        createdParentIds.Add(parent1.Id);
+                        _logger.LogInformation("保護者1を作成しました。ParentId: {ParentId}", parent1.Id);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Parent1がnullです");
+                    }
+
+                    if (request.Parent2 != null)
+                    {
+                        _logger.LogInformation("保護者2を作成開始: {Name}, {Phone}", request.Parent2.Name, request.Parent2.PhoneNumber);
+                        var parent2 = await CreateParentForChildAsync(request.Parent2, now);
+                        createdParentIds.Add(parent2.Id);
+                        _logger.LogInformation("保護者2を作成しました。ParentId: {ParentId}", parent2.Id);
+                    }
+
+                    // 作成した保護者との関連付け
+                    for (int i = 0; i < createdParentIds.Count; i++)
                     {
                         var relationship = new ParentChildRelationship
                         {
-                            ParentId = parentId,
+                            ParentId = createdParentIds[i],
                             NurseryId = nurseryId,
                             ChildId = newChildId,
                             RelationshipType = "parent",
-                            IsPrimaryContact = false,
+                            IsPrimaryContact = i == 0, // 保護者1を主連絡先に設定
                             HasPickupPermission = true,
                             CanReceiveEmergencyNotifications = true,
                             IsActive = true,
                             CreatedAt = now
                         };
                         _context.ParentChildRelationships.Add(relationship);
+                    }
+                }
+                else
+                {
+                    // 既存保護者選択モード
+                    if (request.ParentIds != null && request.ParentIds.Any())
+                    {
+                        for (int i = 0; i < request.ParentIds.Count; i++)
+                        {
+                            var parentId = request.ParentIds[i];
+                            var relationship = new ParentChildRelationship
+                            {
+                                ParentId = parentId,
+                                NurseryId = nurseryId,
+                                ChildId = newChildId,
+                                RelationshipType = "parent",
+                                IsPrimaryContact = i == 0, // 最初の保護者を主連絡先に設定
+                                HasPickupPermission = true,
+                                CanReceiveEmergencyNotifications = true,
+                                IsActive = true,
+                                CreatedAt = now
+                            };
+                            _context.ParentChildRelationships.Add(relationship);
+                        }
                     }
                 }
 
@@ -668,6 +710,48 @@ namespace ReactApp.Server.Services
                 _logger.LogError(ex, "園児の作成に失敗しました。NurseryId: {NurseryId}", nurseryId);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 園児作成時に保護者を同時作成するヘルパーメソッド
+        /// </summary>
+        private async Task<Parent> CreateParentForChildAsync(CreateParentWithChildDto parentDto, DateTime createdAt)
+        {
+            // 電話番号の正規化（ハイフン削除）
+            var normalizedPhone = parentDto.PhoneNumber.Replace("-", "").Replace(" ", "");
+
+            // 既に同じ電話番号の保護者が存在するかチェック
+            var existingParent = await _context.Parents
+                .FirstOrDefaultAsync(p => p.PhoneNumber == normalizedPhone);
+
+            if (existingParent != null)
+            {
+                _logger.LogWarning("既に同じ電話番号の保護者が存在します。ParentId: {ParentId}, PhoneNumber: {PhoneNumber}",
+                    existingParent.Id, normalizedPhone);
+                return existingParent;
+            }
+
+            var parent = new Parent
+            {
+                PhoneNumber = normalizedPhone,
+                Name = parentDto.Name,
+                Email = parentDto.Email,
+                Address = parentDto.Address,
+                PushNotificationsEnabled = true,
+                AbsenceConfirmationEnabled = true,
+                DailyReportEnabled = true,
+                EventNotificationEnabled = true,
+                AnnouncementEnabled = true,
+                FontSize = "medium",
+                Language = "ja",
+                IsActive = true,
+                CreatedAt = createdAt
+            };
+
+            _context.Parents.Add(parent);
+            await _context.SaveChangesAsync(); // 保護者IDを確定させるためここで保存
+
+            return parent;
         }
 
         /// <summary>

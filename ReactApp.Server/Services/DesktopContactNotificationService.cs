@@ -115,19 +115,38 @@ namespace ReactApp.Server.Services
                     .GroupBy(r => r.AbsenceNotificationId)
                     .ToDictionary(g => g.Key, g => g.First());
 
+                // 返信スタッフ情報を取得（複合キー対応）
                 var responseStaffIds = responses.Select(r => new { r.NurseryId, r.StaffId }).Distinct().ToList();
-                var responseStaff = responseStaffIds.Any()
-                    ? await _context.Staff
-                        .Where(s => responseStaffIds.Any(x => x.NurseryId == s.NurseryId && x.StaffId == s.StaffId))
-                        .ToDictionaryAsync(s => (s.NurseryId, s.StaffId), s => s.Name)
-                    : new Dictionary<(int NurseryId, int StaffId), string>();
+                Dictionary<(int NurseryId, int StaffId), string> responseStaff;
+                if (responseStaffIds.Any())
+                {
+                    var nurseryId = responseStaffIds.First().NurseryId;
+                    var staffIds = responseStaffIds.Select(x => x.StaffId).ToList();
+                    var allResponseStaff = await _context.Staff
+                        .Where(s => s.NurseryId == nurseryId && staffIds.Contains(s.StaffId))
+                        .ToListAsync();
+                    responseStaff = allResponseStaff.ToDictionary(s => (s.NurseryId, s.StaffId), s => s.Name);
+                }
+                else
+                {
+                    responseStaff = new Dictionary<(int NurseryId, int StaffId), string>();
+                }
 
-                // 確認済みスタッフ情報を取得
-                var acknowledgedByStaff = acknowledgedByIds.Any()
-                    ? await _context.Staff
-                        .Where(s => acknowledgedByIds.Any(x => x.NurseryId == s.NurseryId && x.StaffId == s.StaffId))
-                        .ToDictionaryAsync(s => (s.NurseryId, s.StaffId), s => s.Name)
-                    : new Dictionary<(int NurseryId, int StaffId), string>();
+                // 確認済みスタッフ情報を取得（複合キー対応）
+                Dictionary<(int NurseryId, int StaffId), string> acknowledgedByStaff;
+                if (acknowledgedByIds.Any())
+                {
+                    var nurseryId = acknowledgedByIds.First().NurseryId;
+                    var staffIds = acknowledgedByIds.Select(x => x.StaffId).ToList();
+                    var allAcknowledgedStaff = await _context.Staff
+                        .Where(s => s.NurseryId == nurseryId && staffIds.Contains(s.StaffId))
+                        .ToListAsync();
+                    acknowledgedByStaff = allAcknowledgedStaff.ToDictionary(s => (s.NurseryId, s.StaffId), s => s.Name);
+                }
+                else
+                {
+                    acknowledgedByStaff = new Dictionary<(int NurseryId, int StaffId), string>();
+                }
 
                 // DTOにマッピング
                 var result = notifications.Select(n =>

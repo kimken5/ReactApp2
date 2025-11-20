@@ -69,19 +69,9 @@ public class Class
     /// </summary>
     public DateTime? UpdatedAt { get; set; }
 
-    // ===== デスクトップアプリ用追加プロパティ =====
-
-    /// <summary>
-    /// 年度（必須）
-    /// デフォルト: 現在の西暦年度
-    /// </summary>
-    [Required]
-    public int AcademicYear { get; set; } = DateTime.UtcNow.Year;
-
     /// <summary>
     /// 有効/無効フラグ（必須）
     /// デフォルト: true
-    /// 年度終了後は無効化（false）
     /// </summary>
     [Required]
     public bool IsActive { get; set; } = true;
