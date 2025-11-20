@@ -254,7 +254,18 @@ export function ParentFormPage() {
       navigate('/desktop/parents');
     } catch (error) {
       console.error('保存に失敗しました:', error);
-      setErrors({ general: '保存に失敗しました' });
+
+      // バックエンドからのエラーメッセージを取得
+      let errorMessage = '保存に失敗しました';
+      if (error && typeof error === 'object' && 'response' in error) {
+        const responseData = (error as any).response?.data;
+        // ApiResponse形式のエラーメッセージ (バックエンドのApiError)
+        if (responseData?.error?.message) {
+          errorMessage = responseData.error.message;
+        }
+      }
+
+      setErrors({ general: errorMessage });
     } finally {
       setIsSaving(false);
     }

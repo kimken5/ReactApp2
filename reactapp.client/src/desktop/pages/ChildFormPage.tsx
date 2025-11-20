@@ -28,7 +28,7 @@ export function ChildFormPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // 保護者登録モード: 'select' = 既存選択, 'create' = 新規作成
-  const [parentMode, setParentMode] = useState<'select' | 'create'>('select');
+  const [parentMode, setParentMode] = useState<'select' | 'create'>('create'); // デフォルトは「新規保護者を作成」
 
   // フォーム状態
   const [formData, setFormData] = useState({
@@ -352,9 +352,38 @@ export function ChildFormPage() {
       }
 
       navigate('/desktop/children');
-    } catch (error) {
+    } catch (error: any) {
       console.error('保存に失敗しました:', error);
-      setErrors({ general: '保存に失敗しました' });
+
+      // バックエンドからのエラーメッセージを取得
+      let errorMessage = '保存に失敗しました';
+
+      // AxiosErrorの場合
+      if (error?.response?.data) {
+        const responseData = error.response.data;
+        // ApiResponse形式のエラーメッセージ (バックエンドのApiError)
+        if (responseData.error?.message) {
+          errorMessage = responseData.error.message;
+        }
+        // ApiResponse形式（直接messageプロパティ）
+        else if (responseData.message) {
+          errorMessage = responseData.message;
+        }
+        // ASP.NET Core のProblemDetails形式
+        else if (responseData.title) {
+          errorMessage = responseData.title;
+        }
+        // その他の形式
+        else if (typeof responseData === 'string') {
+          errorMessage = responseData;
+        }
+      }
+      // 一般的なエラー
+      else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      setErrors({ general: errorMessage });
     } finally {
       setIsSaving(false);
     }
@@ -611,17 +640,6 @@ export function ChildFormPage() {
                   <div className="flex gap-4 mb-4">
                     <button
                       type="button"
-                      onClick={() => setParentMode('select')}
-                      className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                        parentMode === 'select'
-                          ? 'bg-orange-500 text-white shadow-md'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      既存保護者を選択
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setParentMode('create')}
                       className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
                         parentMode === 'create'
@@ -630,6 +648,17 @@ export function ChildFormPage() {
                       }`}
                     >
                       新規保護者を作成
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParentMode('select')}
+                      className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                        parentMode === 'select'
+                          ? 'bg-orange-500 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      既存保護者を選択
                     </button>
                   </div>
                 </div>
@@ -732,24 +761,6 @@ export function ChildFormPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            電話番号 <span className="text-red-600">*</span>
-                          </label>
-                          <input
-                            type="tel"
-                            name="phoneNumber"
-                            value={parent1Data.phoneNumber}
-                            onChange={handleParent1Change}
-                            className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
-                              errors['parent1.phoneNumber'] ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            placeholder="例: 090-1234-5678"
-                          />
-                          {errors['parent1.phoneNumber'] && (
-                            <p className="mt-1 text-sm text-red-600">{errors['parent1.phoneNumber']}</p>
-                          )}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
                             氏名 <span className="text-red-600">*</span>
                           </label>
                           <input
@@ -764,6 +775,24 @@ export function ChildFormPage() {
                           />
                           {errors['parent1.name'] && (
                             <p className="mt-1 text-sm text-red-600">{errors['parent1.name']}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            電話番号 <span className="text-red-600">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            name="phoneNumber"
+                            value={parent1Data.phoneNumber}
+                            onChange={handleParent1Change}
+                            className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
+                              errors['parent1.phoneNumber'] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="例: 090-1234-5678"
+                          />
+                          {errors['parent1.phoneNumber'] && (
+                            <p className="mt-1 text-sm text-red-600">{errors['parent1.phoneNumber']}</p>
                           )}
                         </div>
                         <div>
@@ -825,24 +854,6 @@ export function ChildFormPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              電話番号 <span className="text-red-600">*</span>
-                            </label>
-                            <input
-                              type="tel"
-                              name="phoneNumber"
-                              value={parent2Data.phoneNumber}
-                              onChange={handleParent2Change}
-                              className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
-                                errors['parent2.phoneNumber'] ? 'border-red-500' : 'border-gray-300'
-                              }`}
-                              placeholder="例: 090-1234-5678"
-                            />
-                            {errors['parent2.phoneNumber'] && (
-                              <p className="mt-1 text-sm text-red-600">{errors['parent2.phoneNumber']}</p>
-                            )}
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
                               氏名 <span className="text-red-600">*</span>
                             </label>
                             <input
@@ -857,6 +868,24 @@ export function ChildFormPage() {
                             />
                             {errors['parent2.name'] && (
                               <p className="mt-1 text-sm text-red-600">{errors['parent2.name']}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              電話番号 <span className="text-red-600">*</span>
+                            </label>
+                            <input
+                              type="tel"
+                              name="phoneNumber"
+                              value={parent2Data.phoneNumber}
+                              onChange={handleParent2Change}
+                              className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${
+                                errors['parent2.phoneNumber'] ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              placeholder="例: 090-1234-5678"
+                            />
+                            {errors['parent2.phoneNumber'] && (
+                              <p className="mt-1 text-sm text-red-600">{errors['parent2.phoneNumber']}</p>
                             )}
                           </div>
                           <div>

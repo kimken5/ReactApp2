@@ -47,6 +47,14 @@ namespace ReactApp.Server.Models
         public string? Address { get; set; }
 
         /// <summary>
+        /// 保育園ID（必須）
+        /// この保護者が所属する保育園のID
+        /// 複数保育園対応のため、保護者は必ず1つの保育園に所属する
+        /// </summary>
+        [Required]
+        public int NurseryId { get; set; }
+
+        /// <summary>
         /// アクティブ状態フラグ
         /// デフォルト：true、無効化された保護者はfalse
         /// </summary>

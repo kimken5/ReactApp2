@@ -193,7 +193,7 @@ export function ParentsPage() {
     searchKeyword?: string;
   }>({
     classId: undefined,
-    childGraduationStatus: 'Active',
+    childGraduationStatus: undefined, // デフォルトは「全て」に変更（園児と紐づきのない保護者も表示）
     searchKeyword: undefined,
   });
 
@@ -288,7 +288,7 @@ export function ParentsPage() {
   const handleResetFilter = async () => {
     const resetFilter = {
       classId: undefined,
-      childGraduationStatus: 'Active' as const,
+      childGraduationStatus: undefined, // リセット時も「全て」に変更（園児と紐づきのない保護者も表示）
       searchKeyword: undefined,
     };
     setFilter(resetFilter);

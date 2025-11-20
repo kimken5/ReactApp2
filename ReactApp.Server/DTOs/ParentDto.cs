@@ -46,6 +46,12 @@ namespace ReactApp.Server.DTOs
         public string? Address { get; set; }
 
         /// <summary>
+        /// 保育園ID
+        /// この保護者が所属する保育園の識別子
+        /// </summary>
+        public int NurseryId { get; set; }
+
+        /// <summary>
         /// アカウント有効状態
         /// 保護者アカウントがアクティブかどうか
         /// </summary>

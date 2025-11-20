@@ -12,6 +12,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public string? Name { get; set; }
         public string? Email { get; set; }
         public string? Address { get; set; }
+        public int NurseryId { get; set; }
         public bool PushNotificationsEnabled { get; set; }
         public bool AbsenceConfirmationEnabled { get; set; }
         public bool DailyReportEnabled { get; set; }

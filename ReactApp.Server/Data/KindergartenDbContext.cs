@@ -118,7 +118,8 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 // 高性能インデックス設定
-                entity.HasIndex(e => e.PhoneNumber)
+                // PhoneNumber + NurseryIdの複合ユニーク制約（同じ電話番号でも異なる保育園では許可）
+                entity.HasIndex(e => new { e.PhoneNumber, e.NurseryId })
                     .IsUnique()
                     .HasDatabaseName("IX_Parents_PhoneNumber_Unique");
 
@@ -137,6 +138,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Name).HasMaxLength(100);
                 entity.Property(e => e.Email).HasMaxLength(200);
                 entity.Property(e => e.Address).HasMaxLength(200);
+                entity.Property(e => e.NurseryId).IsRequired();
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
 
                 // リレーションシップ設定

@@ -490,6 +490,7 @@ namespace ReactApp.Server.Services
                     NurseryId = c.NurseryId,
                     ChildId = c.ChildId,
                     Name = c.Name,
+                    Furigana = c.Furigana,
                     DateOfBirth = c.DateOfBirth,
                     Gender = c.Gender,
                     ClassId = c.ClassId,
@@ -563,6 +564,7 @@ namespace ReactApp.Server.Services
                     NurseryId = child.NurseryId,
                     ChildId = child.ChildId,
                     Name = child.Name,
+                    Furigana = child.Furigana,
                     DateOfBirth = child.DateOfBirth,
                     Gender = child.Gender,
                     ClassId = child.ClassId,
@@ -638,7 +640,7 @@ namespace ReactApp.Server.Services
                     if (request.Parent1 != null)
                     {
                         _logger.LogInformation("保護者1を作成開始: {Name}, {Phone}", request.Parent1.Name, request.Parent1.PhoneNumber);
-                        var parent1 = await CreateParentForChildAsync(request.Parent1, now);
+                        var parent1 = await CreateParentForChildAsync(nurseryId, request.Parent1, now);
                         createdParentIds.Add(parent1.Id);
                         _logger.LogInformation("保護者1を作成しました。ParentId: {ParentId}", parent1.Id);
                     }
@@ -650,7 +652,7 @@ namespace ReactApp.Server.Services
                     if (request.Parent2 != null)
                     {
                         _logger.LogInformation("保護者2を作成開始: {Name}, {Phone}", request.Parent2.Name, request.Parent2.PhoneNumber);
-                        var parent2 = await CreateParentForChildAsync(request.Parent2, now);
+                        var parent2 = await CreateParentForChildAsync(nurseryId, request.Parent2, now);
                         createdParentIds.Add(parent2.Id);
                         _logger.LogInformation("保護者2を作成しました。ParentId: {ParentId}", parent2.Id);
                     }
@@ -715,20 +717,20 @@ namespace ReactApp.Server.Services
         /// <summary>
         /// 園児作成時に保護者を同時作成するヘルパーメソッド
         /// </summary>
-        private async Task<Parent> CreateParentForChildAsync(CreateParentWithChildDto parentDto, DateTime createdAt)
+        private async Task<Parent> CreateParentForChildAsync(int nurseryId, CreateParentWithChildDto parentDto, DateTime createdAt)
         {
             // 電話番号の正規化（ハイフン削除）
             var normalizedPhone = parentDto.PhoneNumber.Replace("-", "").Replace(" ", "");
 
-            // 既に同じ電話番号の保護者が存在するかチェック
+            // 既に同じ電話番号+保育園IDの保護者が存在するかチェック
             var existingParent = await _context.Parents
-                .FirstOrDefaultAsync(p => p.PhoneNumber == normalizedPhone);
+                .FirstOrDefaultAsync(p => p.PhoneNumber == normalizedPhone && p.NurseryId == nurseryId);
 
             if (existingParent != null)
             {
-                _logger.LogWarning("既に同じ電話番号の保護者が存在します。ParentId: {ParentId}, PhoneNumber: {PhoneNumber}",
-                    existingParent.Id, normalizedPhone);
-                return existingParent;
+                _logger.LogWarning("既に同じ電話番号の保護者が存在します。NurseryId: {NurseryId}, ParentId: {ParentId}, PhoneNumber: {PhoneNumber}",
+                    nurseryId, existingParent.Id, normalizedPhone);
+                throw new InvalidOperationException($"保護者の電話番号はすでに登録されています。電話番号: {parentDto.PhoneNumber}");
             }
 
             var parent = new Parent
@@ -737,6 +739,7 @@ namespace ReactApp.Server.Services
                 Name = parentDto.Name,
                 Email = parentDto.Email,
                 Address = parentDto.Address,
+                NurseryId = nurseryId,
                 PushNotificationsEnabled = true,
                 AbsenceConfirmationEnabled = true,
                 DailyReportEnabled = true,
@@ -845,24 +848,24 @@ namespace ReactApp.Server.Services
         {
             try
             {
+                // ===== Debug Logging =====
+                _logger.LogInformation("=== GetParentsAsync Called ===");
+                _logger.LogInformation($"NurseryId: {nurseryId}");
+                _logger.LogInformation($"Filter.NurseryId: {filter.NurseryId}");
+                _logger.LogInformation($"Filter.ClassId: {filter.ClassId}");
+                _logger.LogInformation($"Filter.IsActive: {filter.IsActive}");
+                _logger.LogInformation($"Filter.ChildGraduationStatus: {filter.ChildGraduationStatus}");
+                _logger.LogInformation($"Filter.SearchKeyword: {filter.SearchKeyword}");
+                // =========================
+
                 // デスクトップアプリでは主保護者（IsPrimary=true）のみ表示
+                // NurseryIdで直接フィルタリング（複数保育園対応）
+                // 園児と紐づきがない保護者も表示する
                 var query = _context.Parents
-                    .Where(p => p.IsPrimary)
+                    .Where(p => p.NurseryId == nurseryId && p.IsPrimary)
                     .AsQueryable();
 
-                // NurseryIdでフィルタ（保護者-園児関係を通じて）
-                if (filter.NurseryId.HasValue)
-                {
-                    var parentIdsInNursery = await _context.ParentChildRelationships
-                        .Where(pcr => pcr.NurseryId == filter.NurseryId.Value && pcr.IsActive)
-                        .Select(pcr => pcr.ParentId)
-                        .Distinct()
-                        .ToListAsync();
-
-                    query = query.Where(p => parentIdsInNursery.Contains(p.Id));
-                }
-
-                // ClassIdでフィルタ
+                // ClassIdでフィルタ（「すべて」の場合はスキップし、園児と紐づきのない保護者も表示）
                 if (!string.IsNullOrWhiteSpace(filter.ClassId))
                 {
                     var parentIdsInClass = await _context.ParentChildRelationships
@@ -879,12 +882,12 @@ namespace ReactApp.Server.Services
                     query = query.Where(p => parentIdsInClass.Contains(p.Id));
                 }
 
-                // ChildGraduationStatusでフィルタ
+                // ChildGraduationStatusでフィルタ（「全て」の場合はスキップし、園児と紐づきのない保護者も表示）
                 if (!string.IsNullOrWhiteSpace(filter.ChildGraduationStatus))
                 {
                     _logger.LogInformation("=== ChildGraduationStatus Filter Applied ===");
                     _logger.LogInformation($"Filter value: {filter.ChildGraduationStatus}");
-                    
+
                     var parentIdsWithChildStatus = await _context.ParentChildRelationships
                         .Where(pcr => pcr.NurseryId == nurseryId && pcr.IsActive)
                         .Join(_context.Children,
@@ -898,7 +901,7 @@ namespace ReactApp.Server.Services
 
                     _logger.LogInformation($"Found {parentIdsWithChildStatus.Count} parents with children having GraduationStatus={filter.ChildGraduationStatus}");
                     _logger.LogInformation($"ParentIds: {string.Join(", ", parentIdsWithChildStatus)}");
-                    
+
                     query = query.Where(p => parentIdsWithChildStatus.Contains(p.Id));
                 }
 
@@ -919,6 +922,19 @@ namespace ReactApp.Server.Services
                 var parents = await query
                     .OrderBy(p => p.Name)
                     .ToListAsync();
+
+                // ===== Debug Logging =====
+                _logger.LogInformation($"Query returned {parents.Count} parents");
+                _logger.LogInformation($"Parent IDs: {string.Join(", ", parents.Select(p => p.Id))}");
+                if (parents.Any(p => p.Id == 36))
+                {
+                    _logger.LogInformation("✅ Parent ID=36 is included in results");
+                }
+                else
+                {
+                    _logger.LogWarning("❌ Parent ID=36 is NOT included in results");
+                }
+                // =========================
 
                 // 各保護者の園児情報を取得
                 var parentIds = parents.Select(p => p.Id).ToList();
@@ -965,6 +981,7 @@ namespace ReactApp.Server.Services
                     Name = p.Name,
                     Email = p.Email,
                     Address = p.Address,
+                    NurseryId = p.NurseryId,
                     PushNotificationsEnabled = p.PushNotificationsEnabled,
                     AbsenceConfirmationEnabled = p.AbsenceConfirmationEnabled,
                     DailyReportEnabled = p.DailyReportEnabled,
@@ -995,7 +1012,7 @@ namespace ReactApp.Server.Services
             try
             {
                 var parent = await _context.Parents
-                    .Where(p => p.Id == parentId)
+                    .Where(p => p.Id == parentId && p.NurseryId == nurseryId)
                     .FirstOrDefaultAsync();
 
                 if (parent == null)
@@ -1030,6 +1047,7 @@ namespace ReactApp.Server.Services
                     Name = parent.Name,
                     Email = parent.Email,
                     Address = parent.Address,
+                    NurseryId = parent.NurseryId,
                     PushNotificationsEnabled = parent.PushNotificationsEnabled,
                     AbsenceConfirmationEnabled = parent.AbsenceConfirmationEnabled,
                     DailyReportEnabled = parent.DailyReportEnabled,
@@ -1072,13 +1090,13 @@ namespace ReactApp.Server.Services
                 // 電話番号を正規化
                 var normalizedPhone = request.PhoneNumber.Replace("-", "").Replace(" ", "");
 
-                // 重複チェック
+                // 重複チェック（同じ保育園内で同じ電話番号は不可）
                 var exists = await _context.Parents
-                    .AnyAsync(p => p.PhoneNumber == normalizedPhone);
+                    .AnyAsync(p => p.PhoneNumber == normalizedPhone && p.NurseryId == nurseryId);
 
                 if (exists)
                 {
-                    throw new InvalidOperationException($"電話番号が既に登録されています。PhoneNumber: {request.PhoneNumber}");
+                    throw new InvalidOperationException($"この保育園に既に同じ電話番号が登録されています。電話番号: {request.PhoneNumber}");
                 }
 
                 var now = DateTime.UtcNow;
@@ -1088,6 +1106,7 @@ namespace ReactApp.Server.Services
                     Name = request.Name,
                     Email = request.Email,
                     Address = request.Address,
+                    NurseryId = nurseryId, // 保育園IDを設定
                     IsPrimary = true, // デスクトップアプリで登録する保護者は主保護者
                     IsActive = true,
                     CreatedAt = now
@@ -1138,12 +1157,12 @@ namespace ReactApp.Server.Services
             try
             {
                 var parent = await _context.Parents
-                    .Where(p => p.Id == parentId)
+                    .Where(p => p.Id == parentId && p.NurseryId == nurseryId)
                     .FirstOrDefaultAsync();
 
                 if (parent == null)
                 {
-                    throw new InvalidOperationException($"保護者が見つかりません。ParentId: {parentId}");
+                    throw new InvalidOperationException($"保護者が見つかりません。ParentId: {parentId}, NurseryId: {nurseryId}");
                 }
 
                 if (request.PhoneNumber != null)
@@ -1230,12 +1249,12 @@ namespace ReactApp.Server.Services
             try
             {
                 var parent = await _context.Parents
-                    .Where(p => p.Id == parentId)
+                    .Where(p => p.Id == parentId && p.NurseryId == nurseryId)
                     .FirstOrDefaultAsync();
 
                 if (parent == null)
                 {
-                    throw new InvalidOperationException($"保護者が見つかりません。ParentId: {parentId}");
+                    throw new InvalidOperationException($"保護者が見つかりません。ParentId: {parentId}, NurseryId: {nurseryId}");
                 }
 
                 // 園児との関連を削除

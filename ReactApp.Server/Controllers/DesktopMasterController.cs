@@ -356,6 +356,15 @@ namespace ReactApp.Server.Controllers
 
                 return CreatedAtAction(nameof(GetChild), new { childId = child.ChildId }, new ApiResponse<ChildDto> { Success = true, Data = child });
             }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "園児の作成時にバリデーションエラーが発生しました");
+                return BadRequest(new ApiResponse<ChildDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "VALIDATION_ERROR", Message = ex.Message }
+                });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "園児の作成中にエラーが発生しました");
@@ -509,6 +518,15 @@ namespace ReactApp.Server.Controllers
                 var parent = await _masterService.CreateParentAsync(nurseryId, request);
 
                 return CreatedAtAction(nameof(GetParent), new { parentId = parent.Id }, new ApiResponse<ParentDto> { Success = true, Data = parent });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "保護者の作成時にバリデーションエラーが発生しました");
+                return BadRequest(new ApiResponse<ParentDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "VALIDATION_ERROR", Message = ex.Message }
+                });
             }
             catch (Exception ex)
             {
