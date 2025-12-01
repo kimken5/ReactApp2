@@ -27,6 +27,7 @@ import { AttendancePage } from './pages/AttendancePage';
 import AcademicYearManagement from '../components/staff/AcademicYearManagement';
 import AcademicYearCreate from '../components/staff/AcademicYearCreate';
 import YearSlideExecution from '../components/staff/YearSlideExecution';
+import ChildClassAssignment from '../components/staff/ChildClassAssignment';
 
 /**
  * デスクトップアプリ用ルーター
@@ -323,6 +324,14 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <YearSlideExecution />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/class-assignment"
+        element={
+          <ProtectedRoute>
+            <ChildClassAssignment />
           </ProtectedRoute>
         }
       />

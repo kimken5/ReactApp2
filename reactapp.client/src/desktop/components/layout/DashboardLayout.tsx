@@ -81,7 +81,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { path: '/desktop/contact-notifications', label: '連絡通知管理', icon: 'phone' },
     { path: '/desktop/announcements', label: 'お知らせ管理', icon: 'megaphone' },
     { path: '/desktop/calendar', label: '予定管理', icon: 'calendar' },
-    { path: '/desktop/year-management', label: '年度管理', icon: 'clock' },
+    { path: '/desktop/academic-years', label: '年度管理', icon: 'clock' },
     { path: '/desktop/settings', label: 'システム設定', icon: 'cog' },
   ];
 

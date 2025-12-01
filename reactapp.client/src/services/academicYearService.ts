@@ -1,4 +1,5 @@
 import axios from 'axios';
+import apiClient from '../desktop/services/apiClient';
 import type {
   AcademicYear,
   CreateAcademicYearRequest,
@@ -39,7 +40,7 @@ export const academicYearService = {
       // デモモード: モックデータを返す
       return Promise.resolve([...mockAcademicYears]);
     }
-    const response = await axios.get<AcademicYear[]>(`${API_BASE_URL}/${nurseryId}`);
+    const response = await apiClient.get<AcademicYear[]>(`${API_BASE_URL}/${nurseryId}`);
     return response.data;
   },
 
@@ -52,7 +53,7 @@ export const academicYearService = {
       return Promise.resolve(getCurrentMockYear());
     }
     try {
-      const response = await axios.get<AcademicYear>(`${API_BASE_URL}/${nurseryId}/current`);
+      const response = await apiClient.get<AcademicYear>(`${API_BASE_URL}/${nurseryId}/current`);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -71,7 +72,7 @@ export const academicYearService = {
       return Promise.resolve(getMockYearByYear(year));
     }
     try {
-      const response = await axios.get<AcademicYear>(`${API_BASE_URL}/${nurseryId}/${year}`);
+      const response = await apiClient.get<AcademicYear>(`${API_BASE_URL}/${nurseryId}/${year}`);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -91,7 +92,7 @@ export const academicYearService = {
       mockAcademicYears.push(newYear);
       return Promise.resolve(newYear);
     }
-    const response = await axios.post<AcademicYear>(API_BASE_URL, request);
+    const response = await apiClient.post<AcademicYear>(API_BASE_URL, request);
     return response.data;
   },
 
@@ -103,7 +104,7 @@ export const academicYearService = {
       // デモモード: プレビューのモックデータを返す
       return Promise.resolve(getMockYearSlidePreview(targetYear));
     }
-    const response = await axios.get<YearSlidePreview>(
+    const response = await apiClient.get<YearSlidePreview>(
       `${API_BASE_URL}/${nurseryId}/slide/preview`,
       { params: { targetYear } }
     );
@@ -129,7 +130,7 @@ export const academicYearService = {
       });
       return Promise.resolve(getMockYearSlideResult(request.targetYear));
     }
-    const response = await axios.post<YearSlideResult>(`${API_BASE_URL}/slide`, request);
+    const response = await apiClient.post<YearSlideResult>(`${API_BASE_URL}/slide`, request);
     return response.data;
   },
 
@@ -142,7 +143,7 @@ export const academicYearService = {
       const exists = mockAcademicYears.some(y => y.year === year);
       return Promise.resolve(exists);
     }
-    const response = await axios.get<{ exists: boolean }>(
+    const response = await apiClient.get<{ exists: boolean }>(
       `${API_BASE_URL}/${nurseryId}/${year}/exists`
     );
     return response.data.exists;

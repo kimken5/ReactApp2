@@ -263,6 +263,7 @@ builder.Services.AddScoped<ReactApp.Server.Helpers.TranslationHelper>();
 
 // Academic Year Management Services
 builder.Services.AddScoped<IAcademicYearService, AcademicYearService>();
+builder.Services.AddScoped<IChildClassAssignmentService, ChildClassAssignmentService>();
 
 // Database Seeding Service (Development only)
 builder.Services.AddScoped<DatabaseSeeder>();
