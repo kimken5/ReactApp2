@@ -6,23 +6,18 @@ namespace ReactApp.Server.Models;
 /// 年度管理エンティティ
 /// 保育園の年度情報を管理するデータモデル
 /// 年度の定義、年度切り替え履歴の管理を担当
+/// 複合主キー: (NurseryId, Year)
 /// </summary>
 public class AcademicYear
 {
     /// <summary>
-    /// 年度ID（主キー）
-    /// </summary>
-    [Key]
-    public int Id { get; set; }
-
-    /// <summary>
-    /// 保育園ID（必須）
+    /// 保育園ID(複合主キー 1/2)(必須)
     /// </summary>
     [Required]
     public int NurseryId { get; set; }
 
     /// <summary>
-    /// 年度（西暦）（必須）
+    /// 年度(西暦)(複合主キー 2/2)(必須)
     /// 例: 2025
     /// </summary>
     [Required]
@@ -33,14 +28,14 @@ public class AcademicYear
     /// 通常は4月1日
     /// </summary>
     [Required]
-    public DateTime StartDate { get; set; }
+    public DateOnly StartDate { get; set; }
 
     /// <summary>
     /// 年度終了日（必須）
     /// 通常は3月31日
     /// </summary>
     [Required]
-    public DateTime EndDate { get; set; }
+    public DateOnly EndDate { get; set; }
 
     /// <summary>
     /// 現在年度フラグ（必須）
@@ -51,12 +46,27 @@ public class AcademicYear
     public bool IsCurrent { get; set; } = false;
 
     /// <summary>
+    /// 未来年度フラグ（必須）
+    /// デフォルト: false
+    /// 次年度準備用の年度に設定される
+    /// </summary>
+    [Required]
+    public bool IsFuture { get; set; } = false;
+
+    /// <summary>
     /// アーカイブ済みフラグ（必須）
     /// デフォルト: false
     /// 年度終了後にtrueに設定される
     /// </summary>
     [Required]
     public bool IsArchived { get; set; } = false;
+
+    /// <summary>
+    /// 備考（任意）
+    /// 年度に関する追加情報
+    /// </summary>
+    [MaxLength(500)]
+    public string? Notes { get; set; }
 
     /// <summary>
     /// アーカイブ日時（任意）

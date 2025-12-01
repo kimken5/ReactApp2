@@ -24,6 +24,9 @@ import { CalendarPage } from './pages/CalendarPage';
 import { AnnouncementsPage } from './pages/AnnouncementsPage';
 import { AnnouncementFormPage } from './pages/AnnouncementFormPage';
 import { AttendancePage } from './pages/AttendancePage';
+import AcademicYearManagement from '../components/staff/AcademicYearManagement';
+import AcademicYearCreate from '../components/staff/AcademicYearCreate';
+import YearSlideExecution from '../components/staff/YearSlideExecution';
 
 /**
  * デスクトップアプリ用ルーター
@@ -294,6 +297,32 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <AttendancePage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 年度管理 */}
+      <Route
+        path="/academic-years"
+        element={
+          <ProtectedRoute>
+            <AcademicYearManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/academic-years/create"
+        element={
+          <ProtectedRoute>
+            <AcademicYearCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/year-slide"
+        element={
+          <ProtectedRoute>
+            <YearSlideExecution />
           </ProtectedRoute>
         }
       />

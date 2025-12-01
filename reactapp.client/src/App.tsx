@@ -25,6 +25,7 @@ function App() {
                                 <li style={{margin: '10px 0'}}><a href="/desktop/staff" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>👩‍🏫 職員管理</a></li>
                                 <li style={{margin: '10px 0'}}><a href="/desktop/dailyreports" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>📋 日報管理</a></li>
                                 <li style={{margin: '10px 0'}}><a href="/desktop/photos" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>📸 写真管理</a></li>
+                                <li style={{margin: '10px 0'}}><a href="/desktop/academic-years" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>📅 年度管理</a></li>
                             </ul>
                         </div>
 

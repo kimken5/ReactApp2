@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ReactApp.Server.Data;
 
@@ -11,9 +12,11 @@ using ReactApp.Server.Data;
 namespace ReactApp.Server.Migrations
 {
     [DbContext(typeof(KindergartenDbContext))]
-    partial class KindergartenDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251201063316_YearSlideTablesImplementation")]
+    partial class YearSlideTablesImplementation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -171,15 +174,6 @@ namespace ReactApp.Server.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("IsFuture")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -191,10 +185,6 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NurseryId", "IsCurrent")
                         .HasDatabaseName("IX_AcademicYears_Nursery_Current")
                         .HasFilter("[IsCurrent] = 1");
-
-                    b.HasIndex("NurseryId", "IsFuture")
-                        .HasDatabaseName("IX_AcademicYears_Nursery_Future")
-                        .HasFilter("[IsFuture] = 1");
 
                     b.ToTable("AcademicYears");
                 });

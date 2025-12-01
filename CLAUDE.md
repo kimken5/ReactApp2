@@ -111,6 +111,7 @@ npm run db:reset
 - `IStaffService`: Staff-specific features (contact notifications, report management)
 - `ITranslationService`: Azure Translator integration for multilingual support
 - `ICacheService`: Two-level caching (Memory + Distributed)
+- `IAcademicYearService`: Academic year management, year slide execution with preview
 
 **Data Access** (`ReactApp.Server/Data/`):
 - `KindergartenDbContext`: All navigation properties are **ignored** to prevent EF Core from creating foreign keys
@@ -167,6 +168,26 @@ npm run db:reset
 - **Same frontend component** for both roles, different API endpoints
 - **Event categories**: GeneralAnnouncement, GeneralEvent, NurseryHoliday, ClassActivity, GradeActivity
 - **All-day events** displayed in separate row in week/month views
+
+### Academic Year Management (年度管理)
+- **Year Slide Function**: Automated transition between academic years
+  - Preview before execution (affected children/staff counts, class summaries, warnings)
+  - One-way operation (cannot be undone)
+  - Updates current year flag, maintains historical data
+- **Business Rules**:
+  - One current year per nursery
+  - Multiple future years allowed for planning
+  - Year slide copies class assignments to new year
+  - Graduated children excluded from slide
+- **Frontend Routes**:
+  ```
+  /desktop/academic-years           # Year list view
+  /desktop/academic-years/create    # Create new year form
+  /desktop/year-slide               # Year slide wizard (3-step)
+  ```
+- **Demo Mode**: Add `?demo=true` to URL for mock data (no API calls)
+- **Implementation**: Phase 1 (Backend), Phase 2 (Frontend), Phase 3 (Demo Mode) completed
+- **Documentation**: See `docs/academic-year-phase*.md` for details
 
 ### Database Schema Notes
 - **No EF Core navigation properties**: All navigation properties are explicitly ignored in `OnModelCreating`

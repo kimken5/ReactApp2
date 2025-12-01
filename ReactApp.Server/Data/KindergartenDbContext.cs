@@ -51,10 +51,10 @@ namespace ReactApp.Server.Data
 
         // デスクトップアプリ用エンティティ
         public DbSet<AcademicYear> AcademicYears { get; set; }
+        public DbSet<ChildClassAssignment> ChildClassAssignments { get; set; }
         public DbSet<PromotionHistory> PromotionHistories { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<DailyAttendance> DailyAttendances { get; set; }
-        public DbSet<AttendanceStatistic> AttendanceStatistics { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -91,8 +91,6 @@ namespace ReactApp.Server.Data
             modelBuilder.Entity<FamilyMember>().Ignore(f => f.InvitedByParent);
             modelBuilder.Entity<ParentChildRelationship>().Ignore(p => p.Parent);
             modelBuilder.Entity<ParentChildRelationship>().Ignore(p => p.Child);
-            modelBuilder.Entity<StaffClassAssignment>().Ignore(s => s.Staff);
-            modelBuilder.Entity<StaffClassAssignment>().Ignore(s => s.Class);
             modelBuilder.Entity<SmsAuthentication>().Ignore(s => s.Parent);
             modelBuilder.Entity<SmsAuthentication>().Ignore(s => s.Staff);
             modelBuilder.Entity<RefreshToken>().Ignore(r => r.Parent);
@@ -346,35 +344,41 @@ namespace ReactApp.Server.Data
 
             });
 
-            // PERFORMANCE: StaffClassAssignment configuration
+            // PERFORMANCE: StaffClassAssignment configuration (年度スライド対応)
             modelBuilder.Entity<StaffClassAssignment>(entity =>
             {
-                // 複合主キー設定: (NurseryId, StaffId, ClassId)
-                entity.HasKey(e => new { e.NurseryId, e.StaffId, e.ClassId });
+                // 複合主キー設定: (AcademicYear, NurseryId, StaffId, ClassId)
+                entity.HasKey(e => new { e.AcademicYear, e.NurseryId, e.StaffId, e.ClassId });
+
+                // 年度別現在担任検索
+                entity.HasIndex(e => new { e.NurseryId, e.AcademicYear, e.IsCurrent })
+                    .HasDatabaseName("IX_StaffClassAssignments_Year_Current")
+                    .HasFilter("[IsCurrent] = 1");
+
+                // 年度別未来担任検索
+                entity.HasIndex(e => new { e.NurseryId, e.AcademicYear, e.IsFuture })
+                    .HasDatabaseName("IX_StaffClassAssignments_Year_Future")
+                    .HasFilter("[IsFuture] = 1");
 
                 // スタッフ別クラス一覧取得用インデックス
-                entity.HasIndex(e => new { e.NurseryId, e.StaffId })
-                    .HasDatabaseName("IX_StaffClassAssignments_Staff");
+                entity.HasIndex(e => new { e.NurseryId, e.StaffId, e.AcademicYear })
+                    .HasDatabaseName("IX_StaffClassAssignments_Staff_Year");
 
                 // クラス別スタッフ一覧取得用インデックス
-                entity.HasIndex(e => new { e.NurseryId, e.ClassId })
-                    .HasDatabaseName("IX_StaffClassAssignments_Class");
+                entity.HasIndex(e => new { e.NurseryId, e.ClassId, e.AcademicYear })
+                    .HasDatabaseName("IX_StaffClassAssignments_Class_Year");
 
-                // 役割別検索用インデックス
-                entity.HasIndex(e => new { e.NurseryId, e.ClassId, e.AssignmentRole })
-                    .HasDatabaseName("IX_StaffClassAssignments_Class_Role");
-
+                entity.Property(e => e.AcademicYear).IsRequired();
                 entity.Property(e => e.NurseryId).IsRequired();
                 entity.Property(e => e.StaffId).IsRequired();
                 entity.Property(e => e.ClassId).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.AssignmentRole).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.AssignmentRole).HasMaxLength(50);
+                entity.Property(e => e.IsCurrent).HasDefaultValue(false);
+                entity.Property(e => e.IsFuture).HasDefaultValue(false);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+                entity.Property(e => e.Notes).HasMaxLength(200);
+                entity.Property(e => e.AssignedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-
-                // 役割制約
-                entity.ToTable(t => t.HasCheckConstraint("CK_StaffClassAssignment_Role",
-                    "[AssignmentRole] IN ('MainTeacher', 'AssistantTeacher')"));
-
-                // Foreign key to Class
             });
 
             // Configure UserRolePreference entity
@@ -423,9 +427,10 @@ namespace ReactApp.Server.Data
 
             // デスクトップアプリ用エンティティ設定
             ConfigureAcademicYear(modelBuilder);
+            ConfigureChildClassAssignment(modelBuilder);
             ConfigurePromotionHistory(modelBuilder);
             ConfigureAuditLog(modelBuilder);
-            ConfigureAttendanceStatistic(modelBuilder);
+            ConfigureDailyAttendance(modelBuilder);
         }
 
         private void ConfigureNursery(ModelBuilder modelBuilder)
@@ -872,18 +877,56 @@ namespace ReactApp.Server.Data
         {
             modelBuilder.Entity<AcademicYear>(entity =>
             {
-                entity.HasKey(e => e.Id);
+                // 複合主キー: (NurseryId, Year)
+                entity.HasKey(e => new { e.NurseryId, e.Year });
 
                 // 年度検索最適化
                 entity.HasIndex(e => new { e.NurseryId, e.IsCurrent })
                     .HasDatabaseName("IX_AcademicYears_Nursery_Current")
                     .HasFilter("[IsCurrent] = 1");
 
-                entity.HasIndex(e => new { e.NurseryId, e.Year })
-                    .HasDatabaseName("IX_AcademicYears_Nursery_Year");
+                // 未来年度検索最適化
+                entity.HasIndex(e => new { e.NurseryId, e.IsFuture })
+                    .HasDatabaseName("IX_AcademicYears_Nursery_Future")
+                    .HasFilter("[IsFuture] = 1");
 
                 entity.Property(e => e.IsCurrent).HasDefaultValue(false);
+                entity.Property(e => e.IsFuture).HasDefaultValue(false);
                 entity.Property(e => e.IsArchived).HasDefaultValue(false);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            });
+        }
+
+        private void ConfigureChildClassAssignment(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ChildClassAssignment>(entity =>
+            {
+                // 複合主キー: (AcademicYear, NurseryId, ChildId)
+                entity.HasKey(e => new { e.AcademicYear, e.NurseryId, e.ChildId });
+
+                // クラス別年度別園児一覧検索
+                entity.HasIndex(e => new { e.NurseryId, e.ClassId, e.AcademicYear })
+                    .HasDatabaseName("IX_ChildClassAssignments_Class_Year");
+
+                // 年度別現在クラス検索
+                entity.HasIndex(e => new { e.NurseryId, e.AcademicYear, e.IsCurrent })
+                    .HasDatabaseName("IX_ChildClassAssignments_Year_Current")
+                    .HasFilter("[IsCurrent] = 1");
+
+                // 年度別未来クラス検索
+                entity.HasIndex(e => new { e.NurseryId, e.AcademicYear, e.IsFuture })
+                    .HasDatabaseName("IX_ChildClassAssignments_Year_Future")
+                    .HasFilter("[IsFuture] = 1");
+
+                entity.Property(e => e.AcademicYear).IsRequired();
+                entity.Property(e => e.NurseryId).IsRequired();
+                entity.Property(e => e.ChildId).IsRequired();
+                entity.Property(e => e.ClassId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.IsCurrent).HasDefaultValue(false);
+                entity.Property(e => e.IsFuture).HasDefaultValue(false);
+                entity.Property(e => e.Notes).HasMaxLength(200);
+                entity.Property(e => e.AssignedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             });
         }
@@ -947,41 +990,8 @@ namespace ReactApp.Server.Data
             });
         }
 
-        private void ConfigureAttendanceStatistic(ModelBuilder modelBuilder)
+        private void ConfigureDailyAttendance(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<AttendanceStatistic>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-
-                // 園児別統計検索
-                entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.AcademicYear })
-                    .HasDatabaseName("IX_AttendanceStatistics_Child")
-                    .HasFilter("[ChildId] IS NOT NULL");
-
-                // クラス別統計検索
-                entity.HasIndex(e => new { e.NurseryId, e.ClassId, e.AcademicYear })
-                    .HasDatabaseName("IX_AttendanceStatistics_Class")
-                    .HasFilter("[ClassId] IS NOT NULL");
-
-                // 年度・月別統計
-                entity.HasIndex(e => new { e.NurseryId, e.AcademicYear, e.Month })
-                    .HasDatabaseName("IX_AttendanceStatistics_Year_Month");
-
-                // 統計種別検索
-                entity.HasIndex(e => e.StatisticType)
-                    .HasDatabaseName("IX_AttendanceStatistics_Type");
-
-                entity.Property(e => e.ClassId).HasMaxLength(50);
-                entity.Property(e => e.StatisticType).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.TotalDays).HasDefaultValue(0);
-                entity.Property(e => e.PresentDays).HasDefaultValue(0);
-                entity.Property(e => e.AbsentDays).HasDefaultValue(0);
-                entity.Property(e => e.TardyDays).HasDefaultValue(0);
-                entity.Property(e => e.AttendanceRate).HasColumnType("DECIMAL(5,2)").HasDefaultValue(0.00m);
-                entity.Property(e => e.LastCalculatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-            });
-
             // DailyAttendances configuration
             modelBuilder.Entity<DailyAttendance>(entity =>
             {

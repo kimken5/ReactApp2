@@ -6,7 +6,12 @@
 
 **本設計書の内容は承認済みです。**
 - 既存テーブル拡張: 9テーブルに合計28カラムを追加
-- 新規テーブル作成: 4テーブル（年度管理、進級履歴、監査ログ、出席統計）
+- 新規テーブル作成: 4テーブル(年度管理、進級履歴、監査ログ、日次出欠表)
+
+**変更履歴**:
+- 2025-12-01: AcademicYearsテーブルのスキーマ変更(ID列削除、複合主キー(NurseryId, Year)採用)
+- 2025-12-01: AttendanceStatisticsテーブル削除(リアルタイム統計計算方式に変更)
+- 2025-12-01: バッチ処理による統計計算を廃止(画面上での条件指定によるリアルタイムクエリ方式に変更)
 
 ## 1. 既存テーブルへの項目追加
 
@@ -130,29 +135,45 @@ EXEC sp_addextendedproperty 'MS_Description', '備考', 'SCHEMA', 'dbo', 'TABLE'
 - CreatedAt (datetime2)
 - UpdatedAt (datetime2)
 
-### 1.5 StaffClassAssignments テーブル拡張
+### 1.5 StaffClassAssignments テーブル再構築（年度スライド対応）
 
-**追加理由**: 年度別のクラス割り当て管理
+**変更理由**: 年度別のクラス割り当て管理、年度スライド機能のサポート
+
+**実装済み**: 既存テーブルを再構築し、以下の変更を実施
 
 ```sql
--- 既存テーブルに以下のカラムを追加
-ALTER TABLE StaffClassAssignments ADD
-    AcademicYear INT NOT NULL DEFAULT YEAR(GETDATE()),  -- 年度
-    IsActive BIT NOT NULL DEFAULT 1,  -- 有効フラグ
-    AssignedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE();  -- 割り当て日時
+-- テーブル再構築（実装済み）
+CREATE TABLE [dbo].[StaffClassAssignments] (
+    [AcademicYear] INT NOT NULL,  -- 年度（西暦）(複合主キー 1/4)
+    [NurseryId] INT NOT NULL,  -- 保育園ID (複合主キー 2/4)
+    [StaffId] INT NOT NULL,  -- スタッフID (複合主キー 3/4)
+    [ClassId] NVARCHAR(50) NOT NULL,  -- クラスID (複合主キー 4/4)
+    [AssignmentRole] NVARCHAR(50) NULL,  -- 役割（主担任、副担任等）
+    [IsCurrent] BIT NOT NULL DEFAULT 0,  -- 現在年度フラグ
+    [IsFuture] BIT NOT NULL DEFAULT 0,  -- 未来年度フラグ（事前設定）
+    [IsActive] BIT NOT NULL DEFAULT 1,  -- 有効フラグ
+    [AssignedByUserId] INT NULL,  -- 割り当て実行者
+    [Notes] NVARCHAR(200) NULL,  -- 備考
+    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    [UpdatedAt] DATETIME2 NULL,
+    CONSTRAINT PK_StaffClassAssignments PRIMARY KEY ([AcademicYear], [NurseryId], [StaffId], [ClassId])
+);
 
--- インデックス追加
-CREATE INDEX IX_StaffClassAssignments_AcademicYear ON StaffClassAssignments (NurseryId, AcademicYear);
-CREATE INDEX IX_StaffClassAssignments_IsActive ON StaffClassAssignments (NurseryId, IsActive) WHERE IsActive = 1;
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '年度（西暦）', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'AcademicYear';
-EXEC sp_addextendedproperty 'MS_Description', '有効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'IsActive';
-EXEC sp_addextendedproperty 'MS_Description', '割り当て日時', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'AssignedAt';
+-- インデックス
+CREATE INDEX IX_StaffClassAssignments_Year_Current ON StaffClassAssignments (NurseryId, AcademicYear, IsCurrent) WHERE IsCurrent = 1;
+CREATE INDEX IX_StaffClassAssignments_Year_Future ON StaffClassAssignments (NurseryId, AcademicYear, IsFuture) WHERE IsFuture = 1;
 ```
 
+**主な変更点**
+- 複合主キーに AcademicYear を追加 (先頭に配置)
+- IsCurrent、IsFuture カラムを追加（年度スライド管理用）
+- AssignedByUserId、Notes カラムを追加
+
 **ビジネスルール**
-- 同一年度内で有効なStaff-Class割り当ては重複不可
+- 複合主キー (AcademicYear, NurseryId, StaffId, ClassId) で、1人のスタッフが同じ年度・クラスに重複割り当てされることを防止
+- IsCurrent=1 のレコードは現在年度の担任割り当てを示す
+- IsFuture=1 のレコードは未来年度の事前設定を示す
+- 年度スライド時に IsFuture=1 → IsCurrent=1 に変更される
 - 過去年度の割り当てはIsActive=0で保持
 
 ### 1.6 AbsenceNotifications テーブル拡張
@@ -282,29 +303,27 @@ EXEC sp_addextendedproperty 'MS_Description', '管理者作成フラグ', 'SCHEM
 **目的**: 年度の定義、年度切り替え履歴の管理
 
 ```sql
-CREATE TABLE AcademicYears (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    NurseryId INT NOT NULL,
-    Year INT NOT NULL,  -- 年度（西暦）
-    StartDate DATE NOT NULL,  -- 年度開始日（通常4月1日）
-    EndDate DATE NOT NULL,  -- 年度終了日（通常3月31日）
-    IsCurrent BIT NOT NULL DEFAULT 0,  -- 現在年度フラグ
-    IsArchived BIT NOT NULL DEFAULT 0,  -- アーカイブ済みフラグ
-    ArchivedAt DATETIME2 NULL,  -- アーカイブ日時
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
+CREATE TABLE [dbo].[AcademicYears] (
+    [NurseryId] INT NOT NULL,
+    [Year] INT NOT NULL,  -- 年度(西暦)
+    [StartDate] DATE NOT NULL,  -- 年度開始日(通常4月1日)
+    [EndDate] DATE NOT NULL,  -- 年度終了日(通常3月31日)
+    [IsCurrent] BIT NOT NULL DEFAULT 0,  -- 現在年度フラグ
+    [IsArchived] BIT NOT NULL DEFAULT 0,  -- アーカイブ済みフラグ
+    [ArchivedAt] DATETIME2 NULL,  -- アーカイブ日時
+    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    [UpdatedAt] DATETIME2 NULL,
+    CONSTRAINT PK_AcademicYears PRIMARY KEY ([NurseryId], [Year])
 );
 
 -- インデックス作成
 CREATE INDEX IX_AcademicYears_NurseryId_IsCurrent ON AcademicYears (NurseryId, IsCurrent) WHERE IsCurrent = 1;
-CREATE INDEX IX_AcademicYears_NurseryId_Year ON AcademicYears (NurseryId, Year);
 
 -- テーブルコメント
 EXEC sp_addextendedproperty 'MS_Description', '年度管理テーブル', 'SCHEMA', 'dbo', 'TABLE', 'AcademicYears';
 
 -- カラムコメント
-EXEC sp_addextendedproperty 'MS_Description', '年度ID', 'SCHEMA', 'dbo', 'TABLE', 'AcademicYears', 'COLUMN', 'Id';
-EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'AcademicYears', 'COLUMN', 'NurseryId';
+EXEC sp_addextendedproperty 'MS_Description', '保育園ID(複合主キー)', 'SCHEMA', 'dbo', 'TABLE', 'AcademicYears', 'COLUMN', 'NurseryId';
 EXEC sp_addextendedproperty 'MS_Description', '年度（西暦）', 'SCHEMA', 'dbo', 'TABLE', 'AcademicYears', 'COLUMN', 'Year';
 EXEC sp_addextendedproperty 'MS_Description', '年度開始日', 'SCHEMA', 'dbo', 'TABLE', 'AcademicYears', 'COLUMN', 'StartDate';
 EXEC sp_addextendedproperty 'MS_Description', '年度終了日', 'SCHEMA', 'dbo', 'TABLE', 'AcademicYears', 'COLUMN', 'EndDate';
@@ -314,6 +333,7 @@ EXEC sp_addextendedproperty 'MS_Description', 'アーカイブ日時', 'SCHEMA',
 ```
 
 **ビジネスルール**
+- 複合主キー: (NurseryId, Year)
 - 保育園ごとに同時に複数のIsCurrent=1レコードは存在しない
 - 年度終了時に自動的にIsArchived=1に更新
 
@@ -473,61 +493,6 @@ EXEC sp_addextendedproperty 'MS_Description', '論理削除フラグ', 'SCHEMA',
 - RecordedByStaffNurseryId, RecordedByStaffId → Staff(NurseryId, StaffId)
 - UpdatedByStaffNurseryId, UpdatedByStaffId → Staff(NurseryId, StaffId)
 
-### 2.5 AttendanceStatistics（出席統計キャッシュ）
-
-**目的**: 出席状況レポートのパフォーマンス向上のため、日次・月次集計データをキャッシュ
-
-```sql
-CREATE TABLE AttendanceStatistics (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    NurseryId INT NOT NULL,
-    ChildId INT NULL,  -- 園児別統計の場合はChildId、クラス別統計の場合はNULL
-    ClassId NVARCHAR(50) NULL,  -- クラス別統計の場合はClassId
-    AcademicYear INT NOT NULL,  -- 年度
-    Month INT NULL,  -- 月（1-12）、年度全体の場合はNULL
-    Date DATE NULL,  -- 日付、月次・年度全体の場合はNULL
-    StatisticType NVARCHAR(20) NOT NULL,  -- 集計種別（Daily/Monthly/Yearly）
-    TotalDays INT NOT NULL DEFAULT 0,  -- 総日数
-    PresentDays INT NOT NULL DEFAULT 0,  -- 出席日数
-    AbsentDays INT NOT NULL DEFAULT 0,  -- 欠席日数
-    TardyDays INT NOT NULL DEFAULT 0,  -- 遅刻日数
-    AttendanceRate DECIMAL(5,2) NOT NULL DEFAULT 0.00,  -- 出席率
-    LastCalculatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),  -- 最終計算日時
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
-);
-
--- インデックス作成
-CREATE INDEX IX_AttendanceStatistics_Child ON AttendanceStatistics (NurseryId, ChildId, AcademicYear) WHERE ChildId IS NOT NULL;
-CREATE INDEX IX_AttendanceStatistics_Class ON AttendanceStatistics (NurseryId, ClassId, AcademicYear) WHERE ClassId IS NOT NULL;
-CREATE INDEX IX_AttendanceStatistics_AcademicYear_Month ON AttendanceStatistics (NurseryId, AcademicYear, Month);
-CREATE INDEX IX_AttendanceStatistics_Type ON AttendanceStatistics (StatisticType);
-
--- テーブルコメント
-EXEC sp_addextendedproperty 'MS_Description', '出席統計キャッシュテーブル', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics';
-
--- カラムコメント
-EXEC sp_addextendedproperty 'MS_Description', '統計ID', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'Id';
-EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'NurseryId';
-EXEC sp_addextendedproperty 'MS_Description', '園児ID', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'ChildId';
-EXEC sp_addextendedproperty 'MS_Description', 'クラスID', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'ClassId';
-EXEC sp_addextendedproperty 'MS_Description', '年度', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'AcademicYear';
-EXEC sp_addextendedproperty 'MS_Description', '月', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'Month';
-EXEC sp_addextendedproperty 'MS_Description', '日付', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'Date';
-EXEC sp_addextendedproperty 'MS_Description', '集計種別', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'StatisticType';
-EXEC sp_addextendedproperty 'MS_Description', '総日数', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'TotalDays';
-EXEC sp_addextendedproperty 'MS_Description', '出席日数', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'PresentDays';
-EXEC sp_addextendedproperty 'MS_Description', '欠席日数', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'AbsentDays';
-EXEC sp_addextendedproperty 'MS_Description', '遅刻日数', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'TardyDays';
-EXEC sp_addextendedproperty 'MS_Description', '出席率', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'AttendanceRate';
-EXEC sp_addextendedproperty 'MS_Description', '最終計算日時', 'SCHEMA', 'dbo', 'TABLE', 'AttendanceStatistics', 'COLUMN', 'LastCalculatedAt';
-```
-
-**更新タイミング**
-- 日次統計: 毎日深夜0時にバッチ処理で更新
-- 月次統計: 月末に計算
-- 年度統計: 年度末に計算
-
 ## 3. マイグレーション順序
 
 データベース拡張を安全に実行するための推奨順序：
@@ -549,10 +514,9 @@ EXEC sp_addextendedproperty 'MS_Description', '最終計算日時', 'SCHEMA', 'd
 10. AcademicYears テーブル作成
 11. AuditLogs テーブル作成
 
-### Phase 4: 新規テーブル作成（履歴・集計系）
+### Phase 4: 新規テーブル作成(履歴系)
 12. PromotionHistory テーブル作成
 13. DailyAttendances テーブル作成
-14. AttendanceStatistics テーブル作成
 
 ## 4. データ移行スクリプト
 
@@ -626,24 +590,29 @@ WHERE sca.IsActive = 1 AND ay.IsCurrent = 1 AND s.IsActive = 1;
 
 ### 5.3 v_ChildAttendanceSummary（園児出席状況サマリー）
 
+**注意**: 出席統計はAttendanceStatisticsテーブルを使用せず、DailyAttendancesテーブルから直接リアルタイムで計算します。
+画面上で条件(年度、月、クラスなど)を指定し、その場でクエリを発行してリアルタイムな統計値を表示する設計としています。
+
 ```sql
-CREATE VIEW v_ChildAttendanceSummary AS
+-- リアルタイム集計クエリ例: 指定年度・月・クラスの出席統計
 SELECT
-    ast.NurseryId,
-    ast.ChildId,
+    c.NurseryId,
+    c.ChildId,
     c.Name AS ChildName,
     c.ClassId,
-    cl.Name AS ClassName,
-    ast.AcademicYear,
-    SUM(ast.PresentDays) AS TotalPresentDays,
-    SUM(ast.AbsentDays) AS TotalAbsentDays,
-    SUM(ast.TardyDays) AS TotalTardyDays,
-    AVG(ast.AttendanceRate) AS AverageAttendanceRate
-FROM AttendanceStatistics ast
-INNER JOIN Children c ON ast.NurseryId = c.NurseryId AND ast.ChildId = c.ChildId
-INNER JOIN Classes cl ON c.NurseryId = cl.NurseryId AND c.ClassId = cl.ClassId
-WHERE ast.StatisticType = 'Monthly' AND ast.ChildId IS NOT NULL
-GROUP BY ast.NurseryId, ast.ChildId, c.Name, c.ClassId, cl.Name, ast.AcademicYear;
+    COUNT(CASE WHEN da.Status = 'present' THEN 1 END) AS PresentDays,
+    COUNT(CASE WHEN da.Status = 'absent' THEN 1 END) AS AbsentDays,
+    COUNT(CASE WHEN da.Status = 'late' THEN 1 END) AS TardyDays,
+    COUNT(*) AS TotalDays,
+    CAST(COUNT(CASE WHEN da.Status = 'present' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) AS DECIMAL(5,2)) AS AttendanceRate
+FROM Children c
+INNER JOIN DailyAttendances da ON c.NurseryId = da.NurseryId AND c.ChildId = da.ChildId
+WHERE c.NurseryId = @NurseryId
+    AND c.ClassId = @ClassId  -- 必要に応じてフィルタ
+    AND YEAR(da.AttendanceDate) = @Year
+    AND MONTH(da.AttendanceDate) = @Month  -- 必要に応じてフィルタ
+    AND da.IsActive = 1
+GROUP BY c.NurseryId, c.ChildId, c.Name, c.ClassId;
 ```
 
 ## 6. ストアドプロシージャ
@@ -702,73 +671,6 @@ BEGIN
 END;
 ```
 
-### 6.2 sp_CalculateAttendanceStatistics（出席統計計算）
-
-```sql
-CREATE PROCEDURE sp_CalculateAttendanceStatistics
-    @NurseryId INT,
-    @AcademicYear INT,
-    @Month INT = NULL  -- NULLの場合は年度全体を計算
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    -- 園児別月次統計を計算
-    IF @Month IS NOT NULL
-    BEGIN
-        MERGE INTO AttendanceStatistics AS target
-        USING (
-            SELECT
-                @NurseryId AS NurseryId,
-                an.ChildId,
-                NULL AS ClassId,
-                @AcademicYear AS AcademicYear,
-                @Month AS Month,
-                NULL AS Date,
-                'Monthly' AS StatisticType,
-                COUNT(DISTINCT CAST(an.Ymd AS DATE)) AS TotalDays,
-                SUM(CASE WHEN an.NotificationType <> 'absence' THEN 1 ELSE 0 END) AS PresentDays,
-                SUM(CASE WHEN an.NotificationType = 'absence' THEN 1 ELSE 0 END) AS AbsentDays,
-                SUM(CASE WHEN an.NotificationType = 'lateness' THEN 1 ELSE 0 END) AS TardyDays,
-                CAST(SUM(CASE WHEN an.NotificationType <> 'absence' THEN 1.0 ELSE 0.0 END) / NULLIF(COUNT(DISTINCT CAST(an.Ymd AS DATE)), 0) * 100 AS DECIMAL(5,2)) AS AttendanceRate
-            FROM AbsenceNotifications an
-            WHERE an.NurseryId = @NurseryId
-                AND YEAR(an.Ymd) = @AcademicYear
-                AND MONTH(an.Ymd) = @Month
-            GROUP BY an.ChildId
-        ) AS source
-        ON target.NurseryId = source.NurseryId
-            AND target.ChildId = source.ChildId
-            AND target.AcademicYear = source.AcademicYear
-            AND target.Month = source.Month
-            AND target.StatisticType = 'Monthly'
-        WHEN MATCHED THEN
-            UPDATE SET
-                target.TotalDays = source.TotalDays,
-                target.PresentDays = source.PresentDays,
-                target.AbsentDays = source.AbsentDays,
-                target.TardyDays = source.TardyDays,
-                target.AttendanceRate = source.AttendanceRate,
-                target.LastCalculatedAt = GETUTCDATE(),
-                target.UpdatedAt = GETUTCDATE()
-        WHEN NOT MATCHED THEN
-            INSERT (NurseryId, ChildId, ClassId, AcademicYear, Month, Date, StatisticType, TotalDays, PresentDays, AbsentDays, TardyDays, AttendanceRate)
-            VALUES (source.NurseryId, source.ChildId, source.ClassId, source.AcademicYear, source.Month, source.Date, source.StatisticType, source.TotalDays, source.PresentDays, source.AbsentDays, source.TardyDays, source.AttendanceRate);
-    END
-END;
-```
-
-**変更点**:
-- `an.StartDate` → `an.Ymd` (実際のカラム名に修正)
-- `an.Type` → `an.NotificationType` (実際のカラム名に修正)
-- `COUNT(DISTINCT CAST(an.Ymd AS DATE))` で日付部分のみを集計
-- `NULLIF(..., 0)` を追加してゼロ除算を防止
-
-**注意**: AbsenceNotificationsテーブルの実際のカラム構造:
-- `Ymd` (DATETIME2): 連絡対象日（欠席・遅刻の日付）
-- `NotificationType` (NVARCHAR(20)): 'absence' | 'lateness' | 'pickup'
-- `Status` (NVARCHAR(20)): 'submitted' | 'acknowledged'
-
 ## 7. Entity Framework Core エンティティクラス
 
 ### 7.1 AcademicYear.cs
@@ -776,7 +678,7 @@ END;
 ```csharp
 public class AcademicYear
 {
-    public int Id { get; set; }
+    // 複合主キー: (NurseryId, Year)
     public int NurseryId { get; set; }
     public int Year { get; set; }
     public DateTime StartDate { get; set; }
@@ -855,30 +757,6 @@ public class DailyAttendance
 }
 ```
 
-### 7.5 AttendanceStatistic.cs
-
-```csharp
-public class AttendanceStatistic
-{
-    public int Id { get; set; }
-    public int NurseryId { get; set; }
-    public int? ChildId { get; set; }
-    public string? ClassId { get; set; }
-    public int AcademicYear { get; set; }
-    public int? Month { get; set; }
-    public DateTime? Date { get; set; }
-    public string StatisticType { get; set; }  // "Daily", "Monthly", "Yearly"
-    public int TotalDays { get; set; }
-    public int PresentDays { get; set; }
-    public int AbsentDays { get; set; }
-    public int TardyDays { get; set; }
-    public decimal AttendanceRate { get; set; }
-    public DateTime LastCalculatedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-}
-```
-
 ## 8. まとめ
 
 ### 8.1 追加項目のサマリー（承認済み）
@@ -889,25 +767,31 @@ public class AttendanceStatistic
 | Classes | 1 | 有効/無効フラグ（~~AcademicYear削除済み~~） |
 | Children | 5 | 卒園管理、血液型、出席記録 |
 | Staff | 7 | 詳細情報、入退社管理、緊急連絡先 |
-| StaffClassAssignments | 3 | 年度別クラス割り当て |
+| StaffClassAssignments | 5 | 年度別クラス割り当て、年度スライド管理（複合主キー変更含む） |
 | AbsenceNotifications | 3 | 管理者確認、スタッフ対応記録 |
 | DailyReports | 1 | 管理者作成記録 |
 | Photos | 1 | 管理者アップロード記録 |
 | Announcements | 1 | 管理者作成記録 |
 
-**合計: 28カラム（既存テーブル拡張）**
+**合計: 30カラム（既存テーブル拡張）**
+※ StaffClassAssignments: 3カラム→5カラムに増加（IsCurrent, IsFuture追加）
 
 ### 8.2 新規テーブルのサマリー（承認済み）
 
 | テーブル名 | 主な目的 |
 |-----------|---------|
 | AcademicYears | 年度管理、年度切り替え |
+| ChildClassAssignments | 園児のクラス所属履歴（過去・現在・未来）、年度スライド管理 |
 | PromotionHistory | 進級履歴の記録 |
 | AuditLogs | 操作ログ、セキュリティ監査 |
 | DailyAttendances | 日次出欠状況の記録・管理 |
-| AttendanceStatistics | 出席統計の高速化 |
 
-**合計: 5テーブル（新規作成）**
+**合計: 5テーブル(新規作成)**
+
+**設計方針の変更**: 
+- **AttendanceStatisticsテーブルは不要**: 出席統計はDailyAttendancesテーブルから直接リアルタイムで計算します
+- **バッチ処理なし**: 日次・月次・年度バッチ処理による事前計算は行いません
+- **リアルタイム集計**: 画面上で条件(年度、月、クラスなど)を入力し、その場でSQLクエリを発行してリアルタイムな統計値を表示する設計です
 
 ### 8.3 次のステップ
 

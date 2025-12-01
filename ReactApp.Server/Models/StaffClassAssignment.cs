@@ -4,60 +4,62 @@ namespace ReactApp.Server.Models
 {
     /// <summary>
     /// スタッフクラス割り当てエンティティ
-    /// スタッフと担当クラスの多対多リレーションシップを管理
-    /// 1人のスタッフが複数のクラスを担当可能
-    /// 複合主キー: (NurseryId, StaffId, ClassId)
+    /// スタッフと担当クラスの多対多リレーションシップを年度別に管理
+    /// 年度スライド機能に対応
+    /// 複合主キー: (AcademicYear, NurseryId, StaffId, ClassId)
     /// </summary>
     public class StaffClassAssignment
     {
         /// <summary>
-        /// 保育園ID（複合主キーの一部）
+        /// 年度(西暦)(複合主キー 1/4)(必須)
+        /// 例: 2025
+        /// </summary>
+        [Required]
+        public int AcademicYear { get; set; }
+
+        /// <summary>
+        /// 保育園ID(複合主キー 2/4)(必須)
         /// </summary>
         [Required]
         public int NurseryId { get; set; }
 
         /// <summary>
-        /// スタッフID（複合主キーの一部）
+        /// スタッフID(複合主キー 3/4)(必須)
         /// </summary>
         [Required]
         public int StaffId { get; set; }
 
         /// <summary>
-        /// クラスID（複合主キーの一部）
+        /// クラスID(複合主キー 4/4)(必須)
         /// 例: "sakura", "himawari"
         /// </summary>
         [Required]
-        [StringLength(50)]
+        [MaxLength(50)]
         public string ClassId { get; set; } = string.Empty;
 
         /// <summary>
-        /// 割り当て役割
-        /// "MainTeacher": 担任、"AssistantTeacher": 副担任
+        /// 割り当て役割（任意）
+        /// "MainTeacher": 主担任、"AssistantTeacher": 副担任
+        /// </summary>
+        [MaxLength(50)]
+        public string? AssignmentRole { get; set; }
+
+        /// <summary>
+        /// 現在年度フラグ（必須）
+        /// デフォルト: false
+        /// 現在年度の担任割り当てを示す
         /// </summary>
         [Required]
-        [StringLength(50)]
-        public string AssignmentRole { get; set; } = string.Empty;
+        public bool IsCurrent { get; set; } = false;
 
         /// <summary>
-        /// 作成日時
-        /// 割り当てが作成された日時（UTC）
-        /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        /// 更新日時（任意）
-        /// 割り当てが最後に更新された日時（UTC）
-        /// </summary>
-        public DateTime? UpdatedAt { get; set; }
-
-        // ===== デスクトップアプリ用追加プロパティ =====
-
-        /// <summary>
-        /// 年度（必須）
-        /// デフォルト: 現在の西暦年度
+        /// 未来年度フラグ（必須）
+        /// デフォルト: false
+        /// 未来年度の事前設定を示す
+        /// 年度スライド時に IsFuture=true → IsCurrent=true に変更される
         /// </summary>
         [Required]
-        public int AcademicYear { get; set; } = DateTime.UtcNow.Year;
+        public bool IsFuture { get; set; } = false;
 
         /// <summary>
         /// 有効フラグ（必須）
@@ -68,21 +70,36 @@ namespace ReactApp.Server.Models
         public bool IsActive { get; set; } = true;
 
         /// <summary>
+        /// 割り当て実行者ID（任意）
+        /// この担任割り当てを設定したユーザーのID
+        /// </summary>
+        public int? AssignedByUserId { get; set; }
+
+        /// <summary>
+        /// 備考（任意）
+        /// 最大200文字
+        /// </summary>
+        [MaxLength(200)]
+        public string? Notes { get; set; }
+
+        /// <summary>
         /// 割り当て日時（必須）
-        /// デフォルト: 現在時刻（UTC）
         /// </summary>
         [Required]
         public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
         /// <summary>
-        /// 割り当てられたスタッフ
+        /// 作成日時（必須）
         /// </summary>
-        public virtual Staff? Staff { get; set; }
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// 割り当てられたクラス
+        /// 更新日時（任意）
         /// </summary>
-        public virtual Class? Class { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+
+        // Navigation properties are ignored in DbContext configuration
+        // Manual joins required when loading related entities
     }
 }

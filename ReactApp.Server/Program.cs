@@ -261,6 +261,9 @@ builder.Services.AddHttpClient<ITranslationService, TranslationService>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<ReactApp.Server.Helpers.TranslationHelper>();
 
+// Academic Year Management Services
+builder.Services.AddScoped<IAcademicYearService, AcademicYearService>();
+
 // Database Seeding Service (Development only)
 builder.Services.AddScoped<DatabaseSeeder>();
 
