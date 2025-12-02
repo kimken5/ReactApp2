@@ -28,6 +28,7 @@ import AcademicYearManagement from '../components/staff/AcademicYearManagement';
 import AcademicYearCreate from '../components/staff/AcademicYearCreate';
 import YearSlideExecution from '../components/staff/YearSlideExecution';
 import ChildClassAssignment from '../components/staff/ChildClassAssignment';
+import StaffClassAssignment from '../components/staff/StaffClassAssignment';
 
 /**
  * デスクトップアプリ用ルーター
@@ -332,6 +333,14 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <ChildClassAssignment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/staff-class-assignment"
+        element={
+          <ProtectedRoute>
+            <StaffClassAssignment />
           </ProtectedRoute>
         }
       />

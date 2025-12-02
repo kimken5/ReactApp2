@@ -14,7 +14,6 @@ public class ChildClassAssignmentDto
     public bool IsCurrent { get; set; }
     public bool IsFuture { get; set; }
     public DateTime AssignedAt { get; set; }
-    public string? Notes { get; set; }
 }
 
 /// <summary>
@@ -66,7 +65,6 @@ public class AssignChildToClassRequest
     public int NurseryId { get; set; }
     public int ChildId { get; set; }
     public string ClassId { get; set; } = string.Empty;
-    public string? Notes { get; set; }
 }
 
 /// <summary>

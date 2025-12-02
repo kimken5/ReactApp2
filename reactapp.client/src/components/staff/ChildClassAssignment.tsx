@@ -22,8 +22,13 @@ export default function ChildClassAssignment() {
   const [selectedClassId, setSelectedClassId] = useState<string>('');
 
   const [loading, setLoading] = useState(true);
+  const [isOperating, setIsOperating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // フィルター状態
+  const [nameFilter, setNameFilter] = useState<string>('');
+  const [currentClassFilter, setCurrentClassFilter] = useState<string>('');
 
   useEffect(() => {
     loadInitialData();
@@ -54,9 +59,11 @@ export default function ChildClassAssignment() {
     }
   };
 
-  const loadAssignmentData = async () => {
+  const loadAssignmentData = async (showLoadingScreen: boolean = true) => {
     try {
-      setLoading(true);
+      if (showLoadingScreen) {
+        setLoading(true);
+      }
       setError(null);
 
       const [classesData, childrenData] = await Promise.all([
@@ -67,6 +74,12 @@ export default function ChildClassAssignment() {
       setClasses(classesData);
       setAvailableChildren(childrenData);
 
+      // デバッグ: APIレスポンスの中身を確認
+      console.log('=== API Response Debug ===');
+      console.log('Classes data:', classesData);
+      console.log('Available children data:', childrenData);
+      console.log('First child sample:', childrenData[0]);
+
       if (classesData.length > 0 && !selectedClassId) {
         setSelectedClassId(classesData[0].classId);
       }
@@ -74,14 +87,16 @@ export default function ChildClassAssignment() {
       console.error('Failed to load assignment data:', err);
       setError('割り当て情報の取得に失敗しました');
     } finally {
-      setLoading(false);
+      if (showLoadingScreen) {
+        setLoading(false);
+      }
     }
   };
 
   const handleAssignChild = async (childId: number, classId: string) => {
     try {
+      setIsOperating(true);
       setError(null);
-      setSuccessMessage(null);
 
       await childClassAssignmentService.assignChildToClass({
         academicYear,
@@ -90,26 +105,30 @@ export default function ChildClassAssignment() {
         classId,
       });
 
-      setSuccessMessage('園児を割り当てました');
-      await loadAssignmentData();
+      // リロード時は画面を消さない
+      await loadAssignmentData(false);
     } catch (err) {
       console.error('Failed to assign child:', err);
       setError('割り当てに失敗しました');
+    } finally {
+      setIsOperating(false);
     }
   };
 
   const handleUnassignChild = async (childId: number) => {
     try {
+      setIsOperating(true);
       setError(null);
-      setSuccessMessage(null);
 
       await childClassAssignmentService.unassignChildFromClass(nurseryId, academicYear, childId);
 
-      setSuccessMessage('割り当てを解除しました');
-      await loadAssignmentData();
+      // リロード時は画面を消さない
+      await loadAssignmentData(false);
     } catch (err) {
       console.error('Failed to unassign child:', err);
       setError('割り当て解除に失敗しました');
+    } finally {
+      setIsOperating(false);
     }
   };
 
@@ -145,7 +164,69 @@ export default function ChildClassAssignment() {
   }
 
   const selectedClass = classes.find(c => c.classId === selectedClassId);
-  const unassignedChildren = availableChildren.filter(c => !c.isAssignedToFuture);
+
+  // 現在のクラス一覧を取得（フィルター用）
+  const currentClasses: Array<{ classId: string; className: string }> = [];
+
+  // 未所属の園児がいるかチェック
+  const hasUnassigned = availableChildren.some(c => !c.currentClassId || c.currentClassId === '');
+  if (hasUnassigned) {
+    currentClasses.push({ classId: 'UNASSIGNED', className: '未所属' });
+  }
+
+  // クラスIDとクラス名のマップを作成
+  const classMap = new Map<string, string>();
+  availableChildren.forEach(child => {
+    // currentClassIdが存在し、空文字列でない場合のみ追加
+    if (child.currentClassId && child.currentClassId !== '' && !classMap.has(child.currentClassId)) {
+      classMap.set(child.currentClassId, child.currentClassName || child.currentClassId);
+    }
+  });
+
+  // デバッグログ
+  console.log('Available children:', availableChildren.length);
+  console.log('Class map size:', classMap.size);
+  console.log('Class map entries:', Array.from(classMap.entries()));
+
+  // マップからクラス一覧を作成
+  classMap.forEach((className, classId) => {
+    currentClasses.push({ classId, className });
+  });
+
+  // クラス名でソート（未所属は先頭に残す）
+  const unassignedClass = currentClasses.find(c => c.classId === 'UNASSIGNED');
+  const otherClasses = currentClasses.filter(c => c.classId !== 'UNASSIGNED')
+    .sort((a, b) => a.className.localeCompare(b.className));
+  const sortedCurrentClasses = unassignedClass
+    ? [unassignedClass, ...otherClasses]
+    : otherClasses;
+
+  console.log('Sorted current classes:', sortedCurrentClasses);
+
+  // フィルタリング処理
+  const unassignedChildren = availableChildren
+    .filter(c => !c.isAssignedToFuture)
+    .filter(c => {
+      // 名前フィルター（あいまい検索）
+      if (nameFilter && !c.childName.includes(nameFilter)) {
+        return false;
+      }
+      // 現在のクラスフィルター
+      if (currentClassFilter) {
+        if (currentClassFilter === 'UNASSIGNED') {
+          // 未所属フィルター
+          if (c.currentClassId && c.currentClassId !== '') {
+            return false;
+          }
+        } else {
+          // 通常のクラスフィルター
+          if (c.currentClassId !== currentClassFilter) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
 
   return (
     <DashboardLayout>
@@ -233,9 +314,10 @@ export default function ChildClassAssignment() {
                     </div>
                     <button
                       onClick={() => handleUnassignChild(child.childId)}
-                      className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                      disabled={isOperating}
+                      className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
-                      解除
+                      {isOperating ? '処理中...' : '解除'}
                     </button>
                   </div>
                 ))}
@@ -254,6 +336,58 @@ export default function ChildClassAssignment() {
               <h2 className="text-base font-semibold text-gray-800 mb-4">
                 未割り当て園児 ({unassignedChildren.length}名)
               </h2>
+
+              {/* フィルター */}
+              <div className="mb-4 space-y-3">
+                {/* 名前検索 */}
+                <div>
+                  <label htmlFor="nameFilter" className="block text-xs font-medium text-gray-700 mb-1">
+                    園児名で検索
+                  </label>
+                  <input
+                    type="text"
+                    id="nameFilter"
+                    value={nameFilter}
+                    onChange={(e) => setNameFilter(e.target.value)}
+                    placeholder="例: 田中"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* 現在のクラスフィルター */}
+                <div>
+                  <label htmlFor="currentClassFilter" className="block text-xs font-medium text-gray-700 mb-1">
+                    現在のクラス
+                  </label>
+                  <select
+                    id="currentClassFilter"
+                    value={currentClassFilter}
+                    onChange={(e) => setCurrentClassFilter(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">すべて</option>
+                    {sortedCurrentClasses.map((cls) => (
+                      <option key={cls.classId} value={cls.classId}>
+                        {cls.className}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* フィルタークリアボタン */}
+                {(nameFilter || currentClassFilter) && (
+                  <button
+                    onClick={() => {
+                      setNameFilter('');
+                      setCurrentClassFilter('');
+                    }}
+                    className="w-full px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    フィルターをクリア
+                  </button>
+                )}
+              </div>
+
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {unassignedChildren.map((child) => (
                   <div
@@ -266,10 +400,10 @@ export default function ChildClassAssignment() {
                     </div>
                     <button
                       onClick={() => handleAssignChild(child.childId, selectedClassId)}
-                      disabled={!selectedClassId}
+                      disabled={!selectedClassId || isOperating}
                       className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
-                      追加
+                      {isOperating ? '処理中...' : '追加'}
                     </button>
                   </div>
                 ))}

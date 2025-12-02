@@ -37,6 +37,15 @@ public interface IAcademicYearService
     Task<AcademicYearDto> CreateAcademicYearAsync(CreateAcademicYearDto dto);
 
     /// <summary>
+    /// 年度を更新
+    /// </summary>
+    /// <param name="nurseryId">保育園ID</param>
+    /// <param name="year">年度</param>
+    /// <param name="dto">更新リクエスト</param>
+    /// <returns>更新された年度情報</returns>
+    Task<AcademicYearDto> UpdateAcademicYearAsync(int nurseryId, int year, CreateAcademicYearDto dto);
+
+    /// <summary>
     /// 年度スライドのプレビューを取得
     /// </summary>
     /// <param name="nurseryId">保育園ID</param>

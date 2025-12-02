@@ -97,6 +97,28 @@ export const academicYearService = {
   },
 
   /**
+   * 年度を更新
+   */
+  async updateAcademicYear(nurseryId: number, year: number, request: CreateAcademicYearRequest): Promise<AcademicYear> {
+    if (isDemoMode()) {
+      // デモモード: モックデータを更新
+      const existingIndex = mockAcademicYears.findIndex(y => y.year === year);
+      if (existingIndex >= 0) {
+        mockAcademicYears[existingIndex] = {
+          ...mockAcademicYears[existingIndex],
+          startDate: request.startDate,
+          endDate: request.endDate,
+          notes: request.notes,
+        };
+        return Promise.resolve(mockAcademicYears[existingIndex]);
+      }
+      throw new Error(`年度 ${year} が見つかりません。`);
+    }
+    const response = await apiClient.put<AcademicYear>(`${API_BASE_URL}/${nurseryId}/${year}`, request);
+    return response.data;
+  },
+
+  /**
    * 年度スライドのプレビューを取得
    */
   async getYearSlidePreview(nurseryId: number, targetYear: number): Promise<YearSlidePreview> {

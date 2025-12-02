@@ -1,30 +1,116 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../desktop/components/layout/DashboardLayout';
 import { academicYearService } from '../../services/academicYearService';
 import type { CreateAcademicYearRequest } from '../../types/academicYear';
 
 /**
- * 新規年度作成フォーム
+ * 年度作成・編集フォーム
+ * 未来年度は1世代のみ作成可能。既に存在する場合は編集モードになる
  */
 export default function AcademicYearCreate() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // TODO: 実際のnurseryIdはユーザーコンテキストから取得
   const nurseryId = 1;
 
   const [formData, setFormData] = useState({
-    year: new Date().getFullYear() + 1, // デフォルトは翌年度
+    year: 0, // 初期化時に設定
     startDate: '',
     endDate: '',
     isFuture: true,
     notes: '',
   });
 
+  useEffect(() => {
+    loadYearData();
+  }, []);
+
+  const loadYearData = async () => {
+    try {
+      setInitialLoading(true);
+
+      // 現在年度を取得
+      const currentYear = await academicYearService.getCurrentYear(nurseryId);
+
+      if (!currentYear) {
+        setError('現在年度が設定されていません。先に現在年度を作成してください。');
+        setInitialLoading(false);
+        return;
+      }
+
+      // 全年度を取得して未来年度をチェック
+      const allYears = await academicYearService.getAcademicYears(nurseryId);
+      const futureYears = allYears.filter(y => y.isFuture);
+
+      if (futureYears.length > 0) {
+        // 既に未来年度が存在する場合は編集モード
+        const existingYear = futureYears[0];
+        setIsEditMode(true);
+
+        setFormData({
+          year: existingYear.year,
+          startDate: existingYear.startDate || '',
+          endDate: existingYear.endDate || '',
+          isFuture: true,
+          notes: existingYear.notes || '',
+        });
+      } else {
+        // 未来年度が存在しない場合は新規作成モード
+        setIsEditMode(false);
+
+        // 現在年度+1を新年度とする
+        const newYear = currentYear.year + 1;
+
+        // 現在年度の終了日+1日を開始日とする
+        let defaultStartDate = '';
+        if (currentYear.endDate) {
+          const endDate = new Date(currentYear.endDate);
+          endDate.setDate(endDate.getDate() + 1);
+          defaultStartDate = endDate.toISOString().split('T')[0];
+        } else {
+          // 終了日がない場合は翌年4月1日
+          defaultStartDate = `${newYear}-04-01`;
+        }
+
+        setFormData({
+          year: newYear,
+          startDate: defaultStartDate,
+          endDate: '', // 終了日は未設定
+          isFuture: true,
+          notes: '',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load year data:', err);
+      setError('年度情報の取得に失敗しました');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // バリデーション
+    if (!formData.startDate) {
+      setError('開始日を入力してください');
+      return;
+    }
+    if (!formData.endDate) {
+      setError('終了日を入力してください');
+      return;
+    }
+
+    // 開始日が終了日より後でないかチェック
+    if (formData.startDate >= formData.endDate) {
+      setError('開始日は終了日より前である必要があります');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -33,19 +119,18 @@ export default function AcademicYearCreate() {
       const request: CreateAcademicYearRequest = {
         nurseryId,
         year: formData.year,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
         isFuture: formData.isFuture,
         notes: formData.notes || undefined,
       };
 
-      // 日付が指定されている場合のみ送信
-      if (formData.startDate) {
-        request.startDate = formData.startDate;
+      // 編集モードか新規作成モードかで分岐
+      if (isEditMode) {
+        await academicYearService.updateAcademicYear(nurseryId, formData.year, request);
+      } else {
+        await academicYearService.createAcademicYear(request);
       }
-      if (formData.endDate) {
-        request.endDate = formData.endDate;
-      }
-
-      await academicYearService.createAcademicYear(request);
 
       // 成功したら一覧画面に戻る
       navigate('/desktop/academic-years');
@@ -53,9 +138,9 @@ export default function AcademicYearCreate() {
       if (err.response?.data?.error) {
         setError(err.response.data.error);
       } else {
-        setError('年度の作成に失敗しました');
+        setError(isEditMode ? '年度の更新に失敗しました' : '年度の作成に失敗しました');
       }
-      console.error('Failed to create academic year:', err);
+      console.error('Failed to create/update academic year:', err);
     } finally {
       setLoading(false);
     }
@@ -65,13 +150,27 @@ export default function AcademicYearCreate() {
     navigate('/desktop/academic-years');
   };
 
+  if (initialLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center items-center h-96">
+          <div className="text-gray-600">読み込み中...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">新規年度作成</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {isEditMode ? '未来年度の編集' : '新規年度作成'}
+          </h1>
           <p className="text-sm text-gray-600">
-            新しい年度を作成します。通常は翌年度を未来年度として作成します。
+            {isEditMode
+              ? '既存の未来年度を編集します。未来年度は1世代のみ作成可能です。'
+              : '新しい年度を作成します。年度は現在年度+1に自動設定されます。'}
           </p>
         </div>
 
@@ -81,77 +180,65 @@ export default function AcademicYearCreate() {
           </div>
         )}
 
+        {isEditMode && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              未来年度が既に存在します。このフォームで編集できます。
+            </p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200 p-6">
           {/* 年度 */}
           <div className="mb-6">
             <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
-              年度 <span className="text-red-500">*</span>
+              年度
             </label>
             <input
-              type="number"
+              type="text"
               id="year"
-              required
-              min={2000}
-              max={2100}
-              value={formData.year}
-              onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="2025"
+              value={`${formData.year}年度`}
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm cursor-not-allowed"
             />
             <p className="mt-1 text-xs text-gray-500">
-              例: 2025（2025年度 = 2025年4月〜2026年3月）
+              {isEditMode ? '年度は変更できません' : '現在年度+1が自動的に設定されます'}
             </p>
           </div>
 
           {/* 開始日 */}
           <div className="mb-6">
             <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-              開始日（任意）
+              開始日 <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               id="startDate"
+              required
               value={formData.startDate}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
             <p className="mt-1 text-xs text-gray-500">
-              未指定の場合は自動的に4月1日に設定されます
+              {isEditMode ? '開始日を変更できます' : '現在年度の終了日+1日がデフォルトで設定されます'}
             </p>
           </div>
 
           {/* 終了日 */}
           <div className="mb-6">
             <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
-              終了日（任意）
+              終了日 <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               id="endDate"
+              required
               value={formData.endDate}
               onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
             <p className="mt-1 text-xs text-gray-500">
-              未指定の場合は自動的に翌年3月31日に設定されます
-            </p>
-          </div>
-
-          {/* 未来年度フラグ */}
-          <div className="mb-6">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.isFuture}
-                onChange={(e) => setFormData({ ...formData, isFuture: e.target.checked })}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                未来年度として作成（次年度準備用）
-              </span>
-            </label>
-            <p className="mt-1 ml-6 text-xs text-gray-500">
-              年度スライド実行時に、未来年度が現在年度に切り替わります
+              年度の終了日を入力してください
             </p>
           </div>
 
@@ -181,7 +268,7 @@ export default function AcademicYearCreate() {
               disabled={loading}
               className="flex-1 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm rounded-md hover:from-blue-600 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md font-medium"
             >
-              {loading ? '作成中...' : '作成'}
+              {loading ? (isEditMode ? '更新中...' : '作成中...') : (isEditMode ? '更新' : '作成')}
             </button>
             <button
               type="button"
@@ -200,11 +287,11 @@ export default function AcademicYearCreate() {
           <ul className="space-y-1 text-xs text-yellow-800">
             <li className="flex items-start">
               <span className="mr-2">•</span>
-              <span>一度作成した年度は削除できません</span>
+              <span>未来年度は1世代のみ作成可能です</span>
             </li>
             <li className="flex items-start">
               <span className="mr-2">•</span>
-              <span>同じ年度を重複して作成することはできません</span>
+              <span>一度作成した年度は削除できません</span>
             </li>
             <li className="flex items-start">
               <span className="mr-2">•</span>

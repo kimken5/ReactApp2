@@ -925,7 +925,6 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.ClassId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsCurrent).HasDefaultValue(false);
                 entity.Property(e => e.IsFuture).HasDefaultValue(false);
-                entity.Property(e => e.Notes).HasMaxLength(200);
                 entity.Property(e => e.AssignedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             });

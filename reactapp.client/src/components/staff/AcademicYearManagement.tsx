@@ -143,29 +143,12 @@ export default function AcademicYearManagement() {
         <h2 className="text-base font-semibold text-gray-800 mb-4">翌年度担任設定</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
-            onClick={() => {
-              // TODO: クラス別担任割り当て画面へ遷移
-              alert('クラス別担任割り当て機能は今後実装予定です');
-            }}
+            onClick={() => navigate('/desktop/staff-class-assignment')}
             className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200 text-left"
           >
-            <h3 className="text-base font-semibold text-gray-800 mb-2">クラス別担任割り当て</h3>
+            <h3 className="text-base font-semibold text-gray-800 mb-2">クラス別担任割り当てと役割設定</h3>
             <p className="text-xs text-gray-600 mb-4">
-              翌年度の各クラスに担任を割り当てます
-            </p>
-            <div className="text-xs text-blue-600 font-medium">設定画面へ →</div>
-          </button>
-
-          <button
-            onClick={() => {
-              // TODO: 役割設定画面へ遷移
-              alert('役割設定機能は今後実装予定です');
-            }}
-            className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200 text-left"
-          >
-            <h3 className="text-base font-semibold text-gray-800 mb-2">役割設定（主担任/副担任）</h3>
-            <p className="text-xs text-gray-600 mb-4">
-              担任の役割（主担任・副担任）を設定します
+              各クラスに担任を割り当て、役割（主担任・副担任）を設定します
             </p>
             <div className="text-xs text-blue-600 font-medium">設定画面へ →</div>
           </button>

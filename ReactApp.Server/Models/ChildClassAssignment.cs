@@ -67,13 +67,6 @@ public class ChildClassAssignment
     public int? AssignedByUserId { get; set; }
 
     /// <summary>
-    /// 備考（任意）
-    /// 最大200文字
-    /// </summary>
-    [MaxLength(200)]
-    public string? Notes { get; set; }
-
-    /// <summary>
     /// 作成日時（必須）
     /// </summary>
     [Required]

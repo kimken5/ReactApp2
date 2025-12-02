@@ -119,9 +119,12 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
                     && a.IsCurrent)
                 .FirstOrDefaultAsync();
 
-            var currentClass = currentAssignment != null
+            // ChildClassAssignmentが存在すればそれを使用、なければChild.ClassIdをフォールバック
+            var currentClassId = currentAssignment?.ClassId ?? child.ClassId;
+
+            var currentClass = !string.IsNullOrEmpty(currentClassId)
                 ? await _context.Classes
-                    .Where(c => c.NurseryId == nurseryId && c.ClassId == currentAssignment.ClassId)
+                    .Where(c => c.NurseryId == nurseryId && c.ClassId == currentClassId)
                     .FirstOrDefaultAsync()
                 : null;
 
@@ -144,7 +147,7 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
                 ChildId = child.ChildId,
                 ChildName = child.Name,
                 Age = DateTime.Now.Year - child.DateOfBirth.Year,
-                CurrentClassId = currentAssignment?.ClassId ?? "",
+                CurrentClassId = currentClassId ?? "",
                 CurrentClassName = currentClass?.Name ?? "未割り当て",
                 FutureClassId = futureAssignment?.ClassId,
                 FutureClassName = futureClass?.Name,
@@ -174,7 +177,6 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
         {
             // 更新
             existing.ClassId = request.ClassId;
-            existing.Notes = request.Notes;
             existing.UpdatedAt = DateTime.UtcNow;
             _context.ChildClassAssignments.Update(existing);
         }
@@ -191,7 +193,6 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
                 IsFuture = true,
                 AssignedAt = DateTime.UtcNow,
                 AssignedByUserId = userId,
-                Notes = request.Notes,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -219,8 +220,7 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
             ClassName = classInfo?.Name ?? "",
             IsCurrent = existing.IsCurrent,
             IsFuture = existing.IsFuture,
-            AssignedAt = existing.AssignedAt,
-            Notes = existing.Notes
+            AssignedAt = existing.AssignedAt
         };
     }
 

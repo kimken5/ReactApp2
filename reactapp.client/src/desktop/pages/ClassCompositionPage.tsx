@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
+import { staffClassAssignmentService } from '../../services/staffClassAssignmentService';
+import { academicYearService } from '../../services/academicYearService';
 import type { ClassDto, StaffDto, ChildDto, AssignedStaffDto, AssignedChildDto } from '../types/master';
+import { AssignmentRoles, AssignmentRoleLabels } from '../../types/staffClassAssignment';
 
 /**
  * クラス構成管理ページ
@@ -28,6 +31,11 @@ export function ClassCompositionPage() {
   const [childSearchQuery, setChildSearchQuery] = useState('');
   const [showChildSuggestions, setShowChildSuggestions] = useState(false);
 
+  // 役割管理用状態
+  const [currentAcademicYear, setCurrentAcademicYear] = useState<number>(new Date().getFullYear());
+  const [staffRoles, setStaffRoles] = useState<Map<number, string>>(new Map());
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+
   // 初期データ読み込み
   useEffect(() => {
     if (classId) {
@@ -38,6 +46,13 @@ export function ClassCompositionPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
+
+      // 現在の年度を取得
+      const years = await academicYearService.getAcademicYears(1); // nurseryId = 1
+      const currentYear = years.find(y => y.isCurrent);
+      if (currentYear) {
+        setCurrentAcademicYear(currentYear.year);
+      }
 
       // クラス情報、クラス構成、全職員、全園児を並列取得
       const [classInfo, composition, staffList, childrenList] = await Promise.all([
@@ -83,6 +98,28 @@ export function ClassCompositionPage() {
 
       setAssignedStaff(assignedStaffData);
       setAssignedChildren(assignedChildrenData);
+
+      // 現在年度のスタッフ役割割り当てを取得
+      if (currentYear && classInfo) {
+        try {
+          const assignments = await staffClassAssignmentService.getClassStaffAssignments(
+            classInfo.nurseryId,
+            currentYear.year
+          );
+          const classAssignment = assignments.find(a => a.classId === classId);
+          if (classAssignment) {
+            const roleMap = new Map<number, string>();
+            classAssignment.assignedStaff.forEach(staff => {
+              if (staff.assignmentRole) {
+                roleMap.set(staff.staffId, staff.assignmentRole);
+              }
+            });
+            setStaffRoles(roleMap);
+          }
+        } catch (error) {
+          console.warn('スタッフ役割の取得に失敗しました:', error);
+        }
+      }
 
     } catch (error) {
       console.error('データの取得に失敗しました:', error);
@@ -141,6 +178,44 @@ export function ClassCompositionPage() {
       const furigana = child.furigana || '';
       return name.toLowerCase().includes(query) || furigana.toLowerCase().includes(query);
     }).slice(0, 10);
+  };
+
+  // 役割を変更（ドロップダウンから直接）
+  const handleRoleChange = async (staffId: number, newRole: string) => {
+    if (!classData) return;
+
+    try {
+      setIsUpdatingRole(true);
+      setErrors({});
+
+      const roleValue = newRole === '' ? undefined : newRole;
+
+      await staffClassAssignmentService.updateAssignmentRole(
+        classData.nurseryId,
+        currentAcademicYear,
+        staffId,
+        classId!,
+        { assignmentRole: roleValue, notes: undefined }
+      );
+
+      // ローカル状態を更新
+      const newRoleMap = new Map(staffRoles);
+      if (roleValue) {
+        newRoleMap.set(staffId, roleValue);
+      } else {
+        newRoleMap.delete(staffId);
+      }
+      setStaffRoles(newRoleMap);
+
+      setSuccessMessage('役割を更新しました');
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+    } catch (error) {
+      console.error('役割の更新に失敗しました:', error);
+      setErrors({ general: '役割の更新に失敗しました' });
+    } finally {
+      setIsUpdatingRole(false);
+    }
   };
 
   // 保存処理
@@ -299,24 +374,49 @@ export function ClassCompositionPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {assignedStaff.map((staff) => (
-                    <div
-                      key={staff.staffId}
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-white hover:bg-gray-50 transition"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{staff.name}</div>
-                        <div className="text-sm text-gray-600">{staff.position || '職位未設定'}</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveStaff(staff.staffId)}
-                        className="ml-4 px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition border border-red-200"
+                  {assignedStaff.map((staff) => {
+                    const role = staffRoles.get(staff.staffId);
+                    return (
+                      <div
+                        key={staff.staffId}
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-white hover:bg-gray-50 transition"
                       >
-                        削除
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 mb-1">{staff.name}</div>
+                          <div className="text-sm text-gray-600">{staff.position || '職位未設定'}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={role || ''}
+                            onChange={(e) => handleRoleChange(staff.staffId, e.target.value)}
+                            disabled={isUpdatingRole}
+                            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="">なし</option>
+                            <option value={AssignmentRoles.MainTeacher}>
+                              {AssignmentRoleLabels[AssignmentRoles.MainTeacher]}
+                            </option>
+                            <option value={AssignmentRoles.AssistantTeacher}>
+                              {AssignmentRoleLabels[AssignmentRoles.AssistantTeacher]}
+                            </option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveStaff(staff.staffId)}
+                            className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
+                            title="削除"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              削除
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -459,6 +559,7 @@ export function ClassCompositionPage() {
             )}
           </button>
         </div>
+
       </div>
     </DashboardLayout>
   );

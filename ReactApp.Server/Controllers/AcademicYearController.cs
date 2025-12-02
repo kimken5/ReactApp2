@@ -149,6 +149,52 @@ public class AcademicYearController : ControllerBase
     }
 
     /// <summary>
+    /// 年度を更新
+    /// </summary>
+    /// <param name="nurseryId">保育園ID</param>
+    /// <param name="year">年度</param>
+    /// <param name="dto">更新リクエスト</param>
+    /// <returns>更新された年度情報</returns>
+    [HttpPut("{nurseryId}/{year}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AcademicYearDto>> UpdateAcademicYear(
+        int nurseryId,
+        int year,
+        [FromBody] CreateAcademicYearDto dto)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var updatedYear = await _academicYearService.UpdateAcademicYearAsync(nurseryId, year, dto);
+            return Ok(updatedYear);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "年度更新失敗（Not Found）: NurseryId={NurseryId}, Year={Year}",
+                nurseryId, year);
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "年度更新失敗（不正な引数）: NurseryId={NurseryId}, Year={Year}",
+                nurseryId, year);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "年度更新エラー: NurseryId={NurseryId}, Year={Year}",
+                nurseryId, year);
+            return StatusCode(500, new { error = "年度の更新に失敗しました。" });
+        }
+    }
+
+    /// <summary>
     /// 年度スライドのプレビューを取得
     /// </summary>
     /// <param name="nurseryId">保育園ID</param>

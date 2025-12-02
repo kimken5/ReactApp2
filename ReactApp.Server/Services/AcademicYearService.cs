@@ -86,6 +86,41 @@ public class AcademicYearService : IAcademicYearService
         return MapToDto(academicYear);
     }
 
+    public async Task<AcademicYearDto> UpdateAcademicYearAsync(int nurseryId, int year, CreateAcademicYearDto dto)
+    {
+        // 既存の年度を取得
+        var existingYear = await _context.AcademicYears
+            .FirstOrDefaultAsync(y => y.NurseryId == nurseryId && y.Year == year);
+
+        if (existingYear == null)
+        {
+            throw new InvalidOperationException($"年度 {year} が見つかりません。");
+        }
+
+        // 開始日・終了日の設定
+        var startDate = dto.StartDate ?? new DateOnly(dto.Year, 4, 1);
+        var endDate = dto.EndDate ?? new DateOnly(dto.Year + 1, 3, 31);
+
+        // 日付の妥当性チェック
+        if (endDate <= startDate)
+        {
+            throw new ArgumentException("終了日は開始日より後である必要があります。");
+        }
+
+        // 更新
+        existingYear.StartDate = startDate;
+        existingYear.EndDate = endDate;
+        existingYear.IsFuture = dto.IsFuture;
+        existingYear.Notes = dto.Notes;
+        existingYear.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("年度 {Year} を保育園 {NurseryId} で更新しました。", year, nurseryId);
+
+        return MapToDto(existingYear);
+    }
+
     public async Task<YearSlidePreviewDto> GetYearSlidePreviewAsync(int nurseryId, int targetYear)
     {
         // 現在年度を取得
@@ -320,7 +355,6 @@ public class AcademicYearService : IAcademicYearService
             IsFuture = false,
             AssignedAt = DateTime.UtcNow,
             AssignedByUserId = executedByUserId,
-            Notes = $"年度スライドにより {currentYear} から移行",
             CreatedAt = DateTime.UtcNow
         }).ToList();
 
