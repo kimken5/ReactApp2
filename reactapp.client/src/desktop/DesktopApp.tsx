@@ -24,6 +24,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { AnnouncementsPage } from './pages/AnnouncementsPage';
 import { AnnouncementFormPage } from './pages/AnnouncementFormPage';
 import { AttendancePage } from './pages/AttendancePage';
+import AttendanceReportPage from './pages/AttendanceReportPage';
 import AcademicYearManagement from '../components/staff/AcademicYearManagement';
 import AcademicYearCreate from '../components/staff/AcademicYearCreate';
 import YearSlideExecution from '../components/staff/YearSlideExecution';
@@ -299,6 +300,14 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <AttendancePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/attendance/report"
+        element={
+          <ProtectedRoute>
+            <AttendanceReportPage />
           </ProtectedRoute>
         }
       />

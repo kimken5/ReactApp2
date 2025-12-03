@@ -68,26 +68,13 @@ export function LoginPage() {
         <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           <div className="px-10 pt-10 pb-8">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-full bg-gradient-to-r from-orange-500 to-yellow-500">
-                <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 100 100">
-                  <defs>
-                    <mask id="buildingMask">
-                      <polygon points="50,25 15,50 85,50" fill="white" />
-                      <rect x="15" y="50" width="70" height="35" fill="white" />
-                      <rect x="23" y="58" width="10" height="10" fill="black" rx="1"/>
-                      <rect x="38" y="58" width="10" height="10" fill="black" rx="1"/>
-                      <rect x="52" y="58" width="10" height="10" fill="black" rx="1"/>
-                      <rect x="67" y="58" width="10" height="10" fill="black" rx="1"/>
-                      <rect x="42" y="72" width="16" height="13" fill="black" rx="1"/>
-                      <rect x="60" y="20" width="6" height="8" fill="white"/>
-                    </mask>
-                  </defs>
-                  <g mask="url(#buildingMask)">
-                    <polygon points="50,25 15,50 85,50" />
-                    <rect x="15" y="50" width="70" height="35" />
-                    <rect x="60" y="20" width="6" height="8"/>
-                  </g>
-                </svg>
+              <div className="inline-flex items-center justify-center mb-6">
+                <img
+                  src="/img/top_illust.jpg"
+                  alt="保育園管理システム"
+                  className="w-28 h-28 object-cover rounded-full"
+                  style={{ boxShadow: '0 4px 6px -1px rgba(156, 163, 175, 0.4), 0 2px 4px -2px rgba(156, 163, 175, 0.4)' }}
+                />
               </div>
             </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { attendanceService } from '../services/attendanceService';
 import { masterService } from '../services/masterService';
@@ -15,6 +15,7 @@ interface ChildAttendanceGrid {
 
 export function AttendancePage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // URLパラメータからclassIdとdateを取得
   const urlClassId = searchParams.get('classId');
@@ -455,7 +456,18 @@ export function AttendancePage() {
         {/* 統計情報（最新日のみ） */}
         {latestDayStats && (
           <div className="bg-white p-6 rounded-md shadow-md border border-gray-200">
-            <div className="text-sm text-gray-600 mb-2">最新日（{formatDate(selectedDate)}）の統計</div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm text-gray-600">最新日（{formatDate(selectedDate)}）の統計</div>
+              <button
+                onClick={() => navigate('/desktop/attendance/report')}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                詳細レポート
+              </button>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <div className="text-3xl font-bold text-gray-900">

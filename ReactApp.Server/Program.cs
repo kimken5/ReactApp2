@@ -266,6 +266,9 @@ builder.Services.AddScoped<IAcademicYearService, AcademicYearService>();
 builder.Services.AddScoped<IChildClassAssignmentService, ChildClassAssignmentService>();
 builder.Services.AddScoped<IStaffClassAssignmentService, StaffClassAssignmentService>();
 
+// Attendance Statistics Service
+builder.Services.AddScoped<IAttendanceStatisticsService, AttendanceStatisticsService>();
+
 // Database Seeding Service (Development only)
 builder.Services.AddScoped<DatabaseSeeder>();
 
