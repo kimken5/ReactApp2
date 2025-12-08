@@ -1,0 +1,168 @@
+/**
+ * 却下処理モーダル
+ */
+
+import React, { useState, useEffect } from 'react';
+import { rejectApplication } from '../../../services/desktopApplicationService';
+
+interface Props {
+  applicationId: number;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export function RejectApplicationModal({ applicationId, onClose, onSuccess }: Props) {
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleReject = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // バリデーション
+    if (!rejectionReason.trim()) {
+      setError('却下理由を入力してください。');
+      return;
+    }
+
+    if (rejectionReason.length > 500) {
+      setError('却下理由は500文字以内で入力してください。');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await rejectApplication(applicationId, {
+        rejectionReason: rejectionReason.trim(),
+      });
+
+      alert('申込を却下しました。');
+      onSuccess();
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('却下処理に失敗しました。');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Escキーで閉じる
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose, isSubmitting]);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={isSubmitting ? undefined : onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="reject-modal-title"
+      >
+        <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
+          <h2 id="reject-modal-title" className="text-2xl font-bold text-gray-900">
+            申込却下
+          </h2>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="text-gray-400 hover:text-gray-600 text-2xl font-bold disabled:cursor-not-allowed"
+            aria-label="閉じる"
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleReject}>
+          <div className="p-6">
+            {error && (
+              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-600">{error}</p>
+              </div>
+            )}
+
+            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                ⚠️ この申込を却下します。却下後は元に戻すことができません。
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="rejection-reason" className="block text-sm font-medium text-gray-700 mb-1">
+                却下理由 <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="rejection-reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="却下理由を入力してください（必須、500文字以内）"
+                disabled={isSubmitting}
+                maxLength={500}
+                rows={6}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                aria-required="true"
+                aria-invalid={!!error}
+              />
+              <p className="mt-1 text-sm text-gray-500 text-right">
+                {rejectionReason.length} / 500 文字
+              </p>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-2">却下後の処理</h3>
+              <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                <li>申込のステータスが「却下済み」に変更されます</li>
+                <li>却下理由が記録されます</li>
+                <li>再度インポートすることはできません</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* ボタンエリア */}
+          <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-gray-300 text-gray-700 font-medium rounded hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed"
+            >
+              キャンセル
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-red-600 text-white font-medium rounded hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  却下処理中...
+                </span>
+              ) : (
+                '却下実行'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

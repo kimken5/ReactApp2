@@ -30,6 +30,7 @@ import AcademicYearCreate from '../components/staff/AcademicYearCreate';
 import YearSlideExecution from '../components/staff/YearSlideExecution';
 import ChildClassAssignment from '../components/staff/ChildClassAssignment';
 import StaffClassAssignment from '../components/staff/StaffClassAssignment';
+import { ApplicationsPage } from './pages/ApplicationsPage';
 
 /**
  * デスクトップアプリ用ルーター
@@ -376,6 +377,16 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <AnnouncementFormPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 入園申込管理 */}
+      <Route
+        path="/applications"
+        element={
+          <ProtectedRoute>
+            <ApplicationsPage />
           </ProtectedRoute>
         }
       />
