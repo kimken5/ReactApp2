@@ -3,6 +3,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // デスクトップアプリ
 import { DesktopApp } from './desktop/DesktopApp';
 
+// 保護者向け入園申込フォーム
+import { ApplicationKeyInput } from './pages/application/ApplicationKeyInput';
+import { ApplicationForm } from './pages/application/ApplicationForm';
+import { ApplicationConfirm } from './pages/application/ApplicationConfirm';
+import { ApplicationComplete } from './pages/application/ApplicationComplete';
+
 function App() {
     return (
         <Router>
@@ -10,9 +16,22 @@ function App() {
                 {/* デスクトップアプリ */}
                 <Route path="/desktop/*" element={<DesktopApp />} />
 
+                {/* 保護者向け入園申込フォーム */}
+                <Route path="/application" element={<ApplicationKeyInput />} />
+                <Route path="/application/form" element={<ApplicationForm />} />
+                <Route path="/application/confirm" element={<ApplicationConfirm />} />
+                <Route path="/application/complete" element={<ApplicationComplete />} />
+
                 <Route path="/" element={
                     <div style={{padding: '20px', maxWidth: '800px', margin: '0 auto'}}>
-                        <h1 style={{color: '#333', marginBottom: '30px'}}>保育園アプリ - デスクトップ管理画面</h1>
+                        <h1 style={{color: '#333', marginBottom: '30px'}}>保育園アプリ</h1>
+
+                        <div style={{marginBottom: '30px'}}>
+                            <h2 style={{color: '#666', borderBottom: '2px solid #10b981', paddingBottom: '10px'}}>👶 保護者向け</h2>
+                            <ul style={{listStyle: 'none', padding: 0}}>
+                                <li style={{margin: '10px 0'}}><a href="/application" style={{color: '#10b981', textDecoration: 'none', fontSize: '16px', fontWeight: 'bold'}}>📝 入園申込フォーム</a></li>
+                            </ul>
+                        </div>
 
                         <div style={{marginBottom: '30px'}}>
                             <h2 style={{color: '#666', borderBottom: '2px solid #e0e0e0', paddingBottom: '10px'}}>💻 デスクトップ管理画面</h2>
