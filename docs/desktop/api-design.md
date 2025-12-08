@@ -2455,7 +2455,316 @@ GET /api/desktop/children?page=1&pageSize=50
 
 ---
 
-## 11. フィルタリング・ソート
+## 11. 入園申込管理API
+
+### 11.1 申込キー検証（保護者向け）
+
+申込フォームアクセス時のApplicationKey検証。
+
+**エンドポイント**: `POST /api/application/validate-key`
+
+**リクエスト**:
+```json
+{
+  "applicationKey": "string"   // 申込キー (必須)
+}
+```
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "isValid": true,
+    "nurseryName": "さくら保育園",
+    "nurseryId": 1
+  }
+}
+```
+
+**エラーレスポンス**:
+- `400 Bad Request`: ApplicationKeyが不正
+- `404 Not Found`: 該当する保育園が存在しない
+
+**ビジネスルール**:
+- BR-APP-001: ApplicationKeyは必須
+- BR-APP-002: Nurseriesテーブルに存在するApplicationKeyのみ有効
+
+---
+
+### 11.2 入園申込送信（保護者向け）
+
+保護者が入園申込情報を送信。
+
+**エンドポイント**: `POST /api/application/submit?key={applicationKey}`
+
+**クエリパラメータ**:
+- `key`: ApplicationKey (必須)
+
+**リクエスト**:
+```json
+{
+  "applicantName": "山田太郎",
+  "applicantNameKana": "ヤマダタロウ",
+  "dateOfBirth": "1990-05-15",
+  "postalCode": "1500001",
+  "prefecture": "東京都",
+  "city": "渋谷区",
+  "addressLine": "神宮前1-2-3 マンション101",
+  "mobilePhone": "09012345678",
+  "homePhone": "0312345678",
+  "emergencyContact": "09087654321",
+  "email": "yamada@example.com",
+  "relationshipToChild": "父",
+  "childName": "山田花子",
+  "childNameKana": "ヤマダハナコ",
+  "childDateOfBirth": "2022-04-01",
+  "childGender": "女",
+  "childBloodType": "A",
+  "childMedicalNotes": "アレルギー: 卵",
+  "childSpecialInstructions": "午睡時は必ず仰向けで"
+}
+```
+
+**レスポンス (201 Created)**:
+```json
+{
+  "success": true,
+  "data": {
+    "applicationId": 123,
+    "message": "入園申込を受け付けました。保育園からの連絡をお待ちください。"
+  }
+}
+```
+
+**エラーレスポンス**:
+- `400 Bad Request`: リクエストデータが不正
+- `404 Not Found`: ApplicationKeyが無効
+- `429 Too Many Requests`: レート制限超過（10件/時間/IP）
+
+**バリデーション**:
+- 必須項目: applicantName, applicantNameKana, dateOfBirth, mobilePhone, relationshipToChild, childName, childNameKana, childDateOfBirth, childGender
+- mobilePhone: 10-11桁の数字（ハイフンは自動除去）
+- email: メールアドレス形式
+- postalCode: 7桁の数字
+- dateOfBirth/childDateOfBirth: 有効な日付
+
+**ビジネスルール**:
+- BR-APP-003: ApplicationStatus は "Pending" で保存
+- BR-APP-004: CreatedAt は現在時刻（UTC）
+- BR-APP-005: 携帯電話番号は正規化（ハイフン除去）して保存
+
+---
+
+### 11.3 入園申込一覧取得（デスクトップ）
+
+**エンドポイント**: `GET /api/desktop/application`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**クエリパラメータ**:
+- `status`: ApplicationStatus ("Pending" | "Imported" | "Rejected") (オプション)
+- `startDate`: 申込開始日 (YYYY-MM-DD) (オプション)
+- `endDate`: 申込終了日 (YYYY-MM-DD) (オプション)
+- `page`: ページ番号 (デフォルト: 1)
+- `pageSize`: 1ページあたりの件数 (デフォルト: 20, 最大: 100)
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": 123,
+        "applicantName": "山田太郎",
+        "childName": "山田花子",
+        "mobilePhone": "09012345678",
+        "applicationStatus": "Pending",
+        "createdAt": "2025-12-08T10:30:00Z",
+        "importedAt": null
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "pageSize": 20,
+      "totalItems": 45,
+      "totalPages": 3
+    }
+  }
+}
+```
+
+**ビジネスルール**:
+- 保育園IDでフィルタリング（JWTトークンから取得）
+- デフォルトソート: CreatedAt降順（最新順）
+
+---
+
+### 11.4 入園申込詳細取得（デスクトップ）
+
+**エンドポイント**: `GET /api/desktop/application/{id}`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**パスパラメータ**:
+- `id`: 申込ID (必須)
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "nurseryId": 1,
+    "applicantName": "山田太郎",
+    "applicantNameKana": "ヤマダタロウ",
+    "dateOfBirth": "1990-05-15",
+    "postalCode": "1500001",
+    "prefecture": "東京都",
+    "city": "渋谷区",
+    "addressLine": "神宮前1-2-3 マンション101",
+    "mobilePhone": "09012345678",
+    "homePhone": "0312345678",
+    "emergencyContact": "09087654321",
+    "email": "yamada@example.com",
+    "relationshipToChild": "父",
+    "childName": "山田花子",
+    "childNameKana": "ヤマダハナコ",
+    "childDateOfBirth": "2022-04-01",
+    "childGender": "女",
+    "childBloodType": "A",
+    "childMedicalNotes": "アレルギー: 卵",
+    "childSpecialInstructions": "午睡時は必ず仰向けで",
+    "applicationStatus": "Pending",
+    "isImported": false,
+    "importedAt": null,
+    "importedByUserId": null,
+    "createdAt": "2025-12-08T10:30:00Z",
+    "updatedAt": null,
+    "rejectionReason": null,
+    "duplicateParentInfo": {
+      "hasDuplicate": true,
+      "existingParentId": "P001",
+      "existingParentName": "山田太郎",
+      "childCount": 2
+    }
+  }
+}
+```
+
+**エラーレスポンス**:
+- `404 Not Found`: 申込が存在しない、または別の保育園の申込
+
+**ビジネスルール**:
+- 保育園IDでアクセス制限（自園の申込のみ閲覧可能）
+- duplicateParentInfo: 携帯電話番号が一致する保護者が存在する場合に情報を返す
+
+---
+
+### 11.5 入園申込取込（デスクトップ）
+
+申込情報を園児マスタ・保護者マスタに取り込む。
+
+**エンドポイント**: `POST /api/desktop/application/{id}/import`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**パスパラメータ**:
+- `id`: 申込ID (必須)
+
+**リクエスト**:
+```json
+{
+  "overwriteParent": true   // 保護者情報を上書きするか（重複時）
+}
+```
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "parentId": "P001",
+    "childId": "C003",
+    "isNewParent": false,
+    "isNewChild": true,
+    "message": "入園申込を取り込みました。"
+  }
+}
+```
+
+**エラーレスポンス**:
+- `400 Bad Request`: 既に取り込み済み
+- `404 Not Found`: 申込が存在しない
+- `409 Conflict`: トランザクション失敗
+
+**ビジネスルール**:
+- BR-APPM-001: IsImported=true の申込は再取込不可
+- BR-APPM-002: 携帯電話番号で保護者マスタを検索（正規化後の値で比較）
+- BR-APPM-003: 保護者マスタ一致時
+  - overwriteParent=true: 保護者マスタ更新
+  - overwriteParent=false: 保護者マスタそのまま
+- BR-APPM-004: 園児マスタは常に新規作成
+- BR-APPM-005: 園児ID・保護者IDは MAX+1 で採番
+- BR-APPM-006: ParentChildRelationshipを自動作成
+- BR-APPM-007: ApplicationWork更新（ApplicationStatus="Imported", IsImported=true, ImportedAt=現在時刻, ImportedByUserId=ログインユーザー）
+- BR-APPM-008: トランザクション管理（Parent/Child/Relationship/ApplicationWork を1トランザクションで処理）
+
+**処理フロー**:
+```
+1. ApplicationWork取得・検証（Pending状態確認）
+2. 携帯電話番号正規化
+3. 保護者マスタ検索（携帯電話番号一致）
+4. トランザクション開始
+   4-1. 保護者マスタ更新 or 新規作成
+   4-2. 園児マスタ新規作成
+   4-3. ParentChildRelationship作成
+   4-4. ApplicationWork更新（Imported）
+5. トランザクションコミット
+6. 成功レスポンス返却
+```
+
+---
+
+### 11.6 入園申込却下（デスクトップ）
+
+**エンドポイント**: `POST /api/desktop/application/{id}/reject`
+
+**ヘッダー**: `Authorization: Bearer {accessToken}`
+
+**パスパラメータ**:
+- `id`: 申込ID (必須)
+
+**リクエスト**:
+```json
+{
+  "rejectionReason": "定員に達したため"
+}
+```
+
+**レスポンス (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "入園申込を却下しました。"
+  }
+}
+```
+
+**エラーレスポンス**:
+- `400 Bad Request`: 既に取り込み済み、または却下済み
+- `404 Not Found`: 申込が存在しない
+
+**ビジネスルール**:
+- BR-APPM-009: IsImported=true の申込は却下不可
+- BR-APPM-010: ApplicationStatus="Rejected", RejectionReason=理由, UpdatedAt=現在時刻 で更新
+- BR-APPM-011: 却下理由は必須（1-500文字）
+
+---
+
+## 12. フィルタリング・ソート
 
 ### フィルタリング
 
@@ -2507,6 +2816,7 @@ APIバージョンはURLパスで管理:
 | バージョン | 日付 | 変更内容 |
 |-----------|------|----------|
 | 1.0.0 | 2025-10-24 | 初版作成 |
+| 1.1.0 | 2025-12-08 | セクション11「入園申込管理API」追加 (保護者向けWeb申込、デスクトップ取込API) |
 
 ---
 

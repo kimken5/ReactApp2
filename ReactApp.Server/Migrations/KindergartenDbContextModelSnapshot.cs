@@ -92,7 +92,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NurseryId", "ChildId", "Ymd")
                         .HasDatabaseName("IX_AbsenceNotifications_Child_Date_Status");
 
-                    b.ToTable("AbsenceNotifications");
+                    b.ToTable("AbsenceNotifications", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.AbsenceNotificationResponse", b =>
@@ -139,7 +139,7 @@ namespace ReactApp.Server.Migrations
 
                     b.HasIndex("NurseryId", "StaffId");
 
-                    b.ToTable("AbsenceNotificationResponses");
+                    b.ToTable("AbsenceNotificationResponses", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.AcademicYear", b =>
@@ -196,7 +196,7 @@ namespace ReactApp.Server.Migrations
                         .HasDatabaseName("IX_AcademicYears_Nursery_Future")
                         .HasFilter("[IsFuture] = 1");
 
-                    b.ToTable("AcademicYears");
+                    b.ToTable("AcademicYears", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.Announcement", b =>
@@ -305,7 +305,7 @@ namespace ReactApp.Server.Migrations
                         .HasDatabaseName("IX_Announcements_Staff_Status_Created")
                         .HasFilter("[IsActive] = 1");
 
-                    b.ToTable("Announcements");
+                    b.ToTable("Announcements", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.AuditLog", b =>
@@ -375,7 +375,7 @@ namespace ReactApp.Server.Migrations
                         .IsDescending(false, true)
                         .HasDatabaseName("IX_AuditLogs_Nursery_Timestamp");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.AzureNotificationLog", b =>
@@ -437,7 +437,7 @@ namespace ReactApp.Server.Migrations
 
                     b.HasIndex("SentAt");
 
-                    b.ToTable("AzureNotificationLogs");
+                    b.ToTable("AzureNotificationLogs", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.Child", b =>
@@ -523,7 +523,7 @@ namespace ReactApp.Server.Migrations
                         .HasDatabaseName("IX_Children_Nursery_Active_Name")
                         .HasFilter("[IsActive] = 1");
 
-                    b.ToTable("Children");
+                    b.ToTable("Children", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.ChildClassAssignment", b =>
@@ -585,7 +585,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NurseryId", "ClassId", "AcademicYear")
                         .HasDatabaseName("IX_ChildClassAssignments_Class_Year");
 
-                    b.ToTable("ChildClassAssignments");
+                    b.ToTable("ChildClassAssignments", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.Class", b =>
@@ -635,7 +635,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NurseryId", "Name")
                         .HasDatabaseName("IX_Classes_Nursery_Name");
 
-                    b.ToTable("Classes");
+                    b.ToTable("Classes", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.DailyAttendance", b =>
@@ -713,7 +713,7 @@ namespace ReactApp.Server.Migrations
                         .IsDescending(false, false, true)
                         .HasDatabaseName("IX_DailyAttendances_Child_Date");
 
-                    b.ToTable("DailyAttendances");
+                    b.ToTable("DailyAttendances", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.DailyReport", b =>
@@ -803,7 +803,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NurseryId", "ChildId", "ReportDate", "Status")
                         .HasDatabaseName("IX_DailyReports_Child_Date_Status");
 
-                    b.ToTable("DailyReports");
+                    b.ToTable("DailyReports", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.DailyReportResponse", b =>
@@ -843,7 +843,7 @@ namespace ReactApp.Server.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("DailyReportResponses");
+                    b.ToTable("DailyReportResponses", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.DeviceRegistration", b =>
@@ -921,7 +921,7 @@ namespace ReactApp.Server.Migrations
 
                     b.HasIndex("IsActive", "LastLoginAt");
 
-                    b.ToTable("DeviceRegistrations");
+                    b.ToTable("DeviceRegistrations", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.Event", b =>
@@ -1100,7 +1100,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NurseryId", "ChildId", "ParentId")
                         .IsUnique();
 
-                    b.ToTable("FamilyMembers");
+                    b.ToTable("FamilyMembers", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.NotificationLog", b =>
@@ -1186,7 +1186,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("RelatedEntityType", "RelatedEntityId", "CreatedAt")
                         .HasDatabaseName("IX_NotificationLogs_Entity_Created");
 
-                    b.ToTable("NotificationLogs");
+                    b.ToTable("NotificationLogs", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.NotificationSettings", b =>
@@ -1258,7 +1258,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("ParentId")
                         .IsUnique();
 
-                    b.ToTable("NotificationSettings");
+                    b.ToTable("NotificationSettings", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.NotificationTemplate", b =>
@@ -1307,7 +1307,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NotificationType", "Platform")
                         .IsUnique();
 
-                    b.ToTable("NotificationTemplates");
+                    b.ToTable("NotificationTemplates", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.Nursery", b =>
@@ -1391,7 +1391,7 @@ namespace ReactApp.Server.Migrations
                         .IsUnique()
                         .HasDatabaseName("UK_Nurseries_PhoneNumber");
 
-                    b.ToTable("Nurseries");
+                    b.ToTable("Nurseries", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.Parent", b =>
@@ -1479,7 +1479,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("PhoneNumber", "IsActive", "Id", "Name", "Email", "LastLoginAt")
                         .HasDatabaseName("IX_Parents_PhoneNumber_Active_Children");
 
-                    b.ToTable("Parents");
+                    b.ToTable("Parents", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.ParentChildRelationship", b =>
@@ -1537,7 +1537,7 @@ namespace ReactApp.Server.Migrations
                         .HasDatabaseName("IX_ParentChild_Parent_Active")
                         .HasFilter("[IsActive] = 1");
 
-                    b.ToTable("ParentChildRelationships");
+                    b.ToTable("ParentChildRelationships", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.Photo", b =>
@@ -1660,7 +1660,7 @@ namespace ReactApp.Server.Migrations
                         .HasDatabaseName("IX_Photos_Visibility_Status_Published")
                         .HasFilter("[Status] = 'published'");
 
-                    b.ToTable("Photos");
+                    b.ToTable("Photos", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.PhotoAccess", b =>
@@ -1714,7 +1714,7 @@ namespace ReactApp.Server.Migrations
 
                     b.HasIndex("PhotoId");
 
-                    b.ToTable("PhotoAccesses");
+                    b.ToTable("PhotoAccesses", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.PhotoChild", b =>
@@ -1753,7 +1753,7 @@ namespace ReactApp.Server.Migrations
 
                     b.HasIndex("NurseryId", "ChildId");
 
-                    b.ToTable("PhotoChildren");
+                    b.ToTable("PhotoChildren", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.PhotoConsent", b =>
@@ -1816,7 +1816,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("PhotoId", "NurseryId", "ChildId", "ParentId")
                         .IsUnique();
 
-                    b.ToTable("PhotoConsents");
+                    b.ToTable("PhotoConsents", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.PromotionHistory", b =>
@@ -1877,7 +1877,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NurseryId", "ToAcademicYear")
                         .HasDatabaseName("IX_PromotionHistory_AcademicYear");
 
-                    b.ToTable("PromotionHistories");
+                    b.ToTable("PromotionHistories", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.RefreshToken", b =>
@@ -1956,7 +1956,7 @@ namespace ReactApp.Server.Migrations
                         .HasDatabaseName("IX_RefreshTokens_Staff_Expires_Revoked")
                         .HasFilter("[IsRevoked] = 0");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.SmsAuthentication", b =>
@@ -2043,7 +2043,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("PhoneNumber", "ParentId", "StaffId", "CreatedAt")
                         .HasDatabaseName("IX_SmsAuth_Phone_Parent_Staff");
 
-                    b.ToTable("SmsAuthentications");
+                    b.ToTable("SmsAuthentications", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.Staff", b =>
@@ -2118,7 +2118,7 @@ namespace ReactApp.Server.Migrations
                         .HasDatabaseName("IX_Staff_Role_Active")
                         .HasFilter("[IsActive] = 1");
 
-                    b.ToTable("Staff");
+                    b.ToTable("Staff", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.StaffClassAssignment", b =>
@@ -2191,7 +2191,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("NurseryId", "StaffId", "AcademicYear")
                         .HasDatabaseName("IX_StaffClassAssignments_Staff_Year");
 
-                    b.ToTable("StaffClassAssignments");
+                    b.ToTable("StaffClassAssignments", (string)null);
                 });
 
             modelBuilder.Entity("ReactApp.Server.Models.UserRolePreference", b =>
@@ -2231,7 +2231,7 @@ namespace ReactApp.Server.Migrations
                     b.HasIndex("PhoneNumber", "UpdatedAt")
                         .HasDatabaseName("IX_UserRolePreferences_PhoneNumber_Updated");
 
-                    b.ToTable("UserRolePreferences", t =>
+                    b.ToTable("UserRolePreferences", null, t =>
                         {
                             t.HasCheckConstraint("CK_UserRolePreference_PreferredRole", "[PreferredRole] IN ('Parent', 'Staff')");
                         });

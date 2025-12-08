@@ -55,6 +55,7 @@ namespace ReactApp.Server.Data
         public DbSet<PromotionHistory> PromotionHistories { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<DailyAttendance> DailyAttendances { get; set; }
+        public DbSet<ApplicationWork> ApplicationWorks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -431,6 +432,7 @@ namespace ReactApp.Server.Data
             ConfigurePromotionHistory(modelBuilder);
             ConfigureAuditLog(modelBuilder);
             ConfigureDailyAttendance(modelBuilder);
+            ConfigureApplicationWork(modelBuilder);
         }
 
         private void ConfigureNursery(ModelBuilder modelBuilder)
@@ -1020,6 +1022,59 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.RecordedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
+            });
+        }
+
+        private void ConfigureApplicationWork(ModelBuilder modelBuilder)
+        {
+            // ApplicationWork configuration
+            modelBuilder.Entity<ApplicationWork>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // パフォーマンス最適化インデックス
+                entity.HasIndex(e => e.NurseryId)
+                    .HasDatabaseName("IX_ApplicationWork_NurseryId");
+
+                entity.HasIndex(e => e.MobilePhone)
+                    .HasDatabaseName("IX_ApplicationWork_MobilePhone");
+
+                entity.HasIndex(e => e.ApplicationStatus)
+                    .HasDatabaseName("IX_ApplicationWork_ApplicationStatus");
+
+                entity.HasIndex(e => e.IsImported)
+                    .HasDatabaseName("IX_ApplicationWork_IsImported");
+
+                entity.HasIndex(e => e.CreatedAt)
+                    .HasDatabaseName("IX_ApplicationWork_CreatedAt")
+                    .IsDescending(true);
+
+                // カラム設定
+                entity.Property(e => e.ApplicantName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.ApplicantNameKana).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.DateOfBirth).IsRequired();
+                entity.Property(e => e.PostalCode).HasMaxLength(8);
+                entity.Property(e => e.Prefecture).HasMaxLength(10);
+                entity.Property(e => e.City).HasMaxLength(50);
+                entity.Property(e => e.AddressLine).HasMaxLength(200);
+                entity.Property(e => e.MobilePhone).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.HomePhone).HasMaxLength(20);
+                entity.Property(e => e.EmergencyContact).HasMaxLength(20);
+                entity.Property(e => e.Email).HasMaxLength(255);
+                entity.Property(e => e.RelationshipToChild).IsRequired().HasMaxLength(20);
+
+                entity.Property(e => e.ChildName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.ChildNameKana).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.ChildDateOfBirth).IsRequired();
+                entity.Property(e => e.ChildGender).IsRequired().HasMaxLength(2);
+                entity.Property(e => e.ChildBloodType).HasMaxLength(10);
+                entity.Property(e => e.ChildMedicalNotes).HasMaxLength(1000);
+                entity.Property(e => e.ChildSpecialInstructions).HasMaxLength(1000);
+
+                entity.Property(e => e.ApplicationStatus).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
+                entity.Property(e => e.IsImported).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.RejectionReason).HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             });
         }
     }

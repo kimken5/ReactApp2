@@ -117,9 +117,16 @@ public class Nursery
     public DateTime? LockedUntil { get; set; }
 
     /// <summary>
-    /// 現在の年度（必須）
+    /// 現在の年度(必須)
     /// デフォルト: 現在の西暦年度
     /// </summary>
     [Required]
     public int CurrentAcademicYear { get; set; } = DateTime.UtcNow.Year;
+
+    /// <summary>
+    /// 入園申込キー(任意、最大255文字)
+    /// 保護者向けWeb申込フォームのアクセスキー(UUID形式)
+    /// </summary>
+    [StringLength(255)]
+    public string? ApplicationKey { get; set; }
 }

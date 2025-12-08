@@ -757,6 +757,127 @@ public class DailyAttendance
 }
 ```
 
+### 7.5 ApplicationWork.cs
+
+**追加日**: 2025-12-08
+**目的**: 入園申込ワークテーブル（保護者Web申込からデスクトップアプリ取込までの一時保管）
+
+```sql
+CREATE TABLE [dbo].[ApplicationWork] (
+    [Id] INT IDENTITY(1,1) NOT NULL,
+    [NurseryId] INT NOT NULL,
+
+    -- 申請保護者情報
+    [ApplicantName] NVARCHAR(100) NOT NULL,
+    [ApplicantNameKana] NVARCHAR(100) NOT NULL,
+    [DateOfBirth] DATE NOT NULL,
+    [PostalCode] NVARCHAR(8),
+    [Prefecture] NVARCHAR(10),
+    [City] NVARCHAR(50),
+    [AddressLine] NVARCHAR(200),
+    [MobilePhone] NVARCHAR(20) NOT NULL,
+    [HomePhone] NVARCHAR(20),
+    [EmergencyContact] NVARCHAR(20),
+    [Email] NVARCHAR(255),
+    [RelationshipToChild] NVARCHAR(20) NOT NULL,
+
+    -- 園児情報
+    [ChildName] NVARCHAR(100) NOT NULL,
+    [ChildNameKana] NVARCHAR(100) NOT NULL,
+    [ChildDateOfBirth] DATE NOT NULL,
+    [ChildGender] NVARCHAR(2) NOT NULL,
+    [ChildBloodType] NVARCHAR(10),
+    [ChildMedicalNotes] NVARCHAR(1000),
+    [ChildSpecialInstructions] NVARCHAR(1000),
+
+    -- 申込管理情報
+    [ApplicationStatus] NVARCHAR(20) DEFAULT 'Pending' NOT NULL,
+    [IsImported] BIT DEFAULT 0 NOT NULL,
+    [ImportedAt] DATETIME2,
+    [ImportedByUserId] INT,
+    [CreatedAt] DATETIME2 DEFAULT GETUTCDATE() NOT NULL,
+    [UpdatedAt] DATETIME2,
+    [RejectionReason] NVARCHAR(500),
+
+    CONSTRAINT [PK_ApplicationWork] PRIMARY KEY ([Id])
+)
+GO
+
+-- インデックス
+CREATE INDEX [IX_ApplicationWork_NurseryId] ON [dbo].[ApplicationWork]([NurseryId])
+CREATE INDEX [IX_ApplicationWork_MobilePhone] ON [dbo].[ApplicationWork]([MobilePhone])
+CREATE INDEX [IX_ApplicationWork_ApplicationStatus] ON [dbo].[ApplicationWork]([ApplicationStatus])
+CREATE INDEX [IX_ApplicationWork_IsImported] ON [dbo].[ApplicationWork]([IsImported])
+CREATE INDEX [IX_ApplicationWork_CreatedAt] ON [dbo].[ApplicationWork]([CreatedAt])
+```
+
+**C# モデルクラス**:
+```csharp
+public class ApplicationWork
+{
+    public int Id { get; set; }
+    public int NurseryId { get; set; }
+
+    // 申請保護者情報
+    public string ApplicantName { get; set; } = string.Empty;
+    public string ApplicantNameKana { get; set; } = string.Empty;
+    public DateTime DateOfBirth { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Prefecture { get; set; }
+    public string? City { get; set; }
+    public string? AddressLine { get; set; }
+    public string MobilePhone { get; set; } = string.Empty;
+    public string? HomePhone { get; set; }
+    public string? EmergencyContact { get; set; }
+    public string? Email { get; set; }
+    public string RelationshipToChild { get; set; } = string.Empty;
+
+    // 園児情報
+    public string ChildName { get; set; } = string.Empty;
+    public string ChildNameKana { get; set; } = string.Empty;
+    public DateTime ChildDateOfBirth { get; set; }
+    public string ChildGender { get; set; } = string.Empty;
+    public string? ChildBloodType { get; set; }
+    public string? ChildMedicalNotes { get; set; }
+    public string? ChildSpecialInstructions { get; set; }
+
+    // 申込管理情報
+    public string ApplicationStatus { get; set; } = "Pending";  // Pending/Imported/Rejected
+    public bool IsImported { get; set; } = false;
+    public DateTime? ImportedAt { get; set; }
+    public int? ImportedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string? RejectionReason { get; set; }
+}
+```
+
+**カラム説明**:
+- `Id`: 申込ID（自動採番）
+- `NurseryId`: 保育園ID（Nurseriesテーブルとの関連、外部キー制約なし）
+- `ApplicantName` ~ `RelationshipToChild`: 申請保護者の情報（15項目）
+- `ChildName` ~ `ChildSpecialInstructions`: 園児情報（7項目）
+- `ApplicationStatus`: 申込状態（Pending: 受付済み、Imported: 取込完了、Rejected: 却下）
+- `IsImported`: 取込済みフラグ（trueの場合は再取込不可）
+- `ImportedAt`: 取込日時（取込実行時に設定）
+- `ImportedByUserId`: 取込実行者ID（Nurseries.Idを想定）
+- `CreatedAt`: 申込受付日時（保護者が送信した日時）
+- `UpdatedAt`: 更新日時（却下時などに設定）
+- `RejectionReason`: 却下理由（却下時のみ）
+
+**ビジネスルール**:
+- ApplicationStatusは "Pending" → "Imported" または "Rejected" への一方向遷移のみ
+- IsImported=true のレコードは削除不可（監査目的で永続保存）
+- MobilePhoneは正規化（ハイフン除去）後の値で保存
+- 取込時に保護者マスタの重複チェック（MobilePhoneで照合）を実施
+
+**関連テーブル**:
+- Nurseries: ApplicationKeyによる保育園特定
+- Parents: 取込時に携帯電話番号で重複チェック
+- Children: 取込時に新規作成
+
+---
+
 ## 8. まとめ
 
 ### 8.1 追加項目のサマリー（承認済み）
@@ -785,8 +906,9 @@ public class DailyAttendance
 | PromotionHistory | 進級履歴の記録 |
 | AuditLogs | 操作ログ、セキュリティ監査 |
 | DailyAttendances | 日次出欠状況の記録・管理 |
+| ApplicationWork | 入園申込ワークテーブル（保護者Web申込の一時保管） *(2025-12-08追加)* |
 
-**合計: 5テーブル(新規作成)**
+**合計: 6テーブル(新規作成)**
 
 **設計方針の変更**: 
 - **AttendanceStatisticsテーブルは不要**: 出席統計はDailyAttendancesテーブルから直接リアルタイムで計算します

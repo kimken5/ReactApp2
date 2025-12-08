@@ -205,6 +205,15 @@ builder.Services.AddRateLimiter(options =>
         config.QueueLimit = 5;
     });
 
+    // Application Submit Rate Limiting (入園申込送信)
+    options.AddFixedWindowLimiter("application-submit", config =>
+    {
+        config.PermitLimit = 10;
+        config.Window = TimeSpan.FromHours(1);
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 2;
+    });
+
     options.OnRejected = async (context, token) =>
     {
         context.HttpContext.Response.StatusCode = 429;
@@ -268,6 +277,9 @@ builder.Services.AddScoped<IStaffClassAssignmentService, StaffClassAssignmentSer
 
 // Attendance Statistics Service
 builder.Services.AddScoped<IAttendanceStatisticsService, AttendanceStatisticsService>();
+
+// Application Service (入園申込サービス)
+builder.Services.AddScoped<IApplicationService, ApplicationService>();
 
 // Database Seeding Service (Development only)
 builder.Services.AddScoped<DatabaseSeeder>();
