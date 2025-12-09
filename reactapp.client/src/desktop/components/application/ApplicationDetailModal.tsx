@@ -11,6 +11,39 @@ import {
   APPLICATION_STATUS_ICONS,
 } from '../../../types/desktopApplication';
 
+/**
+ * 続柄の英語値を日本語に変換するマッピング
+ */
+const RELATIONSHIP_LABEL_MAP: Record<string, string> = {
+  'Father': '父',
+  'Mother': '母',
+  'Grandfather': '祖父',
+  'Grandmother': '祖母',
+  'Other': 'その他',
+};
+
+/**
+ * 続柄を日本語に変換する関数
+ */
+function formatRelationship(relationship: string): string {
+  return RELATIONSHIP_LABEL_MAP[relationship] || relationship;
+}
+
+/**
+ * 性別の英語値を日本語に変換するマッピング
+ */
+const GENDER_LABEL_MAP: Record<string, string> = {
+  'M': '男',
+  'F': '女',
+};
+
+/**
+ * 性別を日本語に変換する関数
+ */
+function formatGender(gender: string): string {
+  return GENDER_LABEL_MAP[gender] || gender;
+}
+
 interface Props {
   applicationId: number;
   onClose: () => void;
@@ -87,34 +120,35 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
   const isPending = application.applicationStatus === 'Pending';
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
+    <>
+      {/* Overlay */}
       <div
-        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-labelledby="modal-title"
-        aria-describedby="modal-description"
-      >
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <h2 id="modal-title" className="text-2xl font-bold text-gray-900">
-            申込詳細 (ID: {application.id})
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-            aria-label="閉じる"
-          >
-            ×
-          </button>
-        </div>
+        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-800">
+              申込詳細
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
         <div className="p-6">
           {/* ステータス */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">ステータス</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">ステータス</h3>
             <div className="flex items-center gap-4">
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${APPLICATION_STATUS_COLORS[application.applicationStatus]}`}>
                 <span className="mr-1">{APPLICATION_STATUS_ICONS[application.applicationStatus]}</span>
@@ -148,7 +182,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
           {/* 重複保護者情報 */}
           {application.duplicateParentInfo && application.duplicateParentInfo.hasDuplicate && (
             <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-orange-900 mb-2">
+              <h3 className="text-lg font-semibold text-orange-800 mb-2">
                 ⚠️ 重複保護者情報
               </h3>
               <p className="text-sm text-orange-800">
@@ -173,7 +207,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
 
           {/* 申請保護者情報 */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 pb-2 border-b-2 border-blue-500">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">
               申請保護者情報
             </h3>
             <dl className="grid grid-cols-2 gap-4">
@@ -193,7 +227,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">続柄</dt>
-                <dd className="mt-1 text-base text-gray-900">{application.relationshipToChild}</dd>
+                <dd className="mt-1 text-base text-gray-900">{formatRelationship(application.relationshipToChild)}</dd>
               </div>
               {application.postalCode && (
                 <div>
@@ -229,12 +263,6 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
                   <dd className="mt-1 text-base text-gray-900">{application.homePhone}</dd>
                 </div>
               )}
-              {application.emergencyContact && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">緊急連絡先</dt>
-                  <dd className="mt-1 text-base text-gray-900">{application.emergencyContact}</dd>
-                </div>
-              )}
               {application.email && (
                 <div className="col-span-2">
                   <dt className="text-sm font-medium text-gray-500">メールアドレス</dt>
@@ -246,7 +274,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
 
           {/* 園児情報 */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 pb-2 border-b-2 border-green-500">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">
               園児情報
             </h3>
             <dl className="grid grid-cols-2 gap-4">
@@ -266,7 +294,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">性別</dt>
-                <dd className="mt-1 text-base text-gray-900">{application.childGender}</dd>
+                <dd className="mt-1 text-base text-gray-900">{formatGender(application.childGender)}</dd>
               </div>
               {application.childBloodType && (
                 <div>
@@ -294,18 +322,18 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
           </div>
         </div>
 
-        {/* ボタンエリア */}
-        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t flex justify-end gap-3">
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end space-x-3">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-300 text-gray-700 font-medium rounded hover:bg-gray-400"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition"
           >
             閉じる
           </button>
           {isPending && onImport && (
             <button
               onClick={onImport}
-              className="px-6 py-2 bg-green-600 text-white font-medium rounded hover:bg-green-700"
+              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-sm"
             >
               インポート
             </button>
@@ -313,13 +341,14 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
           {isPending && onReject && (
             <button
               onClick={onReject}
-              className="px-6 py-2 bg-red-600 text-white font-medium rounded hover:bg-red-700"
+              className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition shadow-sm"
             >
               却下
             </button>
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

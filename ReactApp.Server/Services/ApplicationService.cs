@@ -89,7 +89,6 @@ namespace ReactApp.Server.Services
                     AddressLine = request.AddressLine,
                     MobilePhone = normalizedMobilePhone,
                     HomePhone = request.HomePhone != null ? NormalizePhoneNumber(request.HomePhone) : null,
-                    EmergencyContact = request.EmergencyContact != null ? NormalizePhoneNumber(request.EmergencyContact) : null,
                     Email = request.Email,
                     RelationshipToChild = request.RelationshipToChild,
                     ChildName = request.ChildName,
@@ -162,21 +161,34 @@ namespace ReactApp.Server.Services
                     .OrderByDescending(a => a.CreatedAt)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Select(a => new ApplicationListItemDto
-                    {
-                        Id = a.Id,
-                        ApplicantName = a.ApplicantName,
-                        ChildName = a.ChildName,
-                        MobilePhone = a.MobilePhone,
-                        ApplicationStatus = a.ApplicationStatus,
-                        CreatedAt = a.CreatedAt,
-                        ImportedAt = a.ImportedAt
-                    })
                     .ToListAsync();
+
+                // 重複保護者チェック用：携帯電話番号リスト
+                var mobilePhones = applications.Select(a => a.MobilePhone).Distinct().ToList();
+                var duplicatePhones = await _context.Parents
+                    .Where(p => p.NurseryId == nurseryId && mobilePhones.Contains(p.PhoneNumber) && p.IsActive)
+                    .Select(p => p.PhoneNumber)
+                    .Distinct()
+                    .ToListAsync();
+
+                // DTO変換
+                var applicationDtos = applications.Select(a => new ApplicationListItemDto
+                {
+                    Id = a.Id,
+                    ApplicantName = a.ApplicantName,
+                    ChildName = a.ChildName,
+                    ChildDateOfBirth = a.ChildDateOfBirth,
+                    RelationshipToChild = a.RelationshipToChild,
+                    MobilePhone = a.MobilePhone,
+                    ApplicationStatus = a.ApplicationStatus,
+                    CreatedAt = a.CreatedAt,
+                    ImportedAt = a.ImportedAt,
+                    HasDuplicateParent = duplicatePhones.Contains(a.MobilePhone)
+                }).ToList();
 
                 return new PaginatedResult<ApplicationListItemDto>
                 {
-                    Items = applications,
+                    Items = applicationDtos,
                     TotalCount = totalItems,
                     CurrentPage = page,
                     PageSize = pageSize
@@ -221,7 +233,6 @@ namespace ReactApp.Server.Services
                     AddressLine = application.AddressLine,
                     MobilePhone = application.MobilePhone,
                     HomePhone = application.HomePhone,
-                    EmergencyContact = application.EmergencyContact,
                     Email = application.Email,
                     RelationshipToChild = application.RelationshipToChild,
                     ChildName = application.ChildName,

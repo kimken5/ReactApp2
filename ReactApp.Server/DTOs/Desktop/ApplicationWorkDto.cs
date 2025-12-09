@@ -20,7 +20,6 @@ namespace ReactApp.Server.DTOs.Desktop
         public string? AddressLine { get; set; }
         public string MobilePhone { get; set; } = string.Empty;
         public string? HomePhone { get; set; }
-        public string? EmergencyContact { get; set; }
         public string? Email { get; set; }
         public string RelationshipToChild { get; set; } = string.Empty;
 
@@ -81,10 +80,13 @@ namespace ReactApp.Server.DTOs.Desktop
         public int Id { get; set; }
         public string ApplicantName { get; set; } = string.Empty;
         public string ChildName { get; set; } = string.Empty;
+        public DateTime ChildDateOfBirth { get; set; }
+        public string RelationshipToChild { get; set; } = string.Empty;
         public string MobilePhone { get; set; } = string.Empty;
         public string ApplicationStatus { get; set; } = "Pending";
         public DateTime CreatedAt { get; set; }
         public DateTime? ImportedAt { get; set; }
+        public bool HasDuplicateParent { get; set; }
     }
 
     /// <summary>
@@ -124,10 +126,6 @@ namespace ReactApp.Server.DTOs.Desktop
         [StringLength(20, ErrorMessage = "電話番号（固定）は20文字以内で入力してください")]
         [Phone(ErrorMessage = "有効な電話番号を入力してください")]
         public string? HomePhone { get; set; }
-
-        [StringLength(20, ErrorMessage = "緊急連絡先は20文字以内で入力してください")]
-        [Phone(ErrorMessage = "有効な電話番号を入力してください")]
-        public string? EmergencyContact { get; set; }
 
         [StringLength(255, ErrorMessage = "メールアドレスは255文字以内で入力してください")]
         [EmailAddress(ErrorMessage = "有効なメールアドレスを入力してください")]

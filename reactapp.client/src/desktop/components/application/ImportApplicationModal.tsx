@@ -9,6 +9,39 @@ import {
 } from '../../../services/desktopApplicationService';
 import type { ApplicationWorkDto } from '../../../types/desktopApplication';
 
+/**
+ * 続柄の英語値を日本語に変換するマッピング
+ */
+const RELATIONSHIP_LABEL_MAP: Record<string, string> = {
+  'Father': '父',
+  'Mother': '母',
+  'Grandfather': '祖父',
+  'Grandmother': '祖母',
+  'Other': 'その他',
+};
+
+/**
+ * 性別の英語値を日本語に変換するマッピング
+ */
+const GENDER_LABEL_MAP: Record<string, string> = {
+  'M': '男',
+  'F': '女',
+};
+
+/**
+ * 続柄を日本語に変換する関数
+ */
+function formatRelationship(relationship: string): string {
+  return RELATIONSHIP_LABEL_MAP[relationship] || relationship;
+}
+
+/**
+ * 性別を日本語に変換する関数
+ */
+function formatGender(gender: string): string {
+  return GENDER_LABEL_MAP[gender] || gender;
+}
+
 interface Props {
   applicationId: number;
   onClose: () => void;
@@ -125,29 +158,31 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
     application.duplicateParentInfo && application.duplicateParentInfo.hasDuplicate;
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={isSubmitting ? undefined : onClose}
-    >
+    <>
+      {/* Overlay */}
       <div
-        className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-labelledby="import-modal-title"
-      >
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <h2 id="import-modal-title" className="text-2xl font-bold text-gray-900">
-            申込インポート確認
-          </h2>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-600 text-2xl font-bold disabled:cursor-not-allowed"
-            aria-label="閉じる"
-          >
-            ×
-          </button>
-        </div>
+        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        onClick={isSubmitting ? undefined : onClose}
+      />
+
+      {/* Modal */}
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-800">
+              申込インポート確認
+            </h2>
+            <button
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition disabled:cursor-not-allowed"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
         <div className="p-6">
           {error && (
@@ -163,7 +198,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
           {/* 重複保護者の選択 */}
           {hasDuplicate && (
             <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-orange-900 mb-3">
+              <h3 className="text-lg font-semibold text-orange-800 mb-3">
                 ⚠️ 重複保護者が見つかりました
               </h3>
               <p className="text-sm text-orange-800 mb-4">
@@ -216,7 +251,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
 
           {/* インポート内容プレビュー */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">インポート内容</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">インポート内容</h3>
 
             {/* 保護者 */}
             <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -238,7 +273,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
                 </div>
                 <div>
                   <dt className="text-gray-600">続柄:</dt>
-                  <dd className="font-medium">{application.relationshipToChild}</dd>
+                  <dd className="font-medium">{formatRelationship(application.relationshipToChild)}</dd>
                 </div>
               </dl>
             </div>
@@ -263,7 +298,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
                 </div>
                 <div>
                   <dt className="text-gray-600">性別:</dt>
-                  <dd className="font-medium">{application.childGender}</dd>
+                  <dd className="font-medium">{formatGender(application.childGender)}</dd>
                 </div>
               </dl>
             </div>
@@ -276,34 +311,31 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
           </div>
         </div>
 
-        {/* ボタンエリア */}
-        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t flex justify-end gap-3">
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end space-x-3">
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-6 py-2 bg-gray-300 text-gray-700 font-medium rounded hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             キャンセル
           </button>
           <button
             onClick={handleImport}
             disabled={isSubmitting}
-            className="px-6 py-2 bg-green-600 text-white font-medium rounded hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
-            {isSubmitting ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                インポート中...
-              </span>
-            ) : (
-              'インポート実行'
+            {isSubmitting && (
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
             )}
+            <span>{isSubmitting ? 'インポート中...' : 'インポート実行'}</span>
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

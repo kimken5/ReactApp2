@@ -34,7 +34,6 @@ export interface ApplicationWorkDto {
   addressLine?: string;
   mobilePhone: string;
   homePhone?: string;
-  emergencyContact?: string;
   email?: string;
   relationshipToChild: string;
 
@@ -70,6 +69,7 @@ export interface ApplicationListItemDto {
   id: number;
   applicantName: string;
   childName: string;
+  childDateOfBirth: string;
   relationshipToChild: string;
   mobilePhone: string;
   applicationStatus: ApplicationStatus;

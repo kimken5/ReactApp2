@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { getApplicationList } from '../../services/desktopApplicationService';
 import type {
   ApplicationListItemDto,
@@ -18,6 +19,80 @@ import {
 import { ApplicationDetailModal } from '../components/application/ApplicationDetailModal';
 import { ImportApplicationModal } from '../components/application/ImportApplicationModal';
 import { RejectApplicationModal } from '../components/application/RejectApplicationModal';
+
+/**
+ * 年齢を計算する関数
+ * @param birthDate 生年月日（ISO形式文字列）
+ * @returns "X歳Yか月" 形式の文字列
+ */
+function calculateAge(birthDate: string): string {
+  if (!birthDate) return '';
+
+  const birth = new Date(birthDate);
+  const today = new Date();
+
+  // 無効な日付の場合
+  if (isNaN(birth.getTime())) {
+    return '';
+  }
+
+  let years = today.getFullYear() - birth.getFullYear();
+  let months = today.getMonth() - birth.getMonth();
+
+  // 日にちも考慮して月数を調整
+  if (today.getDate() < birth.getDate()) {
+    months--;
+  }
+
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+
+  return `${years}歳${months}か月`;
+}
+
+/**
+ * 生年月日をフォーマットする関数
+ * @param birthDate 生年月日（ISO形式文字列）
+ * @returns "YYYY/MM/DD" 形式の文字列
+ */
+function formatBirthDate(birthDate: string): string {
+  if (!birthDate) return '';
+
+  const date = new Date(birthDate);
+
+  // 無効な日付の場合
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}/${month}/${day}`;
+}
+
+/**
+ * 続柄の英語値を日本語に変換するマッピング
+ */
+const RELATIONSHIP_LABEL_MAP: Record<string, string> = {
+  'Father': '父',
+  'Mother': '母',
+  'Grandfather': '祖父',
+  'Grandmother': '祖母',
+  'Other': 'その他',
+};
+
+/**
+ * 続柄を日本語に変換する関数
+ * @param relationship 続柄（英語値）
+ * @returns 日本語の続柄
+ */
+function formatRelationship(relationship: string): string {
+  return RELATIONSHIP_LABEL_MAP[relationship] || relationship;
+}
 
 export function ApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationListItemDto[]>([]);
@@ -53,9 +128,10 @@ export function ApplicationsPage() {
       };
 
       const result = await getApplicationList(params);
-      setApplications(result.items);
+      setApplications(result.items || []);
       setPagination(result);
     } catch (err) {
+      setApplications([]);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -125,16 +201,16 @@ export function ApplicationsPage() {
   };
 
   return (
-    <div className="p-6">
+    <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">入園申込管理</h1>
+        <h1 className="text-2xl font-bold text-gray-800">入園申込管理</h1>
         <p className="mt-1 text-sm text-gray-600">
           保護者からの入園申込を確認し、インポートまたは却下します。
         </p>
       </div>
 
       {/* フィルター・検索 */}
-      <div className="mb-6 bg-white shadow rounded-lg p-4">
+      <div className="mb-6 bg-white shadow-sm rounded-md border border-gray-200 p-4">
         <form onSubmit={handleSearch} className="flex gap-4 items-end">
           <div className="flex-1">
             <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
@@ -172,22 +248,22 @@ export function ApplicationsPage() {
 
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
           >
-            🔍 検索
+            検索
           </button>
         </form>
       </div>
 
       {/* エラー表示 */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
           <p className="text-red-600">{error}</p>
         </div>
       )}
 
       {/* テーブル */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow-sm rounded-md border border-gray-200 overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-gray-500">読み込み中...</div>
         ) : applications.length === 0 ? (
@@ -198,9 +274,6 @@ export function ApplicationsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ステータス
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -208,6 +281,9 @@ export function ApplicationsPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     園児名
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    生年月日
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     続柄
@@ -229,9 +305,6 @@ export function ApplicationsPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {applications.map((app) => (
                   <tr key={app.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {app.id}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={app.applicationStatus} />
                     </td>
@@ -239,10 +312,13 @@ export function ApplicationsPage() {
                       {app.applicantName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {app.childName}
+                      {app.childName}（{calculateAge(app.childDateOfBirth)}）
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {app.relationshipToChild}
+                      {formatBirthDate(app.childDateOfBirth)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatRelationship(app.relationshipToChild)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {app.mobilePhone}
@@ -257,29 +333,55 @@ export function ApplicationsPage() {
                         <span className="text-gray-400">なし</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button
-                        onClick={() => handleShowDetail(app.id)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        詳細
-                      </button>
-                      {app.applicationStatus === 'Pending' && (
-                        <>
-                          <button
-                            onClick={() => handleShowImport(app.id)}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            インポート
-                          </button>
-                          <button
-                            onClick={() => handleShowReject(app.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            却下
-                          </button>
-                        </>
-                      )}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex gap-1">
+                        {/* 詳細ボタン */}
+                        <button
+                          onClick={() => handleShowDetail(app.id)}
+                          className="relative group p-2 bg-green-50 text-green-600 rounded-md border border-green-200 hover:bg-green-100 hover:shadow-md transition-all duration-200"
+                          title="詳細"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            詳細
+                          </span>
+                        </button>
+
+                        {app.applicationStatus === 'Pending' && (
+                          <>
+                            {/* インポートボタン */}
+                            <button
+                              onClick={() => handleShowImport(app.id)}
+                              className="relative group p-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200"
+                              title="インポート"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                インポート
+                              </span>
+                            </button>
+
+                            {/* 却下ボタン */}
+                            <button
+                              onClick={() => handleShowReject(app.id)}
+                              className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
+                              title="却下"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                却下
+                              </span>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -384,6 +486,6 @@ export function ApplicationsPage() {
           onSuccess={handleRejectSuccess}
         />
       )}
-    </div>
+    </DashboardLayout>
   );
 }
