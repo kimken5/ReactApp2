@@ -1,0 +1,720 @@
+/**
+ * 保護者向け入園申込フォームページ（入力→確認→完了の3ステップ）
+ * URL: /application?key={ApplicationKey}
+ */
+
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  validateApplicationKey,
+  submitApplication,
+  fetchAddressByPostalCode,
+} from '../services/publicApplicationService';
+import type { CreateApplicationRequest } from '../types/publicApplication';
+import {
+  RELATIONSHIP_OPTIONS,
+  GENDER_OPTIONS,
+  BLOOD_TYPE_OPTIONS,
+} from '../types/publicApplication';
+
+// Zodバリデーションスキーマ
+const applicationSchema = z.object({
+  // 申請保護者情報
+  applicantName: z.string().min(1, '申請者氏名は必須です').max(100, '100文字以内で入力してください'),
+  applicantNameKana: z
+    .string()
+    .min(1, '申請者氏名（フリガナ）は必須です')
+    .max(100, '100文字以内で入力してください')
+    .regex(/^[ァ-ヶー\s]+$/, 'カタカナで入力してください'),
+  dateOfBirth: z.string().min(1, '生年月日は必須です'),
+  postalCode: z.string().optional(),
+  prefecture: z.string().optional(),
+  city: z.string().optional(),
+  addressLine: z.string().max(200, '200文字以内で入力してください').optional(),
+  mobilePhone: z
+    .string()
+    .min(1, '携帯電話番号は必須です')
+    .regex(/^[0-9-]+$/, '数字とハイフンで入力してください'),
+  homePhone: z.string().regex(/^[0-9-]*$/, '数字とハイフンで入力してください').optional(),
+  email: z.string().email('メールアドレスの形式が正しくありません').optional().or(z.literal('')),
+  relationshipToChild: z.string().min(1, '続柄は必須です'),
+
+  // 園児情報
+  childName: z.string().min(1, '園児氏名は必須です').max(100, '100文字以内で入力してください'),
+  childNameKana: z
+    .string()
+    .min(1, '園児氏名（フリガナ）は必須です')
+    .max(100, '100文字以内で入力してください')
+    .regex(/^[ァ-ヶー\s]+$/, 'カタカナで入力してください'),
+  childDateOfBirth: z.string().min(1, '園児生年月日は必須です'),
+  childGender: z.enum(['M', 'F'], { required_error: '性別は必須です' }),
+  childBloodType: z.string().optional(),
+  childMedicalNotes: z.string().max(1000, '1000文字以内で入力してください').optional(),
+  childSpecialInstructions: z.string().max(1000, '1000文字以内で入力してください').optional(),
+});
+
+type ApplicationFormData = z.infer<typeof applicationSchema>;
+
+export function ApplicationFormPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const applicationKey = searchParams.get('key');
+
+  const [currentStep, setCurrentStep] = useState<'form' | 'confirm'>('form');
+  const [isValidating, setIsValidating] = useState(true);
+  const [keyValidationError, setKeyValidationError] = useState<string | null>(null);
+  const [nurseryName, setNurseryName] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<ApplicationFormData | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    getValues,
+    formState: { errors },
+  } = useForm<ApplicationFormData>({
+    resolver: zodResolver(applicationSchema),
+    defaultValues: {
+      childGender: 'M',
+    },
+  });
+
+  const postalCode = watch('postalCode');
+
+  // ApplicationKeyの検証
+  useEffect(() => {
+    const validate = async () => {
+      if (!applicationKey) {
+        setKeyValidationError('申込キーが指定されていません。');
+        setIsValidating(false);
+        return;
+      }
+
+      try {
+        const result = await validateApplicationKey(applicationKey);
+        if (result.success && result.data?.isValid && result.data?.nurseryName) {
+          setNurseryName(result.data.nurseryName);
+          setKeyValidationError(null);
+        } else {
+          setKeyValidationError(result.error?.message || '無効な申込キーです。');
+        }
+      } catch (error) {
+        setKeyValidationError('申込キーの検証中にエラーが発生しました。');
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    validate();
+  }, [applicationKey]);
+
+  // 郵便番号から住所を自動入力
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (postalCode && postalCode.replace(/-/g, '').length === 7) {
+        const result = await fetchAddressByPostalCode(postalCode);
+        if (result) {
+          setValue('prefecture', result.prefecture);
+          setValue('city', result.city);
+        }
+      }
+    };
+
+    fetchAddress();
+  }, [postalCode, setValue]);
+
+  // 確認画面へ遷移
+  const onConfirm = (data: ApplicationFormData) => {
+    setFormData(data);
+    setCurrentStep('confirm');
+    window.scrollTo(0, 0);
+  };
+
+  // 入力画面に戻る
+  const onBack = () => {
+    setCurrentStep('form');
+    window.scrollTo(0, 0);
+  };
+
+  // フォーム送信
+  const onSubmit = async () => {
+    if (!applicationKey || !formData) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const submitData: CreateApplicationRequest = {
+        ...formData,
+        postalCode: formData.postalCode || undefined,
+        prefecture: formData.prefecture || undefined,
+        city: formData.city || undefined,
+        addressLine: formData.addressLine || undefined,
+        homePhone: formData.homePhone || undefined,
+        email: formData.email || undefined,
+        childBloodType: formData.childBloodType || undefined,
+        childMedicalNotes: formData.childMedicalNotes || undefined,
+        childSpecialInstructions: formData.childSpecialInstructions || undefined,
+      };
+
+      const response = await submitApplication(applicationKey, submitData);
+      if (response.success && response.data) {
+        navigate(`/application/complete`);
+      } else {
+        setSubmitError(response.error?.message || '申込の送信に失敗しました。');
+      }
+    } catch (error: any) {
+      setSubmitError(
+        error.response?.data?.error?.message || '申込の送信中にエラーが発生しました。もう一度お試しください。'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ローディング中
+  if (isValidating) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+          <p className="mt-4 text-gray-600">申込キーを確認中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // キー検証エラー
+  if (keyValidationError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-md shadow-sm border border-gray-200 p-8">
+          <div className="text-center">
+            <div className="text-red-600 text-5xl mb-4">⚠️</div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">アクセスエラー</h1>
+            <p className="text-gray-600 mb-6">{keyValidationError}</p>
+            <p className="text-sm text-gray-500">
+              正しいURLでアクセスしているか、保育園から提供されたQRコードをご確認ください。
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 確認画面
+  if (currentStep === 'confirm' && formData) {
+    const relationshipLabel = RELATIONSHIP_OPTIONS.find(opt => opt.value === formData.relationshipToChild)?.label;
+    const genderLabel = GENDER_OPTIONS.find(opt => opt.value === formData.childGender)?.label;
+    const bloodTypeLabel = BLOOD_TYPE_OPTIONS.find(opt => opt.value === formData.childBloodType)?.label;
+
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          {/* ヘッダー */}
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">申込内容の確認</h1>
+            <p className="text-base text-gray-700 font-medium">{nurseryName}</p>
+            <p className="text-sm text-gray-600 mt-2">
+              入力内容をご確認ください。修正する場合は「戻る」ボタンを押してください。
+            </p>
+          </div>
+
+          {/* エラーメッセージ */}
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-red-800">{submitError}</p>
+            </div>
+          )}
+
+          {/* 申請保護者情報 */}
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">申請者（保護者）情報</h2>
+            <dl className="space-y-3">
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">氏名</dt>
+                <dd className="col-span-2 text-base text-gray-900">{formData.applicantName}</dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">フリガナ</dt>
+                <dd className="col-span-2 text-base text-gray-900">{formData.applicantNameKana}</dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">生年月日</dt>
+                <dd className="col-span-2 text-base text-gray-900">{formData.dateOfBirth}</dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">続柄</dt>
+                <dd className="col-span-2 text-base text-gray-900">{relationshipLabel}</dd>
+              </div>
+              {formData.postalCode && (
+                <div className="grid grid-cols-3 gap-4">
+                  <dt className="text-sm font-medium text-gray-500">郵便番号</dt>
+                  <dd className="col-span-2 text-base text-gray-900">{formData.postalCode}</dd>
+                </div>
+              )}
+              {formData.prefecture && (
+                <div className="grid grid-cols-3 gap-4">
+                  <dt className="text-sm font-medium text-gray-500">住所</dt>
+                  <dd className="col-span-2 text-base text-gray-900">
+                    {formData.prefecture} {formData.city} {formData.addressLine}
+                  </dd>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">携帯電話</dt>
+                <dd className="col-span-2 text-base text-gray-900">{formData.mobilePhone}</dd>
+              </div>
+              {formData.homePhone && (
+                <div className="grid grid-cols-3 gap-4">
+                  <dt className="text-sm font-medium text-gray-500">固定電話</dt>
+                  <dd className="col-span-2 text-base text-gray-900">{formData.homePhone}</dd>
+                </div>
+              )}
+              {formData.email && (
+                <div className="grid grid-cols-3 gap-4">
+                  <dt className="text-sm font-medium text-gray-500">メールアドレス</dt>
+                  <dd className="col-span-2 text-base text-gray-900">{formData.email}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+
+          {/* 園児情報 */}
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">園児情報</h2>
+            <dl className="space-y-3">
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">氏名</dt>
+                <dd className="col-span-2 text-base text-gray-900">{formData.childName}</dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">フリガナ</dt>
+                <dd className="col-span-2 text-base text-gray-900">{formData.childNameKana}</dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">生年月日</dt>
+                <dd className="col-span-2 text-base text-gray-900">{formData.childDateOfBirth}</dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500">性別</dt>
+                <dd className="col-span-2 text-base text-gray-900">{genderLabel}</dd>
+              </div>
+              {formData.childBloodType && (
+                <div className="grid grid-cols-3 gap-4">
+                  <dt className="text-sm font-medium text-gray-500">血液型</dt>
+                  <dd className="col-span-2 text-base text-gray-900">{bloodTypeLabel}</dd>
+                </div>
+              )}
+              {formData.childMedicalNotes && (
+                <div className="grid grid-cols-3 gap-4">
+                  <dt className="text-sm font-medium text-gray-500">医療メモ</dt>
+                  <dd className="col-span-2 text-base text-gray-900 whitespace-pre-wrap">{formData.childMedicalNotes}</dd>
+                </div>
+              )}
+              {formData.childSpecialInstructions && (
+                <div className="grid grid-cols-3 gap-4">
+                  <dt className="text-sm font-medium text-gray-500">特別指示</dt>
+                  <dd className="col-span-2 text-base text-gray-900 whitespace-pre-wrap">{formData.childSpecialInstructions}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+
+          {/* ボタン */}
+          <div className="flex justify-center gap-4">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={isSubmitting}
+              className="px-8 py-3 bg-gray-200 text-gray-700 font-medium rounded-md hover:bg-gray-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              戻る
+            </button>
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={isSubmitting}
+              className={`px-8 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-medium rounded-md transition-all duration-200 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
+              }`}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  送信中...
+                </span>
+              ) : (
+                '送信する'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 入力フォーム
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        {/* ヘッダー */}
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">入園申込フォーム</h1>
+          <p className="text-base text-gray-700 font-medium">{nurseryName}</p>
+          <p className="text-sm text-gray-600 mt-2">
+            必須項目（<span className="text-red-600">*</span>）を入力してください。
+          </p>
+        </div>
+
+        {/* フォーム */}
+        <form onSubmit={handleSubmit(onConfirm)} className="space-y-6">
+          {/* 申請保護者情報 */}
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              申請者（保護者）情報
+            </h2>
+
+            <div className="space-y-4">
+              {/* 氏名 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  氏名 <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  {...register('applicantName')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="山田 太郎"
+                />
+                <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
+                {errors.applicantName && (
+                  <p className="mt-1 text-sm text-red-600">{errors.applicantName.message}</p>
+                )}
+              </div>
+
+              {/* 氏名（フリガナ） */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  氏名（フリガナ） <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  {...register('applicantNameKana')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="ヤマダ タロウ"
+                />
+                <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
+                {errors.applicantNameKana && (
+                  <p className="mt-1 text-sm text-red-600">{errors.applicantNameKana.message}</p>
+                )}
+              </div>
+
+              {/* 生年月日 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  生年月日 <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="date"
+                  {...register('dateOfBirth')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                />
+                {errors.dateOfBirth && (
+                  <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>
+                )}
+              </div>
+
+              {/* 続柄 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  続柄 <span className="text-red-600">*</span>
+                </label>
+                <select
+                  {...register('relationshipToChild')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                >
+                  <option value="">選択してください</option>
+                  {RELATIONSHIP_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.relationshipToChild && (
+                  <p className="mt-1 text-sm text-red-600">{errors.relationshipToChild.message}</p>
+                )}
+              </div>
+
+              {/* 郵便番号 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">郵便番号</label>
+                <input
+                  type="text"
+                  {...register('postalCode')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="123-4567"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  郵便番号を入力すると、自動的に住所が入力されます。
+                </p>
+                {errors.postalCode && (
+                  <p className="mt-1 text-sm text-red-600">{errors.postalCode.message}</p>
+                )}
+              </div>
+
+              {/* 都道府県 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">都道府県</label>
+                <input
+                  type="text"
+                  {...register('prefecture')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="東京都"
+                />
+                {errors.prefecture && (
+                  <p className="mt-1 text-sm text-red-600">{errors.prefecture.message}</p>
+                )}
+              </div>
+
+              {/* 市区町村 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">市区町村</label>
+                <input
+                  type="text"
+                  {...register('city')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="渋谷区"
+                />
+                {errors.city && (
+                  <p className="mt-1 text-sm text-red-600">{errors.city.message}</p>
+                )}
+              </div>
+
+              {/* 番地・ビル名 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">番地・ビル名</label>
+                <input
+                  type="text"
+                  {...register('addressLine')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="渋谷1-2-3 渋谷ビル101"
+                />
+                {errors.addressLine && (
+                  <p className="mt-1 text-sm text-red-600">{errors.addressLine.message}</p>
+                )}
+              </div>
+
+              {/* 携帯電話 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  携帯電話番号 <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="tel"
+                  {...register('mobilePhone')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="090-1234-5678"
+                />
+                {errors.mobilePhone && (
+                  <p className="mt-1 text-sm text-red-600">{errors.mobilePhone.message}</p>
+                )}
+              </div>
+
+              {/* 固定電話 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">固定電話番号</label>
+                <input
+                  type="tel"
+                  {...register('homePhone')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="03-1234-5678"
+                />
+                {errors.homePhone && (
+                  <p className="mt-1 text-sm text-red-600">{errors.homePhone.message}</p>
+                )}
+              </div>
+
+              {/* メールアドレス */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  {...register('email')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="example@example.com"
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 園児情報 */}
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">園児情報</h2>
+
+            <div className="space-y-4">
+              {/* 園児氏名 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  氏名 <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  {...register('childName')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="山田 花子"
+                />
+                <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
+                {errors.childName && (
+                  <p className="mt-1 text-sm text-red-600">{errors.childName.message}</p>
+                )}
+              </div>
+
+              {/* 園児氏名（フリガナ） */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  氏名（フリガナ） <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  {...register('childNameKana')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="ヤマダ ハナコ"
+                />
+                <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
+                {errors.childNameKana && (
+                  <p className="mt-1 text-sm text-red-600">{errors.childNameKana.message}</p>
+                )}
+              </div>
+
+              {/* 園児生年月日 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  生年月日 <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="date"
+                  {...register('childDateOfBirth')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                />
+                {errors.childDateOfBirth && (
+                  <p className="mt-1 text-sm text-red-600">{errors.childDateOfBirth.message}</p>
+                )}
+              </div>
+
+              {/* 性別 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  性別 <span className="text-red-600">*</span>
+                </label>
+                <div className="flex gap-4">
+                  {GENDER_OPTIONS.map((option) => (
+                    <label key={option.value} className="flex items-center">
+                      <input
+                        type="radio"
+                        value={option.value}
+                        {...register('childGender')}
+                        className="mr-2"
+                      />
+                      <span className="text-gray-700">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.childGender && (
+                  <p className="mt-1 text-sm text-red-600">{errors.childGender.message}</p>
+                )}
+              </div>
+
+              {/* 血液型 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">血液型</label>
+                <select
+                  {...register('childBloodType')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                >
+                  {BLOOD_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.childBloodType && (
+                  <p className="mt-1 text-sm text-red-600">{errors.childBloodType.message}</p>
+                )}
+              </div>
+
+              {/* 医療メモ */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  医療メモ（アレルギー、持病など）
+                </label>
+                <textarea
+                  {...register('childMedicalNotes')}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="アレルギーや持病がある場合は記入してください"
+                />
+                {errors.childMedicalNotes && (
+                  <p className="mt-1 text-sm text-red-600">{errors.childMedicalNotes.message}</p>
+                )}
+              </div>
+
+              {/* 特別指示 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  特別指示・その他
+                </label>
+                <textarea
+                  {...register('childSpecialInstructions')}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  placeholder="その他、保育園にお伝えしたいことがあれば記入してください"
+                />
+                {errors.childSpecialInstructions && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.childSpecialInstructions.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 確認画面へボタン */}
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              className="px-8 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-medium rounded-md hover:shadow-lg transition-all duration-200"
+            >
+              入力内容を確認する
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
