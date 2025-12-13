@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Hubs
 {
@@ -46,7 +47,7 @@ namespace ReactApp.Server.Hubs
             await Clients.Caller.SendAsync("Connected", new
             {
                 message = "リアルタイム通知に接続しました",
-                timestamp = DateTime.UtcNow,
+                timestamp = DateTimeHelper.GetJstNow(),
                 userId = userId,
                 userType = userType
             });
@@ -88,7 +89,7 @@ namespace ReactApp.Server.Hubs
             {
                 classId = classId,
                 message = $"クラス {classId} の通知グループに参加しました",
-                timestamp = DateTime.UtcNow
+                timestamp = DateTimeHelper.GetJstNow()
             });
         }
 
@@ -108,7 +109,7 @@ namespace ReactApp.Server.Hubs
             {
                 classId = classId,
                 message = $"クラス {classId} の通知グループから退出しました",
-                timestamp = DateTime.UtcNow
+                timestamp = DateTimeHelper.GetJstNow()
             });
         }
 
@@ -128,7 +129,7 @@ namespace ReactApp.Server.Hubs
             {
                 notificationId = notificationId,
                 readBy = userId,
-                readAt = DateTime.UtcNow
+                readAt = DateTimeHelper.GetJstNow()
             });
         }
 
@@ -147,7 +148,7 @@ namespace ReactApp.Server.Hubs
             await Clients.Caller.SendAsync("AfterHoursNotificationUpdated", new
             {
                 allowAfterHours = allowAfterHours,
-                updatedAt = DateTime.UtcNow,
+                updatedAt = DateTimeHelper.GetJstNow(),
                 message = allowAfterHours ? "勤務時間外通知を有効にしました" : "勤務時間外通知を無効にしました"
             });
         }
@@ -158,7 +159,7 @@ namespace ReactApp.Server.Hubs
         [HubMethodName("Ping")]
         public async Task Ping()
         {
-            await Clients.Caller.SendAsync("Pong", DateTime.UtcNow);
+            await Clients.Caller.SendAsync("Pong", DateTimeHelper.GetJstNow());
         }
 
         /// <summary>
@@ -177,7 +178,7 @@ namespace ReactApp.Server.Hubs
                 userId = userId,
                 userType = userType,
                 deviceId = deviceId,
-                connectedAt = DateTime.UtcNow,
+                connectedAt = DateTimeHelper.GetJstNow(),
                 groups = new[] { $"user_{userId}", $"usertype_{userType}", $"device_{deviceId}" }
             });
         }

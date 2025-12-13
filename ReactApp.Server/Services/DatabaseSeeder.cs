@@ -1,6 +1,7 @@
-using ReactApp.Server.Data;
+﻿using ReactApp.Server.Data;
 using ReactApp.Server.Models;
 using Microsoft.EntityFrameworkCore;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -126,7 +127,7 @@ namespace ReactApp.Server.Services
                     Role = "teacher",
                     Position = "主任保育士",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 },
                 new Staff
                 {
@@ -136,7 +137,7 @@ namespace ReactApp.Server.Services
                     Role = "teacher",
                     Position = "保育士",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 },
                 new Staff
                 {
@@ -146,7 +147,7 @@ namespace ReactApp.Server.Services
                     Role = "teacher",
                     Position = "保育士",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 },
                 new Staff
                 {
@@ -156,7 +157,7 @@ namespace ReactApp.Server.Services
                     Role = "admin",
                     Position = "園長",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 },
                 new Staff
                 {
@@ -166,7 +167,7 @@ namespace ReactApp.Server.Services
                     Role = "admin",
                     Position = "副園長",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 },
                 new Staff
                 {
@@ -176,7 +177,7 @@ namespace ReactApp.Server.Services
                     Role = "teacher",
                     Position = "保育士",
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 }
             };
 
@@ -188,14 +189,14 @@ namespace ReactApp.Server.Services
         {
             var parents = new List<Parent>
             {
-                new Parent { PhoneNumber = "090-1111-1111", Name = "田中花子", Email = "hanako.tanaka@example.com", CreatedAt = DateTime.UtcNow },
-                new Parent { PhoneNumber = "090-2222-2222", Name = "田中一郎", Email = "ichiro.tanaka@example.com", CreatedAt = DateTime.UtcNow },
-                new Parent { PhoneNumber = "090-3333-3333", Name = "佐藤美咲", Email = "misaki.sato@example.com", CreatedAt = DateTime.UtcNow },
-                new Parent { PhoneNumber = "090-4444-4444", Name = "山田太郎", Email = "taro.yamada@example.com", CreatedAt = DateTime.UtcNow },
-                new Parent { PhoneNumber = "090-5555-5555", Name = "鈴木由美", Email = "yumi.suzuki@example.com", CreatedAt = DateTime.UtcNow },
-                new Parent { PhoneNumber = "090-6666-6666", Name = "高橋結愛", Email = "yua.takahashi@example.com", CreatedAt = DateTime.UtcNow },
-                new Parent { PhoneNumber = "090-7777-7777", Name = "伊藤和子", Email = "kazuko.ito@example.com", CreatedAt = DateTime.UtcNow },
-                new Parent { PhoneNumber = "090-8888-8888", Name = "中村健一", Email = "kenichi.nakamura@example.com", CreatedAt = DateTime.UtcNow }
+                new Parent { PhoneNumber = "090-1111-1111", Name = "田中花子", Email = "hanako.tanaka@example.com", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Parent { PhoneNumber = "090-2222-2222", Name = "田中一郎", Email = "ichiro.tanaka@example.com", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Parent { PhoneNumber = "090-3333-3333", Name = "佐藤美咲", Email = "misaki.sato@example.com", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Parent { PhoneNumber = "090-4444-4444", Name = "山田太郎", Email = "taro.yamada@example.com", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Parent { PhoneNumber = "090-5555-5555", Name = "鈴木由美", Email = "yumi.suzuki@example.com", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Parent { PhoneNumber = "090-6666-6666", Name = "高橋結愛", Email = "yua.takahashi@example.com", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Parent { PhoneNumber = "090-7777-7777", Name = "伊藤和子", Email = "kazuko.ito@example.com", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Parent { PhoneNumber = "090-8888-8888", Name = "中村健一", Email = "kenichi.nakamura@example.com", CreatedAt = DateTimeHelper.GetJstNow() }
             };
 
             _context.Parents.AddRange(parents);
@@ -206,14 +207,14 @@ namespace ReactApp.Server.Services
         {
             var children = new List<Child>
             {
-                new Child { Name = "田中太郎", DateOfBirth = new DateTime(2019, 4, 15), Gender = "Male", CreatedAt = DateTime.UtcNow },
-                new Child { Name = "田中花音", DateOfBirth = new DateTime(2019, 6, 22), Gender = "Female", CreatedAt = DateTime.UtcNow },
-                new Child { Name = "佐藤次郎", DateOfBirth = new DateTime(2020, 3, 10), Gender = "Male", CreatedAt = DateTime.UtcNow },
-                new Child { Name = "山田美琴", DateOfBirth = new DateTime(2020, 7, 18), Gender = "Female", CreatedAt = DateTime.UtcNow },
-                new Child { Name = "鈴木和也", DateOfBirth = new DateTime(2019, 11, 5), Gender = "Male", CreatedAt = DateTime.UtcNow },
-                new Child { Name = "高橋結愛", DateOfBirth = new DateTime(2020, 1, 20), Gender = "Female", CreatedAt = DateTime.UtcNow },
-                new Child { Name = "伊藤大輝", DateOfBirth = new DateTime(2019, 9, 12), Gender = "Male", CreatedAt = DateTime.UtcNow },
-                new Child { Name = "中村咲良", DateOfBirth = new DateTime(2020, 5, 30), Gender = "Female", CreatedAt = DateTime.UtcNow }
+                new Child { Name = "田中太郎", DateOfBirth = new DateTime(2019, 4, 15), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { Name = "田中花音", DateOfBirth = new DateTime(2019, 6, 22), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { Name = "佐藤次郎", DateOfBirth = new DateTime(2020, 3, 10), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { Name = "山田美琴", DateOfBirth = new DateTime(2020, 7, 18), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { Name = "鈴木和也", DateOfBirth = new DateTime(2019, 11, 5), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { Name = "高橋結愛", DateOfBirth = new DateTime(2020, 1, 20), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { Name = "伊藤大輝", DateOfBirth = new DateTime(2019, 9, 12), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { Name = "中村咲良", DateOfBirth = new DateTime(2020, 5, 30), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() }
             };
 
             _context.Children.AddRange(children);
@@ -233,16 +234,16 @@ namespace ReactApp.Server.Services
 
             var relationships = new List<ParentChildRelationship>
             {
-                new ParentChildRelationship { ParentId = parents[0].Id, NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[1].Id, NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, RelationshipType = "father", IsPrimaryContact = false, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[0].Id, NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[1].Id, NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, RelationshipType = "father", IsPrimaryContact = false, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[2].Id, NurseryId = children[2].NurseryId, ChildId = children[2].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[3].Id, NurseryId = children[3].NurseryId, ChildId = children[3].ChildId, RelationshipType = "father", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[4].Id, NurseryId = children[4].NurseryId, ChildId = children[4].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[5].Id, NurseryId = children[5].NurseryId, ChildId = children[5].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[6].Id, NurseryId = children[6].NurseryId, ChildId = children[6].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow },
-                new ParentChildRelationship { ParentId = parents[7].Id, NurseryId = children[7].NurseryId, ChildId = children[7].ChildId, RelationshipType = "father", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTime.UtcNow }
+                new ParentChildRelationship { ParentId = parents[0].Id, NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[1].Id, NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, RelationshipType = "father", IsPrimaryContact = false, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[0].Id, NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[1].Id, NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, RelationshipType = "father", IsPrimaryContact = false, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[2].Id, NurseryId = children[2].NurseryId, ChildId = children[2].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[3].Id, NurseryId = children[3].NurseryId, ChildId = children[3].ChildId, RelationshipType = "father", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[4].Id, NurseryId = children[4].NurseryId, ChildId = children[4].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[5].Id, NurseryId = children[5].NurseryId, ChildId = children[5].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[6].Id, NurseryId = children[6].NurseryId, ChildId = children[6].ChildId, RelationshipType = "mother", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new ParentChildRelationship { ParentId = parents[7].Id, NurseryId = children[7].NurseryId, ChildId = children[7].ChildId, RelationshipType = "father", IsPrimaryContact = true, HasPickupPermission = true, CanReceiveEmergencyNotifications = true, CreatedAt = DateTimeHelper.GetJstNow() }
             };
 
             _context.ParentChildRelationships.AddRange(relationships);
@@ -355,25 +356,25 @@ namespace ReactApp.Server.Services
                 {
                     NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, StaffId = staff[0].StaffId, ReportDate = new DateTime(2024, 1, 15),
                     ReportKind = "activity", Title = "積み木遊び", Content = "今日は積み木遊びを楽しんでいました。お友達と協力して大きなお城を作っていました。",
-                    Status = "published", PublishedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
+                    Status = "published", PublishedAt = DateTimeHelper.GetJstNow(), CreatedAt = DateTimeHelper.GetJstNow()
                 },
                 new DailyReport
                 {
                     NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, StaffId = staff[1].StaffId, ReportDate = new DateTime(2024, 1, 15),
                     ReportKind = "meal", Title = "給食の様子", Content = "給食は完食でした。苦手な野菜も頑張って食べていました。",
-                    Status = "published", PublishedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
+                    Status = "published", PublishedAt = DateTimeHelper.GetJstNow(), CreatedAt = DateTimeHelper.GetJstNow()
                 },
                 new DailyReport
                 {
                     NurseryId = children[2].NurseryId, ChildId = children[2].ChildId, StaffId = staff[0].StaffId, ReportDate = new DateTime(2024, 1, 16),
                     ReportKind = "health", Title = "健康状態", Content = "元気に過ごしています。鼻水が少し出ていますが、熱はありません。",
-                    Status = "published", PublishedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
+                    Status = "published", PublishedAt = DateTimeHelper.GetJstNow(), CreatedAt = DateTimeHelper.GetJstNow()
                 },
                 new DailyReport
                 {
                     NurseryId = children[3].NurseryId, ChildId = children[3].ChildId, StaffId = staff[1].StaffId, ReportDate = new DateTime(2024, 1, 16),
                     ReportKind = "activity", Title = "お絵描き活動", Content = "お絵描きに夢中になって取り組んでいました。色使いがとても上手です。",
-                    Status = "published", PublishedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
+                    Status = "published", PublishedAt = DateTimeHelper.GetJstNow(), CreatedAt = DateTimeHelper.GetJstNow()
                 }
             };
 
@@ -390,21 +391,21 @@ namespace ReactApp.Server.Services
                     Title = "新年お楽しみ会", Description = "新年の始まりをお祝いする楽しい会です。",
                     StartDateTime = new DateTime(2024, 1, 25, 10, 0, 0), EndDateTime = new DateTime(2024, 1, 25, 11, 30, 0),
                     Category = "school_event", IsAllDay = false, CreatedBy = "システム管理者",
-                    NurseryId = 1, CreatedAt = DateTime.UtcNow, LastModified = DateTime.UtcNow
+                    NurseryId = 1, CreatedAt = DateTimeHelper.GetJstNow(), LastModified = DateTimeHelper.GetJstNow()
                 },
                 new Event
                 {
                     Title = "節分豆まき", Description = "鬼退治をして福を呼び込みましょう。",
                     StartDateTime = new DateTime(2024, 2, 3, 10, 30, 0), EndDateTime = new DateTime(2024, 2, 3, 11, 0, 0),
                     Category = "school_event", IsAllDay = false, CreatedBy = "システム管理者",
-                    NurseryId = 1, CreatedAt = DateTime.UtcNow, LastModified = DateTime.UtcNow
+                    NurseryId = 1, CreatedAt = DateTimeHelper.GetJstNow(), LastModified = DateTimeHelper.GetJstNow()
                 },
                 new Event
                 {
                     Title = "身体測定", Description = "1月の身長・体重測定を行います。",
                     StartDateTime = new DateTime(2024, 1, 30, 9, 0, 0), EndDateTime = new DateTime(2024, 1, 30, 11, 0, 0),
                     Category = "daily_schedule", IsAllDay = false, CreatedBy = "システム管理者",
-                    NurseryId = 1, CreatedAt = DateTime.UtcNow, LastModified = DateTime.UtcNow
+                    NurseryId = 1, CreatedAt = DateTimeHelper.GetJstNow(), LastModified = DateTimeHelper.GetJstNow()
                 }
             };
 
@@ -425,11 +426,11 @@ namespace ReactApp.Server.Services
 
             var familyMembers = new List<FamilyMember>
             {
-                new FamilyMember { ParentId = parents[0].Id, NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, RelationshipType = "mother", DisplayName = "田中花子", IsPrimaryContact = true, CreatedAt = DateTime.UtcNow },
-                new FamilyMember { ParentId = parents[1].Id, NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, RelationshipType = "father", DisplayName = "田中一郎", IsPrimaryContact = false, CreatedAt = DateTime.UtcNow },
-                new FamilyMember { ParentId = parents[0].Id, NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, RelationshipType = "mother", DisplayName = "田中花子", IsPrimaryContact = true, CreatedAt = DateTime.UtcNow },
-                new FamilyMember { ParentId = parents[1].Id, NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, RelationshipType = "father", DisplayName = "田中一郎", IsPrimaryContact = false, CreatedAt = DateTime.UtcNow },
-                new FamilyMember { ParentId = parents[2].Id, NurseryId = children[2].NurseryId, ChildId = children[2].ChildId, RelationshipType = "mother", DisplayName = "佐藤美咲", IsPrimaryContact = true, CreatedAt = DateTime.UtcNow }
+                new FamilyMember { ParentId = parents[0].Id, NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, RelationshipType = "mother", DisplayName = "田中花子", IsPrimaryContact = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new FamilyMember { ParentId = parents[1].Id, NurseryId = children[0].NurseryId, ChildId = children[0].ChildId, RelationshipType = "father", DisplayName = "田中一郎", IsPrimaryContact = false, CreatedAt = DateTimeHelper.GetJstNow() },
+                new FamilyMember { ParentId = parents[0].Id, NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, RelationshipType = "mother", DisplayName = "田中花子", IsPrimaryContact = true, CreatedAt = DateTimeHelper.GetJstNow() },
+                new FamilyMember { ParentId = parents[1].Id, NurseryId = children[1].NurseryId, ChildId = children[1].ChildId, RelationshipType = "father", DisplayName = "田中一郎", IsPrimaryContact = false, CreatedAt = DateTimeHelper.GetJstNow() },
+                new FamilyMember { ParentId = parents[2].Id, NurseryId = children[2].NurseryId, ChildId = children[2].ChildId, RelationshipType = "mother", DisplayName = "佐藤美咲", IsPrimaryContact = true, CreatedAt = DateTimeHelper.GetJstNow() }
             };
 
             _context.FamilyMembers.AddRange(familyMembers);

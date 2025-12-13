@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using ReactApp.Server.Data;
@@ -8,6 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services;
 
@@ -58,16 +59,16 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
         }
 
         // アカウントロック状態を確認
-        if (nursery.IsLocked && nursery.LockedUntil.HasValue && nursery.LockedUntil.Value > DateTime.UtcNow)
+        if (nursery.IsLocked && nursery.LockedUntil.HasValue && nursery.LockedUntil.Value > DateTimeHelper.GetJstNow())
         {
-            var remainingMinutes = (int)(nursery.LockedUntil.Value - DateTime.UtcNow).TotalMinutes;
+            var remainingMinutes = (int)(nursery.LockedUntil.Value - DateTimeHelper.GetJstNow()).TotalMinutes;
             _logger.LogWarning("Login failed: Account locked for NurseryId: {NurseryId}, remaining: {Minutes} minutes",
                 nursery.Id, remainingMinutes);
             throw new InvalidOperationException($"アカウントがロックされています。{remainingMinutes}分後に再試行してください");
         }
 
         // ロック期限が過ぎている場合はロック解除
-        if (nursery.IsLocked && nursery.LockedUntil.HasValue && nursery.LockedUntil.Value <= DateTime.UtcNow)
+        if (nursery.IsLocked && nursery.LockedUntil.HasValue && nursery.LockedUntil.Value <= DateTimeHelper.GetJstNow())
         {
             nursery.IsLocked = false;
             nursery.LockedUntil = null;
@@ -89,7 +90,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             if (nursery.LoginAttempts >= MaxLoginAttempts)
             {
                 nursery.IsLocked = true;
-                nursery.LockedUntil = DateTime.UtcNow.AddMinutes(LockoutMinutes);
+                nursery.LockedUntil = DateTimeHelper.GetJstNow().AddMinutes(LockoutMinutes);
                 await _context.SaveChangesAsync();
 
                 _logger.LogWarning("Account locked due to max login attempts for NurseryId: {NurseryId}", nursery.Id);
@@ -106,7 +107,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
 
         // ログイン成功 - 試行回数をリセット
         nursery.LoginAttempts = 0;
-        nursery.LastLoginAt = DateTime.UtcNow;
+        nursery.LastLoginAt = DateTimeHelper.GetJstNow();
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Login successful for NurseryId: {NurseryId}", nursery.Id);
@@ -143,7 +144,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
         var storedToken = await _context.RefreshTokens
             .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken
                 && !rt.IsRevoked
-                && rt.ExpiresAt > DateTime.UtcNow);
+                && rt.ExpiresAt > DateTimeHelper.GetJstNow());
 
         if (storedToken == null)
         {
@@ -168,7 +169,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
 
         // 古いリフレッシュトークンを無効化
         storedToken.IsRevoked = true;
-        storedToken.RevokedAt = DateTime.UtcNow;
+        storedToken.RevokedAt = DateTimeHelper.GetJstNow();
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Token refreshed successfully for NurseryId: {NurseryId}", nursery.Id);
@@ -201,7 +202,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
         if (storedToken != null)
         {
             storedToken.IsRevoked = true;
-            storedToken.RevokedAt = DateTime.UtcNow;
+            storedToken.RevokedAt = DateTimeHelper.GetJstNow();
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Logout successful for NurseryId: {NurseryId}", storedToken.ParentId);
@@ -234,7 +235,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
 
         // 新しいパスワードを平文で保存
         nursery.Password = request.NewPassword;
-        nursery.UpdatedAt = DateTime.UtcNow;
+        nursery.UpdatedAt = DateTimeHelper.GetJstNow();
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Password changed successfully for NurseryId: {NurseryId}", nurseryId);
@@ -315,7 +316,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(AccessTokenExpiryHours),
+            expires: DateTimeHelper.GetJstNow().AddHours(AccessTokenExpiryHours),
             signingCredentials: credentials
         );
 
@@ -332,8 +333,8 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             Token = GenerateSecureToken(),
             JwtId = Guid.NewGuid().ToString(),
             ParentId = nurseryId,
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddDays(RefreshTokenExpiryDays),
+            CreatedAt = DateTimeHelper.GetJstNow(),
+            ExpiresAt = DateTimeHelper.GetJstNow().AddDays(RefreshTokenExpiryDays),
             IsRevoked = false,
             ClientIpAddress = ipAddress,
             UserAgent = userAgent
@@ -381,7 +382,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             AfterValue = afterValue,
             IpAddress = ipAddress,
             UserAgent = userAgent,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTimeHelper.GetJstNow()
         };
 
         _context.AuditLogs.Add(auditLog);

@@ -1,9 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
 using System.Text.RegularExpressions;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -100,7 +101,7 @@ namespace ReactApp.Server.Services
                     ChildSpecialInstructions = request.ChildSpecialInstructions,
                     ApplicationStatus = "Pending",
                     IsImported = false,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
 
                 _context.ApplicationWorks.Add(application);
@@ -312,7 +313,7 @@ namespace ReactApp.Server.Services
                         existingParent.Name = application.ApplicantName;
                         existingParent.Email = application.Email;
                         existingParent.Address = BuildFullAddress(application.Prefecture, application.City, application.AddressLine);
-                        existingParent.UpdatedAt = DateTime.UtcNow;
+                        existingParent.UpdatedAt = DateTimeHelper.GetJstNow();
                     }
                 }
                 else
@@ -330,7 +331,7 @@ namespace ReactApp.Server.Services
                         Email = application.Email,
                         Address = BuildFullAddress(application.Prefecture, application.City, application.AddressLine),
                         IsActive = true,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTimeHelper.GetJstNow()
                     };
 
                     _context.Parents.Add(newParent);
@@ -352,7 +353,7 @@ namespace ReactApp.Server.Services
                     SpecialInstructions = application.ChildSpecialInstructions,
                     IsActive = true,
                     ClassId = null, // 初期値はnull（後でクラス割り当て）
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
 
                 _context.Children.Add(newChild);
@@ -364,7 +365,7 @@ namespace ReactApp.Server.Services
                     NurseryId = nurseryId,
                     ChildId = childId,
                     RelationshipType = application.RelationshipToChild,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
 
                 _context.ParentChildRelationships.Add(relationship);
@@ -372,9 +373,9 @@ namespace ReactApp.Server.Services
                 // ApplicationWork更新
                 application.ApplicationStatus = "Imported";
                 application.IsImported = true;
-                application.ImportedAt = DateTime.UtcNow;
+                application.ImportedAt = DateTimeHelper.GetJstNow();
                 application.ImportedByUserId = userId;
-                application.UpdatedAt = DateTime.UtcNow;
+                application.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -428,7 +429,7 @@ namespace ReactApp.Server.Services
 
                 application.ApplicationStatus = "Rejected";
                 application.RejectionReason = request.RejectionReason;
-                application.UpdatedAt = DateTime.UtcNow;
+                application.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 

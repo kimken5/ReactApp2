@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -96,20 +97,20 @@ namespace ReactApp.Server.Models
         /// デバイスからの最後のアクセス日時
         /// </summary>
         [Required]
-        public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
+        public DateTime LastLoginAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// 作成日時
         /// デバイス登録の初回作成日時
         /// </summary>
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// 更新日時
         /// デバイス情報の最終更新日時
         /// </summary>
         [Required]
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTimeHelper.GetJstNow();
     }
 }

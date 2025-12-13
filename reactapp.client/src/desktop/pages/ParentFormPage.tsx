@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
+import { fetchAddressByPostalCode } from '../../services/publicApplicationService';
 import type {
   ParentDto,
   CreateParentRequestDto,
@@ -29,8 +30,14 @@ export function ParentFormPage() {
   const [formData, setFormData] = useState({
     phoneNumber: '',
     name: '',
+    nameKana: '',
+    dateOfBirth: '',
+    postalCode: '',
+    prefecture: '',
+    city: '',
+    addressLine: '',
+    homePhone: '',
     email: '',
-    address: '',
     isActive: true,
   });
 
@@ -61,6 +68,24 @@ export function ParentFormPage() {
     loadData();
   }, [parentId]);
 
+  // 郵便番号から住所を自動入力
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (formData.postalCode && formData.postalCode.replace(/-/g, '').length === 7) {
+        const result = await fetchAddressByPostalCode(formData.postalCode);
+        if (result) {
+          setFormData(prev => ({
+            ...prev,
+            prefecture: result.prefecture,
+            city: result.city,
+          }));
+        }
+      }
+    };
+
+    fetchAddress();
+  }, [formData.postalCode]);
+
   const loadData = async () => {
     try {
       setIsLoading(true);
@@ -73,11 +98,27 @@ export function ParentFormPage() {
       if (isEditMode && parentId) {
         const parentData = await masterService.getParent(parseInt(parentId, 10));
         setParent(parentData);
+
+        // DateTimeをYYYY-MM-DD形式に変換
+        let formattedDateOfBirth = '';
+        if (parentData.dateOfBirth) {
+          const date = new Date(parentData.dateOfBirth);
+          if (!isNaN(date.getTime())) {
+            formattedDateOfBirth = date.toISOString().split('T')[0];
+          }
+        }
+
         setFormData({
           phoneNumber: parentData.phoneNumber,
           name: parentData.name || '',
+          nameKana: parentData.nameKana || '',
+          dateOfBirth: formattedDateOfBirth,
+          postalCode: parentData.postalCode || '',
+          prefecture: parentData.prefecture || '',
+          city: parentData.city || '',
+          addressLine: parentData.addressLine || '',
+          homePhone: parentData.homePhone || '',
           email: parentData.email || '',
-          address: parentData.address || '',
           isActive: parentData.isActive,
         });
         setNotificationSettings({
@@ -222,8 +263,14 @@ export function ParentFormPage() {
         const updateRequest: UpdateParentRequestDto = {
           phoneNumber: formData.phoneNumber || undefined,
           name: formData.name || undefined,
+          nameKana: formData.nameKana || undefined,
+          dateOfBirth: formData.dateOfBirth || undefined,
+          postalCode: formData.postalCode || undefined,
+          prefecture: formData.prefecture || undefined,
+          city: formData.city || undefined,
+          addressLine: formData.addressLine || undefined,
+          homePhone: formData.homePhone || undefined,
           email: formData.email || undefined,
-          address: formData.address || undefined,
           pushNotificationsEnabled: notificationSettings.pushNotificationsEnabled,
           absenceConfirmationEnabled: notificationSettings.absenceConfirmationEnabled,
           dailyReportEnabled: notificationSettings.dailyReportEnabled,
@@ -244,8 +291,14 @@ export function ParentFormPage() {
         const createRequest: CreateParentRequestDto = {
           phoneNumber: formData.phoneNumber,
           name: formData.name || undefined,
+          nameKana: formData.nameKana || undefined,
+          dateOfBirth: formData.dateOfBirth || undefined,
+          postalCode: formData.postalCode || undefined,
+          prefecture: formData.prefecture || undefined,
+          city: formData.city || undefined,
+          addressLine: formData.addressLine || undefined,
+          homePhone: formData.homePhone || undefined,
           email: formData.email || undefined,
-          address: formData.address || undefined,
           childIds,
         };
         await masterService.createParent(createRequest);
@@ -321,6 +374,7 @@ export function ParentFormPage() {
           <div className="p-6 space-y-8">
             {/* 基本情報セクション */}
             <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">基本情報</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 氏名 */}
                 <div>
@@ -343,10 +397,26 @@ export function ParentFormPage() {
                   )}
                 </div>
 
-                {/* 電話番号 */}
+                {/* 氏名ふりがな */}
+                <div>
+                  <label htmlFor="nameKana" className="block text-sm font-medium text-gray-700 mb-2">
+                    氏名ふりがな
+                  </label>
+                  <input
+                    type="text"
+                    id="nameKana"
+                    name="nameKana"
+                    value={formData.nameKana}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="例: やまだ たろう"
+                  />
+                </div>
+
+                {/* 電話番号（携帯） */}
                 <div>
                   <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                    電話番号 <span className="text-red-600">*</span>
+                    電話番号（携帯） <span className="text-red-600">*</span>
                   </label>
                   <input
                     type="tel"
@@ -362,6 +432,37 @@ export function ParentFormPage() {
                   {errors.phoneNumber && (
                     <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
                   )}
+                </div>
+
+                {/* 固定電話 */}
+                <div>
+                  <label htmlFor="homePhone" className="block text-sm font-medium text-gray-700 mb-2">
+                    固定電話
+                  </label>
+                  <input
+                    type="tel"
+                    id="homePhone"
+                    name="homePhone"
+                    value={formData.homePhone}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="03-1234-5678"
+                  />
+                </div>
+
+                {/* 生年月日 */}
+                <div>
+                  <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
+                    生年月日
+                  </label>
+                  <input
+                    type="date"
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  />
                 </div>
 
                 {/* メールアドレス */}
@@ -383,22 +484,6 @@ export function ParentFormPage() {
                   {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                 </div>
 
-                {/* 住所 */}
-                <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
-                    住所
-                  </label>
-                  <input
-                    type="text"
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                    placeholder="例: 東京都渋谷区..."
-                  />
-                </div>
-
                 {/* ID（編集時のみ） */}
                 {isEditMode && parent && (
                   <div>
@@ -412,6 +497,76 @@ export function ParentFormPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* 住所情報セクション */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">住所情報</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 郵便番号 */}
+                <div>
+                  <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
+                    郵便番号
+                  </label>
+                  <input
+                    type="text"
+                    id="postalCode"
+                    name="postalCode"
+                    value={formData.postalCode}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="123-4567"
+                  />
+                </div>
+
+                {/* 都道府県 */}
+                <div>
+                  <label htmlFor="prefecture" className="block text-sm font-medium text-gray-700 mb-2">
+                    都道府県
+                  </label>
+                  <input
+                    type="text"
+                    id="prefecture"
+                    name="prefecture"
+                    value={formData.prefecture}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="例: 東京都"
+                  />
+                </div>
+
+                {/* 市区町村 */}
+                <div>
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                    市区町村
+                  </label>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="例: 渋谷区"
+                  />
+                </div>
+
+                {/* 番地・建物名 */}
+                <div>
+                  <label htmlFor="addressLine" className="block text-sm font-medium text-gray-700 mb-2">
+                    番地・建物名
+                  </label>
+                  <input
+                    type="text"
+                    id="addressLine"
+                    name="addressLine"
+                    value={formData.addressLine}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="例: 1-2-3 〇〇マンション101"
+                  />
+                </div>
               </div>
             </div>
 

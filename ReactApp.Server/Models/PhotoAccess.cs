@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -34,7 +35,7 @@ namespace ReactApp.Server.Models
         /// 写真にアクセスされた日時（UTC）
         /// </summary>
         [Required]
-        public DateTime AccessedAt { get; set; } = DateTime.UtcNow;
+        public DateTime AccessedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// IPアドレス（任意、45文字以内）

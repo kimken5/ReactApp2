@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Models;
 
 namespace ReactApp.Server.Data
@@ -138,7 +138,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Email).HasMaxLength(200);
                 entity.Property(e => e.Address).HasMaxLength(200);
                 entity.Property(e => e.NurseryId).IsRequired();
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
                 // リレーションシップ設定
 
@@ -171,7 +171,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.HashedCode).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.ClientIpAddress).HasMaxLength(45);
                 entity.Property(e => e.UserAgent).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
 
             // PERFORMANCE: RefreshToken configuration with expiration optimization
@@ -205,7 +205,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.JwtId).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.ClientIpAddress).HasMaxLength(45);
                 entity.Property(e => e.UserAgent).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
 
             // PERFORMANCE: AbsenceNotification configuration with compound indexes
@@ -230,7 +230,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("submitted");
                 entity.Property(e => e.AdditionalNotes).HasMaxLength(200);
                 entity.Property(e => e.StaffResponse).HasMaxLength(500);
-                entity.Property(e => e.SubmittedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.SubmittedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
 
             // PERFORMANCE: Child configuration with search optimization
@@ -256,7 +256,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.ClassId).HasMaxLength(50);
                 entity.Property(e => e.MedicalNotes).HasMaxLength(500);
                 entity.Property(e => e.SpecialInstructions).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
             });
 
@@ -278,7 +278,7 @@ namespace ReactApp.Server.Data
 
                 entity.Property(e => e.ClassId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
 
             // PERFORMANCE: ParentChildRelationship configuration
@@ -301,7 +301,7 @@ namespace ReactApp.Server.Data
                     .HasFilter("[IsActive] = 1");
 
                 entity.Property(e => e.RelationshipType).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
 
 
@@ -338,7 +338,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Position).HasMaxLength(100);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
                 // Navigation properties for multi-role authentication
 
@@ -378,8 +378,8 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.IsFuture).HasDefaultValue(false);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
                 entity.Property(e => e.Notes).HasMaxLength(200);
-                entity.Property(e => e.AssignedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.AssignedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
 
             // Configure UserRolePreference entity
@@ -398,8 +398,8 @@ namespace ReactApp.Server.Data
 
                 entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(15);
                 entity.Property(e => e.PreferredRole).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
                 // Role constraint
                 entity.ToTable(t => t.HasCheckConstraint("CK_UserRolePreference_PreferredRole",
@@ -463,7 +463,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.PrincipalName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.LogoUrl).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -479,7 +479,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.ResponseType).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.ResponseMessage).HasMaxLength(500);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.ResponseAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.ResponseAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
 
             });
@@ -510,7 +510,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Content).IsRequired().HasMaxLength(1000);
                 entity.Property(e => e.Photos).HasMaxLength(1000);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("draft");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
 
             });
@@ -526,7 +526,7 @@ namespace ReactApp.Server.Data
                 entity.HasIndex(e => e.IsRead);
 
                 entity.Property(e => e.ResponseMessage).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
 
             });
@@ -562,8 +562,8 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.PreparationInstructions).HasMaxLength(500);
                 entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
                 entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.LastModified).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.LastModified).IsRequired().HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -584,7 +584,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.EmailNotificationsEnabled).HasDefaultValue(false);
                 entity.Property(e => e.DeviceToken).HasMaxLength(500);
                 entity.Property(e => e.DevicePlatform).HasMaxLength(50);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
             });
         }
@@ -615,7 +615,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending");
                 entity.Property(e => e.ErrorMessage).HasMaxLength(500);
                 entity.Property(e => e.RelatedEntityType).HasMaxLength(50);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
             });
         }
@@ -635,7 +635,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.CanViewReports).HasDefaultValue(true);
                 entity.Property(e => e.CanViewPhotos).HasDefaultValue(true);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
 
             });
@@ -671,7 +671,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.RequiresConsent).HasDefaultValue(true);
                 entity.Property(e => e.ViewCount).HasDefaultValue(0);
                 entity.Property(e => e.DownloadCount).HasDefaultValue(0);
-                entity.Property(e => e.UploadedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UploadedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
             });
         }
@@ -685,7 +685,7 @@ namespace ReactApp.Server.Data
                 entity.HasIndex(e => new { e.NurseryId, e.ChildId });
                 entity.HasIndex(e => e.IsPrimarySubject);
 
-                entity.Property(e => e.AddedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.AddedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
 
             });
@@ -704,7 +704,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.AccessType).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.IpAddress).HasMaxLength(45);
                 entity.Property(e => e.UserAgent).HasMaxLength(500);
-                entity.Property(e => e.AccessedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.AccessedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.IsSuccessful).HasDefaultValue(true);
                 entity.Property(e => e.ErrorMessage).HasMaxLength(500);
 
@@ -725,7 +725,7 @@ namespace ReactApp.Server.Data
 
                 entity.Property(e => e.ConsentStatus).IsRequired().HasMaxLength(20).HasDefaultValue("pending");
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.RequestedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.RequestedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
 
 
@@ -751,8 +751,8 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.DeviceInfo).HasMaxLength(1000);
                 entity.Property(e => e.AppVersion).HasMaxLength(50);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -769,8 +769,8 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Platform).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.TemplateJson).IsRequired().HasColumnType("NVARCHAR(MAX)");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -790,7 +790,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.JsonPayload).HasColumnType("NVARCHAR(MAX)");
                 entity.Property(e => e.Platform).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.NotificationState).HasMaxLength(50);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -807,7 +807,7 @@ namespace ReactApp.Server.Data
 
                 entity.Property(e => e.Token).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.JwtId).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.IsRevoked).HasDefaultValue(false);
                 entity.Property(e => e.ClientIpAddress).HasMaxLength(45);
                 entity.Property(e => e.UserAgent).HasMaxLength(500);
@@ -829,7 +829,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(15);
                 entity.Property(e => e.Code).IsRequired().HasMaxLength(6);
                 entity.Property(e => e.HashedCode).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.IsUsed).HasDefaultValue(false);
                 entity.Property(e => e.AttemptCount).HasDefaultValue(0);
                 entity.Property(e => e.ClientIpAddress).HasMaxLength(45);
@@ -869,7 +869,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.CommentCount).HasDefaultValue(0);
                 entity.Property(e => e.CreatedByAdminUser).HasDefaultValue(false);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -896,7 +896,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.IsFuture).HasDefaultValue(false);
                 entity.Property(e => e.IsArchived).HasDefaultValue(false);
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -927,8 +927,8 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.ClassId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsCurrent).HasDefaultValue(false);
                 entity.Property(e => e.IsFuture).HasDefaultValue(false);
-                entity.Property(e => e.AssignedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.AssignedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -953,8 +953,8 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.FromClassId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.ToClassId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Notes).HasMaxLength(200);
-                entity.Property(e => e.PromotedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.PromotedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -987,7 +987,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.AfterValue).HasColumnType("NVARCHAR(MAX)");
                 entity.Property(e => e.IpAddress).HasMaxLength(45);
                 entity.Property(e => e.UserAgent).HasMaxLength(500);
-                entity.Property(e => e.Timestamp).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.Timestamp).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 
@@ -1019,8 +1019,8 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("blank");
                 entity.Property(e => e.ArrivalTime).HasColumnType("TIME");
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.RecordedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.RecordedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
             });
         }
@@ -1059,7 +1059,6 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.AddressLine).HasMaxLength(200);
                 entity.Property(e => e.MobilePhone).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.HomePhone).HasMaxLength(20);
-                entity.Property(e => e.EmergencyContact).HasMaxLength(20);
                 entity.Property(e => e.Email).HasMaxLength(255);
                 entity.Property(e => e.RelationshipToChild).IsRequired().HasMaxLength(20);
 
@@ -1074,7 +1073,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.ApplicationStatus).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
                 entity.Property(e => e.IsImported).IsRequired().HasDefaultValue(false);
                 entity.Property(e => e.RejectionReason).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
     }

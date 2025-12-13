@@ -1,4 +1,5 @@
-using ReactApp.Server.DTOs;
+﻿using ReactApp.Server.DTOs;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -122,6 +123,6 @@ namespace ReactApp.Server.Services
         /// <summary>
         /// 送信日時
         /// </summary>
-        public DateTime SentAt { get; set; } = DateTime.UtcNow;
+        public DateTime SentAt { get; set; } = DateTimeHelper.GetJstNow();
     }
 }

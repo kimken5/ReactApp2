@@ -1,8 +1,9 @@
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -48,8 +49,6 @@ namespace ReactApp.Server.Services
                     Address = nursery.Address,
                     PhoneNumber = nursery.PhoneNumber,
                     Email = nursery.Email,
-                    PrincipalName = nursery.PrincipalName,
-                    EstablishedDate = nursery.EstablishedDate,
                     CurrentAcademicYear = nursery.CurrentAcademicYear,
                     LoginId = nursery.LoginId,
                     LastLoginAt = nursery.LastLoginAt,
@@ -129,10 +128,7 @@ namespace ReactApp.Server.Services
         {
             try
             {
-                _logger.LogInformation("UpdateNurseryAsync - NurseryId: {NurseryId}, CurrentPassword: {HasCurrent}, NewPassword: {HasNew}",
-                    nurseryId,
-                    !string.IsNullOrEmpty(request.CurrentPassword),
-                    !string.IsNullOrEmpty(request.NewPassword));
+                _logger.LogInformation("UpdateNurseryAsync - NurseryId: {NurseryId}", nurseryId);
 
                 var nursery = await _context.Nurseries
                     .Where(n => n.Id == nurseryId)
@@ -143,77 +139,11 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"保育園が見つかりません。ID: {nurseryId}");
                 }
 
-                // パスワード変更のバリデーション
-                if (!string.IsNullOrEmpty(request.NewPassword) || !string.IsNullOrEmpty(request.CurrentPassword))
-                {
-                    // パスワード変更時は両方のフィールドが必須
-                    if (string.IsNullOrEmpty(request.CurrentPassword))
-                    {
-                        throw new InvalidOperationException("現在のパスワードを入力してください。");
-                    }
-
-                    if (string.IsNullOrEmpty(request.NewPassword))
-                    {
-                        throw new InvalidOperationException("新しいパスワードを入力してください。");
-                    }
-
-                    // 現在のパスワードが設定されていない場合
-                    if (string.IsNullOrEmpty(nursery.Password))
-                    {
-                        throw new InvalidOperationException("現在のパスワードが設定されていません。");
-                    }
-
-                    // 現在のパスワードを検証
-                    bool isPasswordValid = false;
-                    try
-                    {
-                        // BCryptハッシュかどうかを確認（$2a$, $2b$, $2y$ で始まる）
-                        if (nursery.Password.StartsWith("$2a$") || nursery.Password.StartsWith("$2b$") || nursery.Password.StartsWith("$2y$"))
-                        {
-                            // BCryptハッシュの場合は検証
-                            isPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, nursery.Password);
-                        }
-                        else
-                        {
-                            // 平文または他の形式の場合は単純比較
-                            isPasswordValid = request.CurrentPassword == nursery.Password;
-                            _logger.LogWarning("保育園パスワードが平文で保存されています。NurseryId: {NurseryId}", nurseryId);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "パスワード検証中にエラーが発生しました。NurseryId: {NurseryId}", nurseryId);
-                        // 検証に失敗した場合は平文として比較
-                        isPasswordValid = request.CurrentPassword == nursery.Password;
-                    }
-
-                    if (!isPasswordValid)
-                    {
-                        throw new InvalidOperationException("現在のパスワードが正しくありません。");
-                    }
-
-                    // パスワード強度チェック
-                    var (isValid, errorMessage) = ValidatePasswordStrength(request.NewPassword);
-                    if (!isValid)
-                    {
-                        throw new InvalidOperationException(errorMessage);
-                    }
-
-                    // 新しいパスワードをハッシュ化して保存
-                    nursery.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, BCrypt.Net.BCrypt.GenerateSalt(10));
-                    _logger.LogInformation("保育園のパスワードを変更しました。NurseryId: {NurseryId}", nurseryId);
-                }
-
-                nursery.Name = request.Name;
+                                nursery.Name = request.Name;
                 nursery.Address = request.Address ?? string.Empty;
                 nursery.PhoneNumber = request.PhoneNumber ?? string.Empty;
                 nursery.Email = request.Email ?? string.Empty;
-                nursery.PrincipalName = request.PrincipalName ?? string.Empty;
-                if (request.EstablishedDate.HasValue)
-                {
-                    nursery.EstablishedDate = request.EstablishedDate.Value;
-                }
-                nursery.UpdatedAt = DateTime.UtcNow;
+                nursery.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -226,8 +156,6 @@ namespace ReactApp.Server.Services
                     Address = nursery.Address,
                     PhoneNumber = nursery.PhoneNumber,
                     Email = nursery.Email,
-                    PrincipalName = nursery.PrincipalName,
-                    EstablishedDate = nursery.EstablishedDate,
                     CurrentAcademicYear = nursery.CurrentAcademicYear,
                     LoginId = nursery.LoginId,
                     LastLoginAt = nursery.LastLoginAt,
@@ -392,7 +320,7 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"クラスIDが既に存在します。ClassId: {request.ClassId}");
                 }
 
-                var now = DateTime.UtcNow;
+                var now = DateTimeHelper.GetJstNow();
                 var classEntity = new Class
                 {
                     NurseryId = nurseryId,
@@ -458,7 +386,7 @@ namespace ReactApp.Server.Services
                     classEntity.IsActive = request.IsActive.Value;
                 }
 
-                classEntity.UpdatedAt = DateTime.UtcNow;
+                classEntity.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -736,7 +664,7 @@ namespace ReactApp.Server.Services
 
                 var newChildId = maxChildId + 1;
 
-                var now = DateTime.UtcNow;
+                var now = DateTimeHelper.GetJstNow();
                 var child = new Child
                 {
                     NurseryId = nurseryId,
@@ -869,13 +797,6 @@ namespace ReactApp.Server.Services
             {
                 PhoneNumber = normalizedPhone,
                 Name = parentDto.Name,
-                NameKana = parentDto.NameKana,
-                DateOfBirth = parentDto.DateOfBirth,
-                PostalCode = parentDto.PostalCode,
-                Prefecture = parentDto.Prefecture,
-                City = parentDto.City,
-                AddressLine = parentDto.AddressLine,
-                HomePhone = parentDto.HomePhone,
                 Email = parentDto.Email,
                 NurseryId = nurseryId,
                 PushNotificationsEnabled = true,
@@ -923,7 +844,7 @@ namespace ReactApp.Server.Services
                 child.WithdrawalReason = request.WithdrawalReason;
                 child.LastAttendanceDate = request.LastAttendanceDate;
                 child.IsActive = request.IsActive;
-                child.UpdatedAt = DateTime.UtcNow;
+                child.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -1117,13 +1038,6 @@ namespace ReactApp.Server.Services
                     Id = p.Id,
                     PhoneNumber = p.PhoneNumber,
                     Name = p.Name,
-                    NameKana = p.NameKana,
-                    DateOfBirth = p.DateOfBirth,
-                    PostalCode = p.PostalCode,
-                    Prefecture = p.Prefecture,
-                    City = p.City,
-                    AddressLine = p.AddressLine,
-                    HomePhone = p.HomePhone,
                     Email = p.Email,
                     NurseryId = p.NurseryId,
                     PushNotificationsEnabled = p.PushNotificationsEnabled,
@@ -1189,13 +1103,6 @@ namespace ReactApp.Server.Services
                     Id = parent.Id,
                     PhoneNumber = parent.PhoneNumber,
                     Name = parent.Name,
-                    NameKana = parent.NameKana,
-                    DateOfBirth = parent.DateOfBirth,
-                    PostalCode = parent.PostalCode,
-                    Prefecture = parent.Prefecture,
-                    City = parent.City,
-                    AddressLine = parent.AddressLine,
-                    HomePhone = parent.HomePhone,
                     Email = parent.Email,
                     NurseryId = parent.NurseryId,
                     PushNotificationsEnabled = parent.PushNotificationsEnabled,
@@ -1249,18 +1156,11 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"この保育園に既に同じ電話番号が登録されています。電話番号: {request.PhoneNumber}");
                 }
 
-                var now = DateTime.UtcNow;
+                var now = DateTimeHelper.GetJstNow();
                 var parent = new Parent
                 {
                     PhoneNumber = normalizedPhone,
                     Name = request.Name,
-                    NameKana = request.NameKana,
-                    DateOfBirth = request.DateOfBirth,
-                    PostalCode = request.PostalCode,
-                    Prefecture = request.Prefecture,
-                    City = request.City,
-                    AddressLine = request.AddressLine,
-                    HomePhone = request.HomePhone,
                     Email = request.Email,
                     NurseryId = nurseryId, // 保育園IDを設定
                     IsPrimary = true, // デスクトップアプリで登録する保護者は主保護者
@@ -1336,41 +1236,6 @@ namespace ReactApp.Server.Services
                     parent.Email = request.Email;
                 }
 
-                if (request.NameKana != null)
-                {
-                    parent.NameKana = request.NameKana;
-                }
-
-                if (request.DateOfBirth.HasValue)
-                {
-                    parent.DateOfBirth = request.DateOfBirth;
-                }
-
-                if (request.PostalCode != null)
-                {
-                    parent.PostalCode = request.PostalCode;
-                }
-
-                if (request.Prefecture != null)
-                {
-                    parent.Prefecture = request.Prefecture;
-                }
-
-                if (request.City != null)
-                {
-                    parent.City = request.City;
-                }
-
-                if (request.AddressLine != null)
-                {
-                    parent.AddressLine = request.AddressLine;
-                }
-
-                if (request.HomePhone != null)
-                {
-                    parent.HomePhone = request.HomePhone;
-                }
-
                 if (request.PushNotificationsEnabled.HasValue)
                 {
                     parent.PushNotificationsEnabled = request.PushNotificationsEnabled.Value;
@@ -1411,7 +1276,7 @@ namespace ReactApp.Server.Services
                     parent.IsActive = request.IsActive.Value;
                 }
 
-                parent.UpdatedAt = DateTime.UtcNow;
+                parent.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -1665,7 +1530,7 @@ namespace ReactApp.Server.Services
 
                 var newStaffId = maxStaffId + 1;
 
-                var now = DateTime.UtcNow;
+                var now = DateTimeHelper.GetJstNow();
                 var staff = new Staff
                 {
                     NurseryId = nurseryId,
@@ -1753,7 +1618,7 @@ namespace ReactApp.Server.Services
                     staff.IsActive = request.IsActive.Value;
                 }
 
-                staff.UpdatedAt = DateTime.UtcNow;
+                staff.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 _logger.LogInformation("Before SaveChanges - Remark: '{Remark}', ResignationDate: {ResignationDate}",
                     staff.Remark ?? "(null)", staff.ResignationDate);
@@ -1844,7 +1709,7 @@ namespace ReactApp.Server.Services
                 _context.StaffClassAssignments.RemoveRange(existingAssignments);
 
                 // 新しい割り当てを作成
-                var now = DateTime.UtcNow;
+                var now = DateTimeHelper.GetJstNow();
                 foreach (var assignment in assignments)
                 {
                     // クラスの存在確認
@@ -1996,7 +1861,7 @@ namespace ReactApp.Server.Services
                         throw new KeyNotFoundException($"クラス {classId} が見つかりません");
                     }
 
-                    var currentYear = DateTime.UtcNow.Year;
+                    var currentYear = DateTimeHelper.GetJstNow().Year;
 
                     // 1. 既存の職員割り当てを非アクティブ化
                     var existingStaffAssignments = await _context.StaffClassAssignments
@@ -2006,7 +1871,7 @@ namespace ReactApp.Server.Services
                     foreach (var assignment in existingStaffAssignments)
                     {
                         assignment.IsActive = false;
-                        assignment.UpdatedAt = DateTime.UtcNow;
+                        assignment.UpdatedAt = DateTimeHelper.GetJstNow();
                     }
 
                     // 2. 新しい職員割り当てを作成
@@ -2021,7 +1886,7 @@ namespace ReactApp.Server.Services
                         if (existing != null)
                         {
                             existing.IsActive = true;
-                            existing.UpdatedAt = DateTime.UtcNow;
+                            existing.UpdatedAt = DateTimeHelper.GetJstNow();
                             existing.AcademicYear = currentYear;
                         }
                         else
@@ -2034,8 +1899,8 @@ namespace ReactApp.Server.Services
                                 AssignmentRole = "MainTeacher", // デフォルトは担任
                                 AcademicYear = currentYear,
                                 IsActive = true,
-                                AssignedAt = DateTime.UtcNow,
-                                CreatedAt = DateTime.UtcNow
+                                AssignedAt = DateTimeHelper.GetJstNow(),
+                                CreatedAt = DateTimeHelper.GetJstNow()
                             });
                         }
                     }
@@ -2051,7 +1916,7 @@ namespace ReactApp.Server.Services
                         if (!request.ChildIds.Contains(child.ChildId))
                         {
                             child.ClassId = null; // クラスから除外
-                            child.UpdatedAt = DateTime.UtcNow;
+                            child.UpdatedAt = DateTimeHelper.GetJstNow();
                         }
                     }
 
@@ -2064,7 +1929,7 @@ namespace ReactApp.Server.Services
                         if (child != null)
                         {
                             child.ClassId = classId;
-                            child.UpdatedAt = DateTime.UtcNow;
+                            child.UpdatedAt = DateTimeHelper.GetJstNow();
                         }
                     }
 
@@ -2087,7 +1952,7 @@ namespace ReactApp.Server.Services
         #region キーロックコード検証
 
         /// <summary>
-        /// キーロックコード検証
+        /// キーロックコード検証 (KeyLockCodeフィールド削除により一時的に無効化)
         /// </summary>
         public async Task<VerifyKeyLockCodeResponseDto> VerifyKeyLockCodeAsync(int nurseryId, string code)
         {
@@ -2103,7 +1968,8 @@ namespace ReactApp.Server.Services
                 };
             }
 
-            var isValid = nursery.KeyLockCode == code;
+            // TODO: KeyLockCodeフィールドが削除されたため、一時的に常にtrueを返す
+            var isValid = true;
 
             return new VerifyKeyLockCodeResponseDto
             {

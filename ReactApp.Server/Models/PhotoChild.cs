@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -36,7 +37,7 @@ namespace ReactApp.Server.Models
         /// 写真と園児が関連付けられた日時（UTC）
         /// </summary>
         [Required]
-        public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+        public DateTime AddedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// 関連付け実行スタッフID（任意、外部キー）

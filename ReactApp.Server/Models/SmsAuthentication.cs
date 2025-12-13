@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -29,13 +30,13 @@ namespace ReactApp.Server.Models
         /// 作成日時
         /// SMS認証が作成された日時（UTC）
         /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// 有効期限
         /// 認証コードの有効期限（UTC、デフォルト5分後）
         /// </summary>
-        public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddMinutes(5);
+        public DateTime ExpiresAt { get; set; } = DateTimeHelper.GetJstNow().AddMinutes(5);
 
         /// <summary>
         /// 使用済みフラグ

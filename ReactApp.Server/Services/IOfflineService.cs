@@ -1,3 +1,5 @@
+﻿using ReactApp.Server.Helpers;
+
 namespace ReactApp.Server.Services
 {
     /// <summary>
@@ -186,7 +188,7 @@ namespace ReactApp.Server.Services
         public string ActionType { get; set; } = string.Empty;
         public string EntityType { get; set; } = string.Empty;
         public string Data { get; set; } = string.Empty;
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTimeHelper.GetJstNow();
         public bool SyncCompleted { get; set; }
         public Dictionary<string, string> Metadata { get; set; } = new();
     }
@@ -233,7 +235,7 @@ namespace ReactApp.Server.Services
         public int PendingSyncItems { get; set; }
         public Dictionary<string, int> EntitySyncBreakdown { get; set; } = new();
         public List<OfflinePerformanceMetric> PerformanceMetrics { get; set; } = new();
-        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+        public DateTime LastUpdated { get; set; } = DateTimeHelper.GetJstNow();
     }
 
     /// <summary>

@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services;
 
@@ -177,7 +178,7 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
         {
             // 更新
             existing.ClassId = request.ClassId;
-            existing.UpdatedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTimeHelper.GetJstNow();
             _context.ChildClassAssignments.Update(existing);
         }
         else
@@ -191,9 +192,9 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
                 ClassId = request.ClassId,
                 IsCurrent = false,
                 IsFuture = true,
-                AssignedAt = DateTime.UtcNow,
+                AssignedAt = DateTimeHelper.GetJstNow(),
                 AssignedByUserId = userId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeHelper.GetJstNow()
             };
 
             _context.ChildClassAssignments.Add(assignment);

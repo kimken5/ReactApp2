@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models;
 
@@ -66,7 +67,7 @@ public class Nursery
     /// 作成日時（必須）
     /// </summary>
     [Required]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTimeHelper.GetJstNow();
 
     /// <summary>
     /// 更新日時（任意）
@@ -121,7 +122,7 @@ public class Nursery
     /// デフォルト: 現在の西暦年度
     /// </summary>
     [Required]
-    public int CurrentAcademicYear { get; set; } = DateTime.UtcNow.Year;
+    public int CurrentAcademicYear { get; set; } = DateTimeHelper.GetJstNow().Year;
 
     /// <summary>
     /// 入園申込キー(任意、最大255文字)

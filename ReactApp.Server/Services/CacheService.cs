@@ -1,7 +1,8 @@
-using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json;
 using System.Collections.Concurrent;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -108,7 +109,7 @@ namespace ReactApp.Server.Services
                 }
 
                 // キー追跡（パターンマッチ削除用）
-                _keyTracker.TryAdd(key, DateTime.UtcNow);
+                _keyTracker.TryAdd(key, DateTimeHelper.GetJstNow());
 
                 _logger.LogDebug("キャッシュ保存完了: {Key}, サイズ: {Size}bytes", key, serializedValue.Length);
             }
@@ -186,11 +187,11 @@ namespace ReactApp.Server.Services
 
                 // キャッシュミス→ファクトリで生成
                 _logger.LogDebug("キャッシュミス→データ生成開始: {Key}", key);
-                var startTime = DateTime.UtcNow;
+                var startTime = DateTimeHelper.GetJstNow();
 
                 var newValue = await factory();
 
-                var duration = DateTime.UtcNow - startTime;
+                var duration = DateTimeHelper.GetJstNow() - startTime;
                 _logger.LogDebug("データ生成完了: {Key}, 所要時間: {Duration}ms", key, duration.TotalMilliseconds);
 
                 // 生成データをキャッシュに保存

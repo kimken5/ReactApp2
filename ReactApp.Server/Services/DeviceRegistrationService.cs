@@ -1,8 +1,9 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -51,8 +52,8 @@ namespace ReactApp.Server.Services
                 existingDevice.DeviceInfo = request.DeviceInfo;
                 existingDevice.AppVersion = request.AppVersion;
                 existingDevice.IsActive = true;
-                existingDevice.LastLoginAt = DateTime.UtcNow;
-                existingDevice.UpdatedAt = DateTime.UtcNow;
+                existingDevice.LastLoginAt = DateTimeHelper.GetJstNow();
+                existingDevice.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
                 return _mapper.Map<DeviceRegistrationDto>(existingDevice);
@@ -70,9 +71,9 @@ namespace ReactApp.Server.Services
                 DeviceInfo = request.DeviceInfo,
                 AppVersion = request.AppVersion,
                 IsActive = true,
-                LastLoginAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                LastLoginAt = DateTimeHelper.GetJstNow(),
+                CreatedAt = DateTimeHelper.GetJstNow(),
+                UpdatedAt = DateTimeHelper.GetJstNow()
             };
 
             _context.DeviceRegistrations.Add(deviceRegistration);
@@ -111,7 +112,7 @@ namespace ReactApp.Server.Services
             if (request.IsActive.HasValue)
                 device.IsActive = request.IsActive.Value;
 
-            device.UpdatedAt = DateTime.UtcNow;
+            device.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -136,7 +137,7 @@ namespace ReactApp.Server.Services
             }
 
             device.IsActive = false;
-            device.UpdatedAt = DateTime.UtcNow;
+            device.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -185,7 +186,7 @@ namespace ReactApp.Server.Services
             }
 
             device.PushToken = pushToken;
-            device.UpdatedAt = DateTime.UtcNow;
+            device.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -204,8 +205,8 @@ namespace ReactApp.Server.Services
             if (device == null)
                 return false;
 
-            device.LastLoginAt = DateTime.UtcNow;
-            device.UpdatedAt = DateTime.UtcNow;
+            device.LastLoginAt = DateTimeHelper.GetJstNow();
+            device.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
             return true;
@@ -218,7 +219,7 @@ namespace ReactApp.Server.Services
         {
             _logger.LogInformation("Starting cleanup of inactive devices (threshold: {Days} days)", daysThreshold);
 
-            var cutoffDate = DateTime.UtcNow.AddDays(-daysThreshold);
+            var cutoffDate = DateTimeHelper.GetJstNow().AddDays(-daysThreshold);
 
             var inactiveDevices = await _context.DeviceRegistrations
                 .Where(d => d.LastLoginAt < cutoffDate || !d.IsActive)
@@ -234,7 +235,7 @@ namespace ReactApp.Server.Services
             foreach (var device in inactiveDevices)
             {
                 device.IsActive = false;
-                device.UpdatedAt = DateTime.UtcNow;
+                device.UpdatedAt = DateTimeHelper.GetJstNow();
             }
 
             await _context.SaveChangesAsync();
@@ -269,7 +270,7 @@ namespace ReactApp.Server.Services
                 ActiveDevices = activeDevices,
                 PlatformBreakdown = platformBreakdown,
                 UserTypeBreakdown = userTypeBreakdown,
-                LastUpdated = DateTime.UtcNow
+                LastUpdated = DateTimeHelper.GetJstNow()
             };
         }
     }

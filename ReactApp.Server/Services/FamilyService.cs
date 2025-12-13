@@ -1,9 +1,10 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
 using ReactApp.Server.Exceptions;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -66,7 +67,7 @@ namespace ReactApp.Server.Services
                 {
                     existingParent.IsActive = true;
                     existingParent.Name = dto.Name;
-                    existingParent.UpdatedAt = DateTime.UtcNow;
+                    existingParent.UpdatedAt = DateTimeHelper.GetJstNow();
                 }
                 newParent = existingParent;
                 await _context.SaveChangesAsync();
@@ -79,7 +80,7 @@ namespace ReactApp.Server.Services
                     Name = dto.Name,
                     PhoneNumber = dto.PhoneNumber,
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
                 _context.Parents.Add(newParent);
                 await _context.SaveChangesAsync();
@@ -105,14 +106,14 @@ namespace ReactApp.Server.Services
                 existingMember.IsActive = true;
                 existingMember.DisplayName = dto.Name;
                 existingMember.RelationshipType = dto.RelationshipType;
-                existingMember.UpdatedAt = DateTime.UtcNow;
-                existingMember.JoinedAt = DateTime.UtcNow;
+                existingMember.UpdatedAt = DateTimeHelper.GetJstNow();
+                existingMember.JoinedAt = DateTimeHelper.GetJstNow();
 
                 // Parentも再アクティブ化
                 if (newParent != null && !newParent.IsActive)
                 {
                     newParent.IsActive = true;
-                    newParent.UpdatedAt = DateTime.UtcNow;
+                    newParent.UpdatedAt = DateTimeHelper.GetJstNow();
                 }
 
                 // ParentChildRelationshipも再アクティブ化
@@ -121,7 +122,7 @@ namespace ReactApp.Server.Services
                 if (existingRelationship != null && !existingRelationship.IsActive)
                 {
                     existingRelationship.IsActive = true;
-                    existingRelationship.UpdatedAt = DateTime.UtcNow;
+                    existingRelationship.UpdatedAt = DateTimeHelper.GetJstNow();
                 }
 
                 familyMember = existingMember;
@@ -141,8 +142,8 @@ namespace ReactApp.Server.Services
                 CanViewReports = true,
                 CanViewPhotos = true,
                 HasPickupPermission = false,
-                JoinedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
+                JoinedAt = DateTimeHelper.GetJstNow(),
+                CreatedAt = DateTimeHelper.GetJstNow(),
                 InvitedByParentId = inviterParentId,
                 IsActive = true
             };
@@ -280,7 +281,7 @@ namespace ReactApp.Server.Services
             if (dto.IsActive.HasValue)
                 member.IsActive = dto.IsActive.Value;
 
-            member.UpdatedAt = DateTime.UtcNow;
+            member.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -310,14 +311,14 @@ namespace ReactApp.Server.Services
             }
 
             member.IsActive = false;
-            member.UpdatedAt = DateTime.UtcNow;
+            member.UpdatedAt = DateTimeHelper.GetJstNow();
 
             // Also deactivate the parent
             var parent = await _context.Parents.FindAsync(member.ParentId);
             if (parent != null)
             {
                 parent.IsActive = false;
-                parent.UpdatedAt = DateTime.UtcNow;
+                parent.UpdatedAt = DateTimeHelper.GetJstNow();
             }
 
             // Also deactivate the parent-child relationship
@@ -327,7 +328,7 @@ namespace ReactApp.Server.Services
             if (relationship != null)
             {
                 relationship.IsActive = false;
-                relationship.UpdatedAt = DateTime.UtcNow;
+                relationship.UpdatedAt = DateTimeHelper.GetJstNow();
             }
 
             await _context.SaveChangesAsync();

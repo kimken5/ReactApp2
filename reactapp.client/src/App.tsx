@@ -4,10 +4,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { DesktopApp } from './desktop/DesktopApp';
 
 // 保護者向け入園申込フォーム
-import { ApplicationKeyInput } from './pages/application/ApplicationKeyInput';
-import { ApplicationForm } from './pages/application/ApplicationForm';
-import { ApplicationConfirm } from './pages/application/ApplicationConfirm';
-import { ApplicationComplete } from './pages/application/ApplicationComplete';
+import { ApplicationFormPage } from './pages/ApplicationFormPage';
+import { ApplicationCompletePage } from './pages/ApplicationCompletePage';
 
 function App() {
     return (
@@ -17,10 +15,8 @@ function App() {
                 <Route path="/desktop/*" element={<DesktopApp />} />
 
                 {/* 保護者向け入園申込フォーム */}
-                <Route path="/application" element={<ApplicationKeyInput />} />
-                <Route path="/application/form" element={<ApplicationForm />} />
-                <Route path="/application/confirm" element={<ApplicationConfirm />} />
-                <Route path="/application/complete" element={<ApplicationComplete />} />
+                <Route path="/application" element={<ApplicationFormPage />} />
+                <Route path="/application/complete" element={<ApplicationCompletePage />} />
 
                 <Route path="/" element={
                     <div style={{padding: '20px', maxWidth: '800px', margin: '0 auto'}}>

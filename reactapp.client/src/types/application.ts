@@ -14,7 +14,6 @@ export interface ApplicationFormData {
   addressLine?: string;
   mobilePhone: string;
   homePhone?: string;
-  emergencyContact?: string;
   email?: string;
   relationshipToChild: string;
 

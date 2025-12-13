@@ -28,6 +28,8 @@ export function LoginPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // イベント伝播を停止
+
     setErrorMessage(null);
     setRemainingAttempts(null);
     setLoading(true);
@@ -41,11 +43,16 @@ export function LoginPage() {
       if (error instanceof AxiosError && error.response) {
         const apiError = error.response.data as ApiResponse<unknown>;
         if (apiError.error) {
-          setErrorMessage(apiError.error.message);
+          // エラーメッセージから試行回数を抽出
+          const message = apiError.error.message;
+          const attemptsMatch = message.match(/残り試行回数:\s*(\d+)回/);
+
           if (apiError.error.code === 'AUTH_ACCOUNT_LOCKED') {
             setErrorMessage('アカウントがロックされています。30分後に再試行してください。');
-          } else if (apiError.error.details && apiError.error.details.length > 0) {
-            const attemptsMatch = apiError.error.details[0].match(/残り(\d+)回/);
+          } else {
+            // メッセージから試行回数部分を除去して表示
+            const cleanMessage = message.replace(/[（(]残り試行回数:\s*\d+回[）)]/g, '').trim();
+            setErrorMessage(cleanMessage);
             if (attemptsMatch) {
               setRemainingAttempts(parseInt(attemptsMatch[1]));
             }
@@ -58,6 +65,8 @@ export function LoginPage() {
       }
       setLoading(false);
     }
+
+    return false; // フォーム送信を確実に防ぐ
   };
 
   return (

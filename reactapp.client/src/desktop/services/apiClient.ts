@@ -58,8 +58,12 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // ログイン・リフレッシュAPIへのリクエストはインターセプターをスキップ
+    const isAuthRequest = originalRequest.url?.includes('/api/desktop/auth/login') ||
+                          originalRequest.url?.includes('/api/desktop/auth/refresh');
+
     // 401エラー（トークン期限切れ）の場合、トークンリフレッシュを試行
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       if (isRefreshing) {
         // トークンリフレッシュ中の場合、キューに追加
         return new Promise((resolve, reject) => {

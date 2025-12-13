@@ -9,10 +9,11 @@ export interface NurseryDto {
   email?: string;
   principalName?: string;
   establishedDate?: string;
-  capacity?: number;
-  operatingHours?: string;
-  website?: string;
-  description?: string;
+  loginId?: string;
+  lastLoginAt?: string;
+  isLocked?: boolean;
+  lockedUntil?: string;
+  loginAttempts?: number;
 }
 
 export interface UpdateNurseryRequestDto {
@@ -22,10 +23,8 @@ export interface UpdateNurseryRequestDto {
   email?: string;
   principalName?: string;
   establishedDate?: string;
-  capacity?: number;
-  operatingHours?: string;
-  website?: string;
-  description?: string;
+  currentPassword?: string;
+  newPassword?: string;
 }
 
 // ===== クラス管理 =====
@@ -133,8 +132,14 @@ export interface CreateChildRequestDto {
 export interface CreateParentWithChildDto {
   phoneNumber: string;
   name: string;
+  nameKana?: string;
+  dateOfBirth?: string;
+  postalCode?: string;
+  prefecture?: string;
+  city?: string;
+  addressLine?: string;
+  homePhone?: string;
   email?: string;
-  address?: string;
 }
 
 export interface UpdateChildRequestDto {
@@ -172,8 +177,15 @@ export interface ParentDto {
   id: number;
   phoneNumber: string;
   name?: string;
+  nameKana?: string;
+  dateOfBirth?: string;
+  postalCode?: string;
+  prefecture?: string;
+  city?: string;
+  addressLine?: string;
+  homePhone?: string;
   email?: string;
-  address?: string;
+  nurseryId: number;
   pushNotificationsEnabled: boolean;
   absenceConfirmationEnabled: boolean;
   dailyReportEnabled: boolean;
@@ -192,16 +204,28 @@ export interface ParentDto {
 export interface CreateParentRequestDto {
   phoneNumber: string;
   name?: string;
+  nameKana?: string;
+  dateOfBirth?: string;
+  postalCode?: string;
+  prefecture?: string;
+  city?: string;
+  addressLine?: string;
+  homePhone?: string;
   email?: string;
-  address?: string;
   childIds: ChildIdentifier[];
 }
 
 export interface UpdateParentRequestDto {
   phoneNumber?: string;
   name?: string;
+  nameKana?: string;
+  dateOfBirth?: string;
+  postalCode?: string;
+  prefecture?: string;
+  city?: string;
+  addressLine?: string;
+  homePhone?: string;
   email?: string;
-  address?: string;
   pushNotificationsEnabled?: boolean;
   absenceConfirmationEnabled?: boolean;
   dailyReportEnabled?: boolean;

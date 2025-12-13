@@ -53,6 +53,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [useExistingParent, setUseExistingParent] = useState(false);
 
   useEffect(() => {
@@ -87,23 +88,25 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
 
     setIsSubmitting(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       const result = await importApplication(applicationId, {
-        useExistingParent,
-        existingParentId: useExistingParent
-          ? application.duplicateParentInfo?.existingParentId
-          : undefined,
+        overwriteParent: useExistingParent, // 既存保護者を使う場合は上書きする
       });
 
-      // 成功メッセージを表示してモーダルを閉じる
-      alert(
+      // 成功メッセージを設定（モーダル内に表示）
+      const parentStatus = result.wasParentCreated ? '(新規作成)' : result.wasParentUpdated ? '(情報更新)' : '(既存)';
+      setSuccessMessage(
         `インポートが完了しました。\n\n` +
-        `保護者: ${result.parentName} (ID: ${result.parentId}) ${result.wasParentCreated ? '(新規作成)' : result.wasParentUpdated ? '(情報更新)' : '(既存)'}\n` +
-        `園児: ${result.childName} (ID: ${result.childId}) (新規作成)`
+        `保護者: ${result.parentName} ${parentStatus}\n` +
+        `園児: ${result.childName} (新規作成)`
       );
 
-      onSuccess();
+      // 2秒後にモーダルを閉じてリストを更新
+      setTimeout(() => {
+        onSuccess();
+      }, 2000);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -191,6 +194,12 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
             </div>
           )}
 
+          {successMessage && (
+            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-700 whitespace-pre-line">{successMessage}</p>
+            </div>
+          )}
+
           <p className="mb-6 text-gray-700">
             以下の内容でインポートします。内容を確認してください。
           </p>
@@ -217,7 +226,6 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
                   <div className="flex-1">
                     <div className="font-medium text-gray-900">既存保護者を使用</div>
                     <div className="text-sm text-gray-600 mt-1">
-                      保護者ID: {application.duplicateParentInfo?.existingParentId} |{' '}
                       {application.duplicateParentInfo?.existingParentName} |{' '}
                       登録済み園児: {application.duplicateParentInfo?.childCount}人
                     </div>
@@ -264,7 +272,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
                   <dd className="font-medium">{application.applicantName}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-600">フリガナ:</dt>
+                  <dt className="text-gray-600">ふりがな:</dt>
                   <dd className="font-medium">{application.applicantNameKana}</dd>
                 </div>
                 <div>
@@ -287,7 +295,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
                   <dd className="font-medium">{application.childName}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-600">フリガナ:</dt>
+                  <dt className="text-gray-600">ふりがな:</dt>
                   <dd className="font-medium">{application.childNameKana}</dd>
                 </div>
                 <div>

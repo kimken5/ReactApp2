@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services;
 
@@ -75,7 +76,7 @@ public class AcademicYearService : IAcademicYearService
             IsCurrent = false, // 作成時は必ず非現在年度
             IsFuture = dto.IsFuture,
             Notes = dto.Notes,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeHelper.GetJstNow()
         };
 
         _context.AcademicYears.Add(academicYear);
@@ -112,7 +113,7 @@ public class AcademicYearService : IAcademicYearService
         existingYear.EndDate = endDate;
         existingYear.IsFuture = dto.IsFuture;
         existingYear.Notes = dto.Notes;
-        existingYear.UpdatedAt = DateTime.UtcNow;
+        existingYear.UpdatedAt = DateTimeHelper.GetJstNow();
 
         await _context.SaveChangesAsync();
 
@@ -208,7 +209,7 @@ public class AcademicYearService : IAcademicYearService
     {
         var result = new YearSlideResultDto
         {
-            ExecutedAt = DateTime.UtcNow,
+            ExecutedAt = DateTimeHelper.GetJstNow(),
             ExecutedByUserId = request.ExecutedByUserId
         };
 
@@ -269,12 +270,12 @@ public class AcademicYearService : IAcademicYearService
                 // 3. 年度フラグを更新
                 // 旧年度: IsCurrent = false
                 currentYear.IsCurrent = false;
-                currentYear.UpdatedAt = DateTime.UtcNow;
+                currentYear.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 // 新年度: IsCurrent = true, IsFuture = false
                 targetYear.IsCurrent = true;
                 targetYear.IsFuture = false;
-                targetYear.UpdatedAt = DateTime.UtcNow;
+                targetYear.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -341,7 +342,7 @@ public class AcademicYearService : IAcademicYearService
         {
             assignment.IsCurrent = false;
             assignment.IsFuture = true;
-            assignment.UpdatedAt = DateTime.UtcNow;
+            assignment.UpdatedAt = DateTimeHelper.GetJstNow();
         }
 
         // 新年度の割り当てを作成（同じクラスに割り当て）
@@ -353,9 +354,9 @@ public class AcademicYearService : IAcademicYearService
             ClassId = a.ClassId, // 同じクラスIDを使用（進級処理は別途実装）
             IsCurrent = true,
             IsFuture = false,
-            AssignedAt = DateTime.UtcNow,
+            AssignedAt = DateTimeHelper.GetJstNow(),
             AssignedByUserId = executedByUserId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeHelper.GetJstNow()
         }).ToList();
 
         _context.ChildClassAssignments.AddRange(newAssignments);
@@ -390,7 +391,7 @@ public class AcademicYearService : IAcademicYearService
         {
             assignment.IsCurrent = false;
             assignment.IsFuture = true;
-            assignment.UpdatedAt = DateTime.UtcNow;
+            assignment.UpdatedAt = DateTimeHelper.GetJstNow();
         }
 
         // 新年度の割り当てを作成（同じクラス・役割で割り当て）
@@ -404,10 +405,10 @@ public class AcademicYearService : IAcademicYearService
             IsCurrent = true,
             IsFuture = false,
             IsActive = true,
-            AssignedAt = DateTime.UtcNow,
+            AssignedAt = DateTimeHelper.GetJstNow(),
             AssignedByUserId = executedByUserId,
             Notes = $"年度スライドにより {currentYear} から移行",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeHelper.GetJstNow()
         }).ToList();
 
         _context.StaffClassAssignments.AddRange(newAssignments);

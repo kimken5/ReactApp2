@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -59,7 +60,7 @@ namespace ReactApp.Server.Models
         public string? ResponseMessage { get; set; }
 
         [Required]
-        public DateTime ResponseAt { get; set; } = DateTime.UtcNow;
+        public DateTime ResponseAt { get; set; } = DateTimeHelper.GetJstNow();
 
         public bool IsActive { get; set; } = true;
     }

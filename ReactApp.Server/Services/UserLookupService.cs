@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -284,7 +285,7 @@ namespace ReactApp.Server.Services
                 {
                     // 既存設定を更新
                     existingPreference.PreferredRole = preferredRole.ToString();
-                    existingPreference.UpdatedAt = DateTime.UtcNow;
+                    existingPreference.UpdatedAt = DateTimeHelper.GetJstNow();
                 }
                 else
                 {
@@ -293,8 +294,8 @@ namespace ReactApp.Server.Services
                     {
                         PhoneNumber = normalizedPhone,
                         PreferredRole = preferredRole.ToString(),
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
+                        CreatedAt = DateTimeHelper.GetJstNow(),
+                        UpdatedAt = DateTimeHelper.GetJstNow()
                     };
                     _context.UserRolePreferences.Add(newPreference);
                 }

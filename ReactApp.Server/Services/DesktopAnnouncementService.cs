@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
 using System.Text.Json;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -143,8 +144,8 @@ namespace ReactApp.Server.Services
                     Status = request.Status,
                     AllowComments = request.AllowComments,
                     ScheduledAt = request.ScheduledAt,
-                    PublishedAt = request.Status == "published" ? DateTime.UtcNow : (DateTime?)null,
-                    CreatedAt = DateTime.UtcNow
+                    PublishedAt = request.Status == "published" ? DateTimeHelper.GetJstNow() : (DateTime?)null,
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
 
                 _context.Announcements.Add(announcement);
@@ -185,7 +186,7 @@ namespace ReactApp.Server.Services
                 announcement.Status = request.Status;
                 announcement.AllowComments = request.AllowComments;
                 announcement.ScheduledAt = request.ScheduledAt;
-                announcement.UpdatedAt = DateTime.UtcNow;
+                announcement.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -244,8 +245,8 @@ namespace ReactApp.Server.Services
                 }
 
                 announcement.Status = "published";
-                announcement.PublishedAt = DateTime.UtcNow;
-                announcement.UpdatedAt = DateTime.UtcNow;
+                announcement.PublishedAt = DateTimeHelper.GetJstNow();
+                announcement.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -394,7 +395,7 @@ namespace ReactApp.Server.Services
                         PhoneNumber = parent.PhoneNumber,
                         ChildName = child?.Name ?? "不明",
                         ClassName = className,
-                        ReadAt = readLog.ReadAt ?? DateTime.UtcNow
+                        ReadAt = readLog.ReadAt ?? DateTimeHelper.GetJstNow()
                     });
                 }
 

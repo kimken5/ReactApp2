@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -345,7 +346,7 @@ namespace ReactApp.Server.Services
                     throw new KeyNotFoundException($"連絡通知が見つかりません。ID: {id}");
                 }
 
-                notification.AcknowledgedAt = DateTime.UtcNow;
+                notification.AcknowledgedAt = DateTimeHelper.GetJstNow();
                 notification.AcknowledgedBy = request.RespondedByStaffId;
                 notification.StaffResponse = request.StaffResponse;
                 notification.Status = "acknowledged";
@@ -382,7 +383,7 @@ namespace ReactApp.Server.Services
                     StaffId = request.StaffId,
                     ResponseType = request.ResponseType,
                     ResponseMessage = request.ResponseMessage,
-                    ResponseAt = DateTime.UtcNow,
+                    ResponseAt = DateTimeHelper.GetJstNow(),
                     IsActive = true
                 };
 
@@ -390,7 +391,7 @@ namespace ReactApp.Server.Services
 
                 // 通知ステータスを更新
                 notification.Status = "acknowledged";
-                notification.AcknowledgedAt = DateTime.UtcNow;
+                notification.AcknowledgedAt = DateTimeHelper.GetJstNow();
                 notification.AcknowledgedBy = request.StaffId;
 
                 await _context.SaveChangesAsync();

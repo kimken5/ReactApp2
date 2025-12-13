@@ -1,9 +1,10 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
 using ReactApp.Server.Exceptions;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -90,7 +91,7 @@ namespace ReactApp.Server.Services
             // SMS, Email, DeviceToken, DevicePlatform are not supported in Parents table
             // These settings are ignored
 
-            parent.UpdatedAt = DateTime.UtcNow;
+            parent.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -142,7 +143,7 @@ namespace ReactApp.Server.Services
                     Status = "pending",
                     RelatedEntityId = dto.RelatedEntityId,
                     RelatedEntityType = dto.RelatedEntityType,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
 
                 // Simulate delivery (in real implementation, this would call external services)
@@ -150,20 +151,20 @@ namespace ReactApp.Server.Services
                 {
                     await SimulateNotificationDeliveryAsync(log, parent);
                     log.Status = "sent";
-                    log.SentAt = DateTime.UtcNow;
+                    log.SentAt = DateTimeHelper.GetJstNow();
 
                     // Simulate delivery confirmation for push notifications
                     if (dto.DeliveryMethod == "push")
                     {
                         log.Status = "delivered";
-                        log.DeliveredAt = DateTime.UtcNow;
+                        log.DeliveredAt = DateTimeHelper.GetJstNow();
                     }
                 }
                 catch (Exception ex)
                 {
                     log.Status = "failed";
                     log.ErrorMessage = ex.Message;
-                    log.NextRetryAt = DateTime.UtcNow.AddMinutes(5); // Retry in 5 minutes
+                    log.NextRetryAt = DateTimeHelper.GetJstNow().AddMinutes(5); // Retry in 5 minutes
 
                     _logger.LogError(ex, "Failed to send notification to parent {ParentId}", parentId);
                 }
@@ -213,7 +214,7 @@ namespace ReactApp.Server.Services
             }
 
             log.Status = "read";
-            log.ReadAt = DateTime.UtcNow;
+            log.ReadAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -236,7 +237,7 @@ namespace ReactApp.Server.Services
             {
                 await SimulateNotificationDeliveryAsync(log, log.Parent);
                 log.Status = "sent";
-                log.SentAt = DateTime.UtcNow;
+                log.SentAt = DateTimeHelper.GetJstNow();
                 log.RetryCount++;
                 log.NextRetryAt = null;
                 log.ErrorMessage = null;
@@ -244,7 +245,7 @@ namespace ReactApp.Server.Services
                 if (log.DeliveryMethod == "push")
                 {
                     log.Status = "delivered";
-                    log.DeliveredAt = DateTime.UtcNow;
+                    log.DeliveredAt = DateTimeHelper.GetJstNow();
                 }
 
                 await _context.SaveChangesAsync();
@@ -256,7 +257,7 @@ namespace ReactApp.Server.Services
             {
                 log.RetryCount++;
                 log.ErrorMessage = ex.Message;
-                log.NextRetryAt = DateTime.UtcNow.AddMinutes(Math.Min(30, 5 * log.RetryCount)); // Exponential backoff
+                log.NextRetryAt = DateTimeHelper.GetJstNow().AddMinutes(Math.Min(30, 5 * log.RetryCount)); // Exponential backoff
 
                 await _context.SaveChangesAsync();
 
@@ -269,7 +270,7 @@ namespace ReactApp.Server.Services
         {
             var logs = await _context.NotificationLogs
                 .Include(l => l.Parent)
-                .Where(l => l.Status == "failed" && (l.NextRetryAt == null || l.NextRetryAt <= DateTime.UtcNow))
+                .Where(l => l.Status == "failed" && (l.NextRetryAt == null || l.NextRetryAt <= DateTimeHelper.GetJstNow()))
                 .OrderBy(l => l.CreatedAt)
                 .Take(100) // Process up to 100 failed notifications at a time
                 .ToListAsync();

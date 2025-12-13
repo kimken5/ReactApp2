@@ -1,6 +1,7 @@
-using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.Extensions.Caching.Memory;
 using System.Net;
 using System.Text.Json;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Middleware
 {
@@ -46,7 +47,7 @@ namespace ReactApp.Server.Middleware
                 var attempts = _cache.Get<List<DateTime>>(key) ?? new List<DateTime>();
 
                 // 古いエントリを削除
-                var cutoffTime = DateTime.UtcNow.Subtract(_options.TimeWindow);
+                var cutoffTime = DateTimeHelper.GetJstNow().Subtract(_options.TimeWindow);
                 attempts.RemoveAll(time => time < cutoffTime);
 
                 if (attempts.Count >= _options.MaxRequests)
@@ -67,7 +68,7 @@ namespace ReactApp.Server.Middleware
                     return;
                 }
 
-                attempts.Add(DateTime.UtcNow);
+                attempts.Add(DateTimeHelper.GetJstNow());
                 _cache.Set(key, attempts, _options.TimeWindow);
             }
 

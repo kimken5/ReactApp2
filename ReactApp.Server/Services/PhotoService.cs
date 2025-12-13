@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
@@ -94,8 +94,8 @@ namespace ReactApp.Server.Services
                 Description = dto.Description,
                 UploadedByStaffId = staffId,
                 UploadedByStaffNurseryId = nurseryId,
-                UploadedAt = DateTime.UtcNow,
-                PublishedAt = dto.PublishedAt ?? DateTime.UtcNow,
+                UploadedAt = DateTimeHelper.GetJstNow(),
+                PublishedAt = dto.PublishedAt ?? DateTimeHelper.GetJstNow(),
                 VisibilityLevel = dto.VisibilityLevel,
                 TargetClassId = dto.TargetClassId,
                 RequiresConsent = dto.RequiresConsent,
@@ -114,7 +114,7 @@ namespace ReactApp.Server.Services
                     ChildId = childId,
                     IsPrimarySubject = dto.ChildIds.Count == 1,
                     AddedByStaffId = staffId,
-                    AddedAt = DateTime.UtcNow
+                    AddedAt = DateTimeHelper.GetJstNow()
                 };
 
                 _context.PhotoChildren.Add(photoChild);
@@ -330,7 +330,7 @@ namespace ReactApp.Server.Services
             if (dto.Status != null)
                 photo.Status = dto.Status;
 
-            photo.UpdatedAt = DateTime.UtcNow;
+            photo.UpdatedAt = DateTimeHelper.GetJstNow();
 
             // Update child associations if provided
             if (dto.ChildIds != null)
@@ -349,7 +349,7 @@ namespace ReactApp.Server.Services
                         ChildId = childId,
                         IsPrimarySubject = dto.ChildIds.Count == 1,
                         AddedByStaffId = staffId,
-                        AddedAt = DateTime.UtcNow
+                        AddedAt = DateTimeHelper.GetJstNow()
                     };
 
                     _context.PhotoChildren.Add(photoChild);
@@ -381,8 +381,8 @@ namespace ReactApp.Server.Services
             }
 
             photo.IsActive = false;
-            photo.DeletedAt = DateTime.UtcNow;
-            photo.UpdatedAt = DateTime.UtcNow;
+            photo.DeletedAt = DateTimeHelper.GetJstNow();
+            photo.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -402,7 +402,7 @@ namespace ReactApp.Server.Services
             }
 
             photo.Status = "archived";
-            photo.UpdatedAt = DateTime.UtcNow;
+            photo.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -579,7 +579,7 @@ namespace ReactApp.Server.Services
                 PhotoId = photoId,
                 ParentId = parentId,
                 AccessType = accessType,
-                AccessedAt = DateTime.UtcNow,
+                AccessedAt = DateTimeHelper.GetJstNow(),
                 IpAddress = ipAddress,
                 UserAgent = userAgent,
                 IsSuccessful = true
@@ -629,8 +629,8 @@ namespace ReactApp.Server.Services
 
             consent.ConsentStatus = dto.ConsentStatus;
             consent.Notes = dto.Notes;
-            consent.RespondedAt = DateTime.UtcNow;
-            consent.UpdatedAt = DateTime.UtcNow;
+            consent.RespondedAt = DateTimeHelper.GetJstNow();
+            consent.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -656,7 +656,7 @@ namespace ReactApp.Server.Services
                 ChildId = childId,
                 ParentId = parentId,
                 ConsentStatus = "pending",
-                RequestedAt = DateTime.UtcNow,
+                RequestedAt = DateTimeHelper.GetJstNow(),
                 IsActive = true
             };
 

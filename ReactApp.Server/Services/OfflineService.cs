@@ -1,7 +1,8 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -146,7 +147,7 @@ namespace ReactApp.Server.Services
         /// </summary>
         public async Task<OfflineUsageStatistics> GetOfflineUsageAsync(int userId, int days = 30)
         {
-            var startDate = DateTime.UtcNow.AddDays(-days);
+            var startDate = DateTimeHelper.GetJstNow().AddDays(-days);
 
             var offlineActions = await _context.Set<OfflineAction>()
                 .Where(a => a.UserId == userId && a.Timestamp >= startDate)
@@ -218,7 +219,7 @@ namespace ReactApp.Server.Services
                 result.Success = cachedCount > 0;
                 result.CachedItemsCount = cachedCount;
                 result.CacheSize = totalSize;
-                result.CacheExpiry = DateTime.UtcNow.AddHours(24);
+                result.CacheExpiry = DateTimeHelper.GetJstNow().AddHours(24);
                 result.Message = $"{cachedCount} 個のエンドポイントをキャッシュしました";
             }
             catch (Exception ex)
@@ -301,7 +302,7 @@ namespace ReactApp.Server.Services
             {
                 var totalUsers = await _context.Parents.CountAsync();
                 var offlineActions = await _context.Set<OfflineAction>()
-                    .Where(a => a.Timestamp >= DateTime.UtcNow.AddDays(-30))
+                    .Where(a => a.Timestamp >= DateTimeHelper.GetJstNow().AddDays(-30))
                     .ToListAsync();
 
                 var offlineUsers = offlineActions.Select(a => a.UserId).Distinct().Count();
@@ -327,7 +328,7 @@ namespace ReactApp.Server.Services
                         MetricName = "平均同期時間",
                         Value = 2.5,
                         Unit = "秒",
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = DateTimeHelper.GetJstNow()
                     },
                     new OfflinePerformanceMetric
                     {
@@ -335,11 +336,11 @@ namespace ReactApp.Server.Services
                         Value = offlineActions.Count > 0 ?
                             (double)offlineActions.Count(a => a.SyncCompleted) / offlineActions.Count * 100 : 0,
                         Unit = "%",
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = DateTimeHelper.GetJstNow()
                     }
                 };
 
-                stats.LastUpdated = DateTime.UtcNow;
+                stats.LastUpdated = DateTimeHelper.GetJstNow();
             }
             catch (Exception ex)
             {
@@ -544,7 +545,7 @@ namespace ReactApp.Server.Services
                 LocalData = item.Data,
                 ServerData = await GetServerData(item.EntityType, ExtractEntityId(item.Data)),
                 LocalTimestamp = item.Timestamp,
-                ServerTimestamp = DateTime.UtcNow,
+                ServerTimestamp = DateTimeHelper.GetJstNow(),
                 ConflictType = "CONCURRENT_UPDATE",
                 Strategy = ConflictResolutionStrategy.LastModified
             };

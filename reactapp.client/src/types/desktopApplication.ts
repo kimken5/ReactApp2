@@ -81,8 +81,7 @@ export interface ApplicationListItemDto {
  * インポート申込リクエスト
  */
 export interface ImportApplicationRequest {
-  useExistingParent: boolean;
-  existingParentId?: number;
+  overwriteParent: boolean;
 }
 
 /**
@@ -132,8 +131,8 @@ export interface GetApplicationListParams {
  */
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   Pending: '保留中',
-  Imported: '取り込み済み',
-  Rejected: '却下済み',
+  Imported: '取込済',
+  Rejected: '却下済',
 };
 
 /**
@@ -149,7 +148,7 @@ export const APPLICATION_STATUS_COLORS: Record<ApplicationStatus, string> = {
  * ステータス絵文字
  */
 export const APPLICATION_STATUS_ICONS: Record<ApplicationStatus, string> = {
-  Pending: '🟡',
-  Imported: '🟢',
-  Rejected: '🔴',
+  Pending: '',
+  Imported: '',
+  Rejected: '',
 };

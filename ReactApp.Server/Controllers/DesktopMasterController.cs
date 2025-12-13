@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Services;
@@ -58,8 +58,7 @@ namespace ReactApp.Server.Controllers
                     });
                 }
 
-                _logger.LogInformation("保育園情報取得: PrincipalName={PrincipalName}, EstablishedDate={EstablishedDate}",
-                    nursery.PrincipalName, nursery.EstablishedDate);
+                _logger.LogInformation("保育園情報取得: NurseryId={NurseryId}", nurseryId);
 
                 return Ok(new ApiResponse<NurseryDto> { Success = true, Data = nursery });
             }

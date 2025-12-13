@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using ReactApp.Server.Hubs;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -334,7 +335,7 @@ namespace ReactApp.Server.Services
                 type = notificationType,
                 title = title,
                 body = body,
-                timestamp = DateTime.UtcNow,
+                timestamp = DateTimeHelper.GetJstNow(),
                 isEmergency = isEmergency,
                 data = additionalData,
                 source = "signalr"

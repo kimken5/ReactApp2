@@ -131,7 +131,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
             <h2 className="text-xl font-bold text-gray-800">
               申込詳細
             </h2>
@@ -165,22 +165,32 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
               </p>
             )}
 
-            {application.applicationStatus === 'Rejected' && application.rejectedAt && (
-              <div className="mt-2">
-                <p className="text-sm text-red-600">
-                  ✗ {new Date(application.rejectedAt).toLocaleString('ja-JP')} に却下
-                </p>
-                {application.rejectionReason && (
-                  <p className="mt-1 text-sm text-gray-700 bg-red-50 p-2 rounded">
-                    <strong>却下理由:</strong> {application.rejectionReason}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* 重複保護者情報 */}
-          {application.duplicateParentInfo && application.duplicateParentInfo.hasDuplicate && (
+          {/* 却下情報（却下済の場合のみ表示） */}
+          {application.applicationStatus === 'Rejected' && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-red-800 mb-2">
+                ✗ 却下済み申込
+              </h3>
+              {application.rejectedAt && (
+                <p className="text-sm text-red-700 mb-2">
+                  <strong>却下日時:</strong> {new Date(application.rejectedAt).toLocaleString('ja-JP')}
+                </p>
+              )}
+              {application.rejectionReason && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-red-800 mb-1">却下理由:</p>
+                  <p className="text-sm text-red-700 bg-white p-3 rounded border border-red-200 whitespace-pre-wrap">
+                    {application.rejectionReason}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 重複保護者情報（取込済・却下済の場合は非表示） */}
+          {application.applicationStatus !== 'Imported' && application.applicationStatus !== 'Rejected' && application.duplicateParentInfo && application.duplicateParentInfo.hasDuplicate && (
             <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-orange-800 mb-2">
                 ⚠️ 重複保護者情報
@@ -189,10 +199,6 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
                 電話番号が一致する保護者が見つかりました。
               </p>
               <dl className="mt-2 grid grid-cols-1 gap-2 text-sm">
-                <div>
-                  <dt className="font-medium text-orange-900">保護者ID:</dt>
-                  <dd className="text-orange-800">{application.duplicateParentInfo.existingParentId}</dd>
-                </div>
                 <div>
                   <dt className="font-medium text-orange-900">保護者名:</dt>
                   <dd className="text-orange-800">{application.duplicateParentInfo.existingParentName}</dd>
@@ -205,120 +211,126 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
             </div>
           )}
 
-          {/* 申請保護者情報 */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">
-              申請保護者情報
-            </h3>
-            <dl className="grid grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">お名前</dt>
-                <dd className="mt-1 text-base text-gray-900">{application.applicantName}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">フリガナ</dt>
-                <dd className="mt-1 text-base text-gray-900">{application.applicantNameKana}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">生年月日</dt>
-                <dd className="mt-1 text-base text-gray-900">
-                  {new Date(application.dateOfBirth).toLocaleDateString('ja-JP')}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">続柄</dt>
-                <dd className="mt-1 text-base text-gray-900">{formatRelationship(application.relationshipToChild)}</dd>
-              </div>
-              {application.postalCode && (
+          {/* 4カラムレイアウト: 申請保護者情報(2列) | 園児情報(2列) */}
+          <div className="grid grid-cols-4 gap-6">
+            {/* 申請保護者情報 - 左2列 */}
+            <div className="col-span-2">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                申請保護者情報
+              </h3>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">郵便番号</dt>
-                  <dd className="mt-1 text-base text-gray-900">{application.postalCode}</dd>
+                  <dt className="text-sm font-medium text-gray-500">お名前</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{application.applicantName}</dd>
                 </div>
-              )}
-              {application.prefecture && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">都道府県</dt>
-                  <dd className="mt-1 text-base text-gray-900">{application.prefecture}</dd>
+                  <dt className="text-sm font-medium text-gray-500">ふりがな</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{application.applicantNameKana}</dd>
                 </div>
-              )}
-              {application.city && (
-                <div className="col-span-2">
-                  <dt className="text-sm font-medium text-gray-500">市区町村</dt>
-                  <dd className="mt-1 text-base text-gray-900">{application.city}</dd>
-                </div>
-              )}
-              {application.addressLine && (
-                <div className="col-span-2">
-                  <dt className="text-sm font-medium text-gray-500">番地・建物名</dt>
-                  <dd className="mt-1 text-base text-gray-900">{application.addressLine}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-sm font-medium text-gray-500">携帯電話</dt>
-                <dd className="mt-1 text-base text-gray-900">{application.mobilePhone}</dd>
-              </div>
-              {application.homePhone && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">固定電話</dt>
-                  <dd className="mt-1 text-base text-gray-900">{application.homePhone}</dd>
+                  <dt className="text-sm font-medium text-gray-500">生年月日</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {new Date(application.dateOfBirth).toLocaleDateString('ja-JP')}
+                  </dd>
                 </div>
-              )}
-              {application.email && (
-                <div className="col-span-2">
-                  <dt className="text-sm font-medium text-gray-500">メールアドレス</dt>
-                  <dd className="mt-1 text-base text-gray-900">{application.email}</dd>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">続柄</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{formatRelationship(application.relationshipToChild)}</dd>
                 </div>
-              )}
-            </dl>
-          </div>
+                {application.postalCode && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">郵便番号</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{application.postalCode}</dd>
+                  </div>
+                )}
+                {application.prefecture && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">都道府県</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{application.prefecture}</dd>
+                  </div>
+                )}
+                {application.city && (
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">市区町村</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{application.city}</dd>
+                  </div>
+                )}
+                {application.addressLine && (
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">番地・建物名</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{application.addressLine}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">携帯電話</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{application.mobilePhone}</dd>
+                </div>
+                {application.homePhone && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">固定電話</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{application.homePhone}</dd>
+                  </div>
+                )}
+                {application.email && (
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">メールアドレス</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{application.email}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
 
-          {/* 園児情報 */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">
-              園児情報
-            </h3>
-            <dl className="grid grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">お名前</dt>
-                <dd className="mt-1 text-base text-gray-900">{application.childName}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">フリガナ</dt>
-                <dd className="mt-1 text-base text-gray-900">{application.childNameKana}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">生年月日</dt>
-                <dd className="mt-1 text-base text-gray-900">
-                  {new Date(application.childDateOfBirth).toLocaleDateString('ja-JP')}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">性別</dt>
-                <dd className="mt-1 text-base text-gray-900">{formatGender(application.childGender)}</dd>
-              </div>
-              {application.childBloodType && (
+            {/* 園児情報 - 右2列 */}
+            <div className="col-span-2 relative">
+              <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-300"></div>
+              <div className="pl-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                  園児情報
+                </h3>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">血液型</dt>
-                  <dd className="mt-1 text-base text-gray-900">{application.childBloodType}</dd>
+                  <dt className="text-sm font-medium text-gray-500">お名前</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{application.childName}</dd>
                 </div>
-              )}
-              {application.childMedicalNotes && (
-                <div className="col-span-2">
-                  <dt className="text-sm font-medium text-gray-500">健康に関する特記事項</dt>
-                  <dd className="mt-1 text-base text-gray-900 whitespace-pre-wrap">
-                    {application.childMedicalNotes}
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">ふりがな</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{application.childNameKana}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">生年月日</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {new Date(application.childDateOfBirth).toLocaleDateString('ja-JP')}
                   </dd>
                 </div>
-              )}
-              {application.childSpecialInstructions && (
-                <div className="col-span-2">
-                  <dt className="text-sm font-medium text-gray-500">その他の特記事項</dt>
-                  <dd className="mt-1 text-base text-gray-900 whitespace-pre-wrap">
-                    {application.childSpecialInstructions}
-                  </dd>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">性別</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{formatGender(application.childGender)}</dd>
                 </div>
-              )}
-            </dl>
+                {application.childBloodType && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">血液型</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{application.childBloodType}</dd>
+                  </div>
+                )}
+                {application.childMedicalNotes && (
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">健康に関する特記事項</dt>
+                    <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                      {application.childMedicalNotes}
+                    </dd>
+                  </div>
+                )}
+                {application.childSpecialInstructions && (
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">その他の特記事項</dt>
+                    <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                      {application.childSpecialInstructions}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              </div>
+            </div>
           </div>
         </div>
 

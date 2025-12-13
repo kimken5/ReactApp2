@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -36,12 +37,12 @@ namespace ReactApp.Server.Models
         /// 作成日時
         /// 設定が最初に作成された日時（UTC）
         /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// 更新日時
         /// 設定が最後に更新された日時（UTC）
         /// </summary>
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTimeHelper.GetJstNow();
     }
 }

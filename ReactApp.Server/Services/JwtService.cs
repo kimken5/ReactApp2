@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ReactApp.Server.Data;
 using ReactApp.Server.Models;
@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -116,7 +117,7 @@ namespace ReactApp.Server.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(_accessTokenExpirationMinutes),
+                Expires = DateTimeHelper.GetJstNow().AddMinutes(_accessTokenExpirationMinutes),
                 Issuer = _issuer,
                 Audience = _audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -158,7 +159,7 @@ namespace ReactApp.Server.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),                                                          // クレーム情報
-                Expires = DateTime.UtcNow.AddMinutes(_accessTokenExpirationMinutes),                          // 有効期限
+                Expires = DateTimeHelper.GetJstNow().AddMinutes(_accessTokenExpirationMinutes),                          // 有効期限
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature), // HMAC-SHA256署名
                 Issuer = _issuer,                                                                              // 発行者
                 Audience = _audience                                                                           // 受信者
@@ -271,7 +272,7 @@ namespace ReactApp.Server.Services
                     .FirstOrDefaultAsync(rt => rt.Token == refreshToken && rt.ParentId == parentId);
 
                 // リフレッシュトークンの有効性チェック
-                if (storedRefreshToken == null || storedRefreshToken.IsRevoked || storedRefreshToken.ExpiresAt < DateTime.UtcNow)
+                if (storedRefreshToken == null || storedRefreshToken.IsRevoked || storedRefreshToken.ExpiresAt < DateTimeHelper.GetJstNow())
                 {
                     // 不正なトークンが検出された場合は全トークンを無効化（セキュリティ対応）
                     await RevokeAllRefreshTokensAsync(parentId);
@@ -293,7 +294,7 @@ namespace ReactApp.Server.Services
 
                 // 旧リフレッシュトークンを無効化（ワンタイム使用の原則）
                 storedRefreshToken.IsRevoked = true;
-                storedRefreshToken.RevokedAt = DateTime.UtcNow;
+                storedRefreshToken.RevokedAt = DateTimeHelper.GetJstNow();
 
                 // 新しいリフレッシュトークンエンティティを作成
                 var newRefreshTokenEntity = new RefreshToken
@@ -301,7 +302,7 @@ namespace ReactApp.Server.Services
                     ParentId = parentId,
                     Token = newRefreshToken,
                     JwtId = newJwtId,                                              // 新しいアクセストークンとのペアリング
-                    ExpiresAt = DateTime.UtcNow.AddDays(_refreshTokenExpirationDays),
+                    ExpiresAt = DateTimeHelper.GetJstNow().AddDays(_refreshTokenExpirationDays),
                     ClientIpAddress = ipAddress,
                     UserAgent = userAgent
                 };
@@ -341,7 +342,7 @@ namespace ReactApp.Server.Services
 
                 // トークンを無効化マーク
                 token.IsRevoked = true;
-                token.RevokedAt = DateTime.UtcNow;
+                token.RevokedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -379,7 +380,7 @@ namespace ReactApp.Server.Services
                 foreach (var token in tokens)
                 {
                     token.IsRevoked = true;
-                    token.RevokedAt = DateTime.UtcNow;
+                    token.RevokedAt = DateTimeHelper.GetJstNow();
                 }
 
                 await _context.SaveChangesAsync();

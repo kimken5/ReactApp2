@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -65,12 +66,12 @@ namespace ReactApp.Server.Services
             {
                 try
                 {
-                    var startTime = DateTime.UtcNow;
+                    var startTime = DateTimeHelper.GetJstNow();
                     _logger.LogDebug("{TaskName} 実行開始", taskName);
 
                     await taskFunc(stoppingToken);
 
-                    var duration = DateTime.UtcNow - startTime;
+                    var duration = DateTimeHelper.GetJstNow() - startTime;
                     _logger.LogDebug("{TaskName} 実行完了 (所要時間: {Duration}ms)", taskName, duration.TotalMilliseconds);
                 }
                 catch (Exception ex)
@@ -104,7 +105,7 @@ namespace ReactApp.Server.Services
 
                 // 1. 期限切れSMS認証コードを削除（24時間経過）
                 var expiredSmsAuth = await context.SmsAuthentications
-                    .Where(s => s.CreatedAt < DateTime.UtcNow.AddHours(-24))
+                    .Where(s => s.CreatedAt < DateTimeHelper.GetJstNow().AddHours(-24))
                     .ToListAsync(cancellationToken);
 
                 if (expiredSmsAuth.Any())
@@ -115,7 +116,7 @@ namespace ReactApp.Server.Services
 
                 // 2. 期限切れリフレッシュトークンを削除
                 var expiredTokens = await context.RefreshTokens
-                    .Where(r => r.ExpiresAt < DateTime.UtcNow)
+                    .Where(r => r.ExpiresAt < DateTimeHelper.GetJstNow())
                     .ToListAsync(cancellationToken);
 
                 if (expiredTokens.Any())
@@ -126,7 +127,7 @@ namespace ReactApp.Server.Services
 
                 // 3. 古い通知ログを削除（90日経過）
                 var oldNotificationLogs = await context.NotificationLogs
-                    .Where(n => n.CreatedAt < DateTime.UtcNow.AddDays(-90))
+                    .Where(n => n.CreatedAt < DateTimeHelper.GetJstNow().AddDays(-90))
                     .ToListAsync(cancellationToken);
 
                 if (oldNotificationLogs.Any())
@@ -137,7 +138,7 @@ namespace ReactApp.Server.Services
 
                 // 4. 失敗したAzure通知ログを削除（30日経過）
                 var oldAzureNotificationLogs = await context.AzureNotificationLogs
-                    .Where(a => a.CreatedAt < DateTime.UtcNow.AddDays(-30) &&
+                    .Where(a => a.CreatedAt < DateTimeHelper.GetJstNow().AddDays(-30) &&
                                !string.IsNullOrEmpty(a.NotificationState) &&
                                a.NotificationState != "delivered")
                     .ToListAsync(cancellationToken);
@@ -150,7 +151,7 @@ namespace ReactApp.Server.Services
 
                 // 5. 古い写真アクセスログを削除（180日経過）
                 var oldPhotoAccess = await context.PhotoAccesses
-                    .Where(p => p.AccessedAt < DateTime.UtcNow.AddDays(-180))
+                    .Where(p => p.AccessedAt < DateTimeHelper.GetJstNow().AddDays(-180))
                     .ToListAsync(cancellationToken);
 
                 if (oldPhotoAccess.Any())
@@ -215,7 +216,7 @@ namespace ReactApp.Server.Services
 
             try
             {
-                var now = DateTime.UtcNow;
+                var now = DateTimeHelper.GetJstNow();
                 var today = now.Date;
 
                 // 日次統計の更新
@@ -266,7 +267,7 @@ namespace ReactApp.Server.Services
         {
             try
             {
-                var now = DateTime.UtcNow;
+                var now = DateTimeHelper.GetJstNow();
                 var startOfWeek = now.Date.AddDays(-(int)now.DayOfWeek);
                 var startOfMonth = new DateTime(now.Year, now.Month, 1);
 

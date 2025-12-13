@@ -312,6 +312,19 @@ export function ContactNotificationsPage() {
     }
   };
 
+  const getNotificationTypeColor = (type: string) => {
+    switch (type) {
+      case 'absence':
+        return 'bg-red-100 text-red-700';
+      case 'lateness':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'pickup':
+        return 'bg-blue-100 text-blue-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
   const getReasonLabel = (reason: string) => {
     switch (reason) {
       case 'illness':
@@ -559,7 +572,7 @@ export function ContactNotificationsPage() {
                         {new Date(notification.ymd).toLocaleDateString('ja-JP')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getNotificationTypeColor(notification.notificationType)}`}>
                           {getNotificationTypeLabel(notification.notificationType)}
                         </span>
                       </td>
@@ -740,7 +753,7 @@ export function ContactNotificationsPage() {
                 {/* ステータス */}
                 <div className="flex items-center justify-between pb-4">
                   <div>
-                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mr-2">
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mr-2 ${getNotificationTypeColor(selectedNotification.notificationType)}`}>
                       {getNotificationTypeLabel(selectedNotification.notificationType)}
                     </span>
                     {selectedNotification.acknowledgedByAdminUser ? (

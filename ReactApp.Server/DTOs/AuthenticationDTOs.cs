@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.DTOs
 {
@@ -405,7 +406,7 @@ namespace ReactApp.Server.DTOs
         /// レスポンス生成時刻
         /// レスポンスが生成されたUTC時刻
         /// </summary>
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTimeHelper.GetJstNow();
     }
 
     /// <summary>
@@ -442,7 +443,7 @@ namespace ReactApp.Server.DTOs
         /// エラー発生時刻
         /// エラーが発生したUTC時刻
         /// </summary>
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// リクエストトレースID（任意）

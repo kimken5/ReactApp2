@@ -1,11 +1,12 @@
 /**
  * 保護者向け入園申込フォームページ（入力→確認→完了の3ステップ）
  * URL: /application?key={ApplicationKey}
+ * 最大4人の園児を同時登録可能
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -13,12 +14,27 @@ import {
   submitApplication,
   fetchAddressByPostalCode,
 } from '../services/publicApplicationService';
-import type { CreateApplicationRequest } from '../types/publicApplication';
+import type { CreateApplicationRequest, ChildInfo } from '../types/publicApplication';
 import {
   RELATIONSHIP_OPTIONS,
   GENDER_OPTIONS,
   BLOOD_TYPE_OPTIONS,
 } from '../types/publicApplication';
+
+// 園児情報のバリデーションスキーマ
+const childSchema = z.object({
+  childName: z.string().min(1, '園児氏名は必須です').max(100, '100文字以内で入力してください'),
+  childNameKana: z
+    .string()
+    .min(1, '園児氏名（ふりがな）は必須です')
+    .max(100, '100文字以内で入力してください')
+    .regex(/^[ぁ-ん\s]+$/, 'ひらがなで入力してください'),
+  childDateOfBirth: z.string().min(1, '園児生年月日は必須です'),
+  childGender: z.enum(['M', 'F']),
+  childBloodType: z.string().optional(),
+  childMedicalNotes: z.string().max(1000, '1000文字以内で入力してください').optional(),
+  childSpecialInstructions: z.string().max(1000, '1000文字以内で入力してください').optional(),
+});
 
 // Zodバリデーションスキーマ
 const applicationSchema = z.object({
@@ -26,9 +42,9 @@ const applicationSchema = z.object({
   applicantName: z.string().min(1, '申請者氏名は必須です').max(100, '100文字以内で入力してください'),
   applicantNameKana: z
     .string()
-    .min(1, '申請者氏名（フリガナ）は必須です')
+    .min(1, '申請者氏名（ふりがな）は必須です')
     .max(100, '100文字以内で入力してください')
-    .regex(/^[ァ-ヶー\s]+$/, 'カタカナで入力してください'),
+    .regex(/^[ぁ-ん\s]+$/, 'ひらがなで入力してください'),
   dateOfBirth: z.string().min(1, '生年月日は必須です'),
   postalCode: z.string().optional(),
   prefecture: z.string().optional(),
@@ -42,18 +58,8 @@ const applicationSchema = z.object({
   email: z.string().email('メールアドレスの形式が正しくありません').optional().or(z.literal('')),
   relationshipToChild: z.string().min(1, '続柄は必須です'),
 
-  // 園児情報
-  childName: z.string().min(1, '園児氏名は必須です').max(100, '100文字以内で入力してください'),
-  childNameKana: z
-    .string()
-    .min(1, '園児氏名（フリガナ）は必須です')
-    .max(100, '100文字以内で入力してください')
-    .regex(/^[ァ-ヶー\s]+$/, 'カタカナで入力してください'),
-  childDateOfBirth: z.string().min(1, '園児生年月日は必須です'),
-  childGender: z.enum(['M', 'F'], { required_error: '性別は必須です' }),
-  childBloodType: z.string().optional(),
-  childMedicalNotes: z.string().max(1000, '1000文字以内で入力してください').optional(),
-  childSpecialInstructions: z.string().max(1000, '1000文字以内で入力してください').optional(),
+  // 園児情報（配列、最小1人、最大4人）
+  children: z.array(childSchema).min(1, '最低1人の園児情報が必要です').max(4, '園児は最大4人まで登録できます'),
 });
 
 type ApplicationFormData = z.infer<typeof applicationSchema>;
@@ -76,13 +82,28 @@ export function ApplicationFormPage() {
     handleSubmit,
     setValue,
     watch,
-    getValues,
+    control,
     formState: { errors },
   } = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
-      childGender: 'M',
+      children: [
+        {
+          childName: '',
+          childNameKana: '',
+          childDateOfBirth: '',
+          childGender: 'M',
+          childBloodType: '',
+          childMedicalNotes: '',
+          childSpecialInstructions: '',
+        },
+      ],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'children',
   });
 
   const postalCode = watch('postalCode');
@@ -129,6 +150,28 @@ export function ApplicationFormPage() {
     fetchAddress();
   }, [postalCode, setValue]);
 
+  // 園児追加ハンドラー
+  const handleAddChild = () => {
+    if (fields.length < 4) {
+      append({
+        childName: '',
+        childNameKana: '',
+        childDateOfBirth: '',
+        childGender: 'M',
+        childBloodType: '',
+        childMedicalNotes: '',
+        childSpecialInstructions: '',
+      });
+    }
+  };
+
+  // 園児削除ハンドラー
+  const handleRemoveChild = (index: number) => {
+    if (fields.length > 1) {
+      remove(index);
+    }
+  };
+
   // 確認画面へ遷移
   const onConfirm = (data: ApplicationFormData) => {
     setFormData(data);
@@ -151,16 +194,26 @@ export function ApplicationFormPage() {
 
     try {
       const submitData: CreateApplicationRequest = {
-        ...formData,
+        applicantName: formData.applicantName,
+        applicantNameKana: formData.applicantNameKana,
+        dateOfBirth: formData.dateOfBirth,
         postalCode: formData.postalCode || undefined,
         prefecture: formData.prefecture || undefined,
         city: formData.city || undefined,
         addressLine: formData.addressLine || undefined,
+        mobilePhone: formData.mobilePhone,
         homePhone: formData.homePhone || undefined,
         email: formData.email || undefined,
-        childBloodType: formData.childBloodType || undefined,
-        childMedicalNotes: formData.childMedicalNotes || undefined,
-        childSpecialInstructions: formData.childSpecialInstructions || undefined,
+        relationshipToChild: formData.relationshipToChild,
+        children: formData.children.map((child) => ({
+          childName: child.childName,
+          childNameKana: child.childNameKana,
+          childDateOfBirth: child.childDateOfBirth,
+          childGender: child.childGender,
+          childBloodType: child.childBloodType || undefined,
+          childMedicalNotes: child.childMedicalNotes || undefined,
+          childSpecialInstructions: child.childSpecialInstructions || undefined,
+        })),
       };
 
       const response = await submitApplication(applicationKey, submitData);
@@ -211,8 +264,6 @@ export function ApplicationFormPage() {
   // 確認画面
   if (currentStep === 'confirm' && formData) {
     const relationshipLabel = RELATIONSHIP_OPTIONS.find(opt => opt.value === formData.relationshipToChild)?.label;
-    const genderLabel = GENDER_OPTIONS.find(opt => opt.value === formData.childGender)?.label;
-    const bloodTypeLabel = BLOOD_TYPE_OPTIONS.find(opt => opt.value === formData.childBloodType)?.label;
 
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -242,7 +293,7 @@ export function ApplicationFormPage() {
                 <dd className="col-span-2 text-base text-gray-900">{formData.applicantName}</dd>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <dt className="text-sm font-medium text-gray-500">フリガナ</dt>
+                <dt className="text-sm font-medium text-gray-500">ふりがな</dt>
                 <dd className="col-span-2 text-base text-gray-900">{formData.applicantNameKana}</dd>
               </div>
               <div className="grid grid-cols-3 gap-4">
@@ -286,46 +337,55 @@ export function ApplicationFormPage() {
             </dl>
           </div>
 
-          {/* 園児情報 */}
-          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">園児情報</h2>
-            <dl className="space-y-3">
-              <div className="grid grid-cols-3 gap-4">
-                <dt className="text-sm font-medium text-gray-500">氏名</dt>
-                <dd className="col-span-2 text-base text-gray-900">{formData.childName}</dd>
+          {/* 園児情報（複数対応） */}
+          {formData.children.map((child, index) => {
+            const genderLabel = GENDER_OPTIONS.find(opt => opt.value === child.childGender)?.label;
+            const bloodTypeLabel = BLOOD_TYPE_OPTIONS.find(opt => opt.value === child.childBloodType)?.label;
+
+            return (
+              <div key={index} className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  園児情報 {formData.children.length > 1 ? `（${index + 1}人目）` : ''}
+                </h2>
+                <dl className="space-y-3">
+                  <div className="grid grid-cols-3 gap-4">
+                    <dt className="text-sm font-medium text-gray-500">氏名</dt>
+                    <dd className="col-span-2 text-base text-gray-900">{child.childName}</dd>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <dt className="text-sm font-medium text-gray-500">ふりがな</dt>
+                    <dd className="col-span-2 text-base text-gray-900">{child.childNameKana}</dd>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <dt className="text-sm font-medium text-gray-500">生年月日</dt>
+                    <dd className="col-span-2 text-base text-gray-900">{child.childDateOfBirth}</dd>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <dt className="text-sm font-medium text-gray-500">性別</dt>
+                    <dd className="col-span-2 text-base text-gray-900">{genderLabel}</dd>
+                  </div>
+                  {child.childBloodType && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">血液型</dt>
+                      <dd className="col-span-2 text-base text-gray-900">{bloodTypeLabel}</dd>
+                    </div>
+                  )}
+                  {child.childMedicalNotes && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">医療メモ</dt>
+                      <dd className="col-span-2 text-base text-gray-900 whitespace-pre-wrap">{child.childMedicalNotes}</dd>
+                    </div>
+                  )}
+                  {child.childSpecialInstructions && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">特別指示</dt>
+                      <dd className="col-span-2 text-base text-gray-900 whitespace-pre-wrap">{child.childSpecialInstructions}</dd>
+                    </div>
+                  )}
+                </dl>
               </div>
-              <div className="grid grid-cols-3 gap-4">
-                <dt className="text-sm font-medium text-gray-500">フリガナ</dt>
-                <dd className="col-span-2 text-base text-gray-900">{formData.childNameKana}</dd>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <dt className="text-sm font-medium text-gray-500">生年月日</dt>
-                <dd className="col-span-2 text-base text-gray-900">{formData.childDateOfBirth}</dd>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <dt className="text-sm font-medium text-gray-500">性別</dt>
-                <dd className="col-span-2 text-base text-gray-900">{genderLabel}</dd>
-              </div>
-              {formData.childBloodType && (
-                <div className="grid grid-cols-3 gap-4">
-                  <dt className="text-sm font-medium text-gray-500">血液型</dt>
-                  <dd className="col-span-2 text-base text-gray-900">{bloodTypeLabel}</dd>
-                </div>
-              )}
-              {formData.childMedicalNotes && (
-                <div className="grid grid-cols-3 gap-4">
-                  <dt className="text-sm font-medium text-gray-500">医療メモ</dt>
-                  <dd className="col-span-2 text-base text-gray-900 whitespace-pre-wrap">{formData.childMedicalNotes}</dd>
-                </div>
-              )}
-              {formData.childSpecialInstructions && (
-                <div className="grid grid-cols-3 gap-4">
-                  <dt className="text-sm font-medium text-gray-500">特別指示</dt>
-                  <dd className="col-span-2 text-base text-gray-900 whitespace-pre-wrap">{formData.childSpecialInstructions}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
+            );
+          })}
 
           {/* ボタン */}
           <div className="flex justify-center gap-4">
@@ -385,6 +445,9 @@ export function ApplicationFormPage() {
           <p className="text-sm text-gray-600 mt-2">
             必須項目（<span className="text-red-600">*</span>）を入力してください。
           </p>
+          <p className="text-sm text-gray-600 mt-1">
+            同じ保護者で複数の園児を申し込む場合は、園児情報追加ボタンで最大4人まで登録できます。
+          </p>
         </div>
 
         {/* フォーム */}
@@ -413,10 +476,10 @@ export function ApplicationFormPage() {
                 )}
               </div>
 
-              {/* 氏名（フリガナ） */}
+              {/* 氏名（ふりがな） */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  氏名（フリガナ） <span className="text-red-600">*</span>
+                  氏名（ふりがな） <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -573,136 +636,174 @@ export function ApplicationFormPage() {
             </div>
           </div>
 
-          {/* 園児情報 */}
-          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">園児情報</h2>
-
-            <div className="space-y-4">
-              {/* 園児氏名 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  氏名 <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  {...register('childName')}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                  placeholder="山田 花子"
-                />
-                <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
-                {errors.childName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.childName.message}</p>
+          {/* 園児情報（動的フィールド配列） */}
+          {fields.map((field, index) => (
+            <div key={field.id} className="bg-white rounded-md shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  園児情報 {fields.length > 1 ? `（${index + 1}人目）` : ''}
+                </h2>
+                {fields.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveChild(index)}
+                    className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-all duration-200"
+                  >
+                    削除
+                  </button>
                 )}
               </div>
 
-              {/* 園児氏名（フリガナ） */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  氏名（フリガナ） <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  {...register('childNameKana')}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                  placeholder="ヤマダ ハナコ"
-                />
-                <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
-                {errors.childNameKana && (
-                  <p className="mt-1 text-sm text-red-600">{errors.childNameKana.message}</p>
-                )}
-              </div>
-
-              {/* 園児生年月日 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  生年月日 <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="date"
-                  {...register('childDateOfBirth')}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                />
-                {errors.childDateOfBirth && (
-                  <p className="mt-1 text-sm text-red-600">{errors.childDateOfBirth.message}</p>
-                )}
-              </div>
-
-              {/* 性別 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  性別 <span className="text-red-600">*</span>
-                </label>
-                <div className="flex gap-4">
-                  {GENDER_OPTIONS.map((option) => (
-                    <label key={option.value} className="flex items-center">
-                      <input
-                        type="radio"
-                        value={option.value}
-                        {...register('childGender')}
-                        className="mr-2"
-                      />
-                      <span className="text-gray-700">{option.label}</span>
-                    </label>
-                  ))}
+              <div className="space-y-4">
+                {/* 園児氏名 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    氏名 <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register(`children.${index}.childName`)}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="山田 花子"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
+                  {errors.children?.[index]?.childName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childName?.message}</p>
+                  )}
                 </div>
-                {errors.childGender && (
-                  <p className="mt-1 text-sm text-red-600">{errors.childGender.message}</p>
-                )}
-              </div>
 
-              {/* 血液型 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">血液型</label>
-                <select
-                  {...register('childBloodType')}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                >
-                  {BLOOD_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.childBloodType && (
-                  <p className="mt-1 text-sm text-red-600">{errors.childBloodType.message}</p>
-                )}
-              </div>
+                {/* 園児氏名（ふりがな） */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    氏名（ふりがな） <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register(`children.${index}.childNameKana`)}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="ヤマダ ハナコ"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
+                  {errors.children?.[index]?.childNameKana && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childNameKana?.message}</p>
+                  )}
+                </div>
 
-              {/* 医療メモ */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  医療メモ（アレルギー、持病など）
-                </label>
-                <textarea
-                  {...register('childMedicalNotes')}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                  placeholder="アレルギーや持病がある場合は記入してください"
-                />
-                {errors.childMedicalNotes && (
-                  <p className="mt-1 text-sm text-red-600">{errors.childMedicalNotes.message}</p>
-                )}
-              </div>
+                {/* 園児生年月日 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    生年月日 <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    {...register(`children.${index}.childDateOfBirth`)}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  />
+                  {errors.children?.[index]?.childDateOfBirth && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childDateOfBirth?.message}</p>
+                  )}
+                </div>
 
-              {/* 特別指示 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  特別指示・その他
-                </label>
-                <textarea
-                  {...register('childSpecialInstructions')}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                  placeholder="その他、保育園にお伝えしたいことがあれば記入してください"
-                />
-                {errors.childSpecialInstructions && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.childSpecialInstructions.message}
-                  </p>
-                )}
+                {/* 性別 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    性別 <span className="text-red-600">*</span>
+                  </label>
+                  <div className="flex gap-4">
+                    {GENDER_OPTIONS.map((option) => (
+                      <label key={option.value} className="flex items-center">
+                        <input
+                          type="radio"
+                          value={option.value}
+                          {...register(`children.${index}.childGender`)}
+                          className="mr-2"
+                        />
+                        <span className="text-gray-700">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.children?.[index]?.childGender && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childGender?.message}</p>
+                  )}
+                </div>
+
+                {/* 血液型 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">血液型</label>
+                  <select
+                    {...register(`children.${index}.childBloodType`)}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  >
+                    {BLOOD_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.children?.[index]?.childBloodType && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childBloodType?.message}</p>
+                  )}
+                </div>
+
+                {/* 医療メモ */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    医療メモ（アレルギー、持病など）
+                  </label>
+                  <textarea
+                    {...register(`children.${index}.childMedicalNotes`)}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="アレルギーや持病がある場合は記入してください"
+                  />
+                  {errors.children?.[index]?.childMedicalNotes && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childMedicalNotes?.message}</p>
+                  )}
+                </div>
+
+                {/* 特別指示 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    特別指示・その他
+                  </label>
+                  <textarea
+                    {...register(`children.${index}.childSpecialInstructions`)}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="その他、保育園にお伝えしたいことがあれば記入してください"
+                  />
+                  {errors.children?.[index]?.childSpecialInstructions && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.children[index]?.childSpecialInstructions?.message}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          ))}
+
+          {/* 園児追加ボタン */}
+          {fields.length < 4 && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={handleAddChild}
+                className="px-6 py-2 bg-blue-100 text-blue-700 font-medium rounded-md hover:bg-blue-200 transition-all duration-200 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                園児を追加（残り{4 - fields.length}人）
+              </button>
+            </div>
+          )}
+
+          {/* 配列エラー */}
+          {errors.children && typeof errors.children === 'object' && 'message' in errors.children && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">{errors.children.message}</p>
+            </div>
+          )}
 
           {/* 確認画面へボタン */}
           <div className="flex justify-center">

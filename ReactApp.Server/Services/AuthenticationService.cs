@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -76,7 +77,7 @@ namespace ReactApp.Server.Services
                 }
 
                 // レート制限チェック - 1日あたりのSMS送信制限（3回まで）
-                var today = DateTime.UtcNow.Date;
+                var today = DateTimeHelper.GetJstNow().Date;
                 var todaySmsCount = await _context.SmsAuthentications
                     .CountAsync(s => s.PhoneNumber == normalizedPhoneNumber && s.CreatedAt >= today);
 
@@ -99,7 +100,7 @@ namespace ReactApp.Server.Services
                     .FirstOrDefaultAsync();
 
                 // 開発環境以外で1分間のクールダウン制限をチェック
-                if (!_environment.IsDevelopment() && lastSms != null && lastSms.CreatedAt > DateTime.UtcNow.AddMinutes(-1))
+                if (!_environment.IsDevelopment() && lastSms != null && lastSms.CreatedAt > DateTimeHelper.GetJstNow().AddMinutes(-1))
                 {
                     return new ApiResponse<object>
                     {
@@ -121,7 +122,7 @@ namespace ReactApp.Server.Services
                     HashedCode = hashedCode,        // セキュア検証用ハッシュ値
                     ClientIpAddress = ipAddress,    // 送信元IP記録
                     UserAgent = userAgent,          // ユーザーエージェント記録
-                    ExpiresAt = DateTime.UtcNow.AddMinutes(5)  // 5分後に失効
+                    ExpiresAt = DateTimeHelper.GetJstNow().AddMinutes(5)  // 5分後に失効
                 };
 
                 // データベースにSMS認証レコード保存
@@ -180,7 +181,7 @@ namespace ReactApp.Server.Services
                 var normalizedPhoneNumber = NormalizePhoneNumber(request.PhoneNumber);
 
                 // 認証試行回数制限チェック（5分間に3回まで）
-                var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
+                var fiveMinutesAgo = DateTimeHelper.GetJstNow().AddMinutes(-5);
                 var recentAttempts = await _context.SmsAuthentications
                     .Where(s => s.PhoneNumber == normalizedPhoneNumber &&
                                s.CreatedAt >= fiveMinutesAgo &&
@@ -203,7 +204,7 @@ namespace ReactApp.Server.Services
                 var smsAuth = await _context.SmsAuthentications
                     .Where(s => s.PhoneNumber == normalizedPhoneNumber &&
                                !s.IsUsed &&                         // 未使用
-                               s.ExpiresAt > DateTime.UtcNow)       // 未失効
+                               s.ExpiresAt > DateTimeHelper.GetJstNow())       // 未失効
                     .OrderByDescending(s => s.CreatedAt)            // 最新のものを取得
                     .FirstOrDefaultAsync();
 
@@ -236,7 +237,7 @@ namespace ReactApp.Server.Services
 
                 // SMS認証レコードを使用済みにマーク
                 smsAuth.IsUsed = true;
-                smsAuth.UsedAt = DateTime.UtcNow;
+                smsAuth.UsedAt = DateTimeHelper.GetJstNow();
 
                 // ユーザーの役割を確認
                 var userLookup = await _userLookupService.CheckUserByPhoneNumberAsync(normalizedPhoneNumber);
@@ -321,7 +322,7 @@ namespace ReactApp.Server.Services
                     Message = "トークンを更新しました。",
                     AccessToken = accessToken,
                     RefreshToken = refreshToken,
-                    ExpiresAt = DateTime.UtcNow.AddHours(24)
+                    ExpiresAt = DateTimeHelper.GetJstNow().AddHours(24)
                 };
 
                 return new ApiResponse<AuthResponse>
@@ -406,7 +407,7 @@ namespace ReactApp.Server.Services
                 else if (!parent.IsActive)
                 {
                     parent.IsActive = true;
-                    parent.UpdatedAt = DateTime.UtcNow;
+                    parent.UpdatedAt = DateTimeHelper.GetJstNow();
                     await _context.SaveChangesAsync();
 
                     _logger.LogInformation("保護者アカウント再有効化: {PhoneNumber}, ParentId: {ParentId}", phoneNumber, parent.Id);
@@ -496,7 +497,7 @@ namespace ReactApp.Server.Services
                         };
                     }
 
-                    parent.LastLoginAt = DateTime.UtcNow;
+                    parent.LastLoginAt = DateTimeHelper.GetJstNow();
                     userEntity = parent;
                     userId = parent.Id;
                     userName = parent.Name ?? "保護者";
@@ -523,7 +524,7 @@ namespace ReactApp.Server.Services
                         };
                     }
 
-                    staffUser.LastLoginAt = DateTime.UtcNow;
+                    staffUser.LastLoginAt = DateTimeHelper.GetJstNow();
                     userEntity = staffUser;
                     userId = staffUser.StaffId;
                     userName = staffUser.Name;
@@ -556,7 +557,7 @@ namespace ReactApp.Server.Services
                     JwtId = jwtId,
                     ClientIpAddress = ipAddress,
                     UserAgent = userAgent,
-                    ExpiresAt = DateTime.UtcNow.AddDays(7)
+                    ExpiresAt = DateTimeHelper.GetJstNow().AddDays(7)
                 };
 
                 _context.RefreshTokens.Add(refreshTokenEntity);
@@ -571,7 +572,7 @@ namespace ReactApp.Server.Services
                     Message = "認証に成功しました。",
                     AccessToken = accessToken,
                     RefreshToken = refreshToken,
-                    ExpiresAt = DateTime.UtcNow.AddHours(24),
+                    ExpiresAt = DateTimeHelper.GetJstNow().AddHours(24),
                     UserType = userType,
                     RedirectUrl = userType == UserType.Parent ? "/dashboard/parent" : "/dashboard/staff"
                 };
@@ -586,7 +587,7 @@ namespace ReactApp.Server.Services
                         Name = userName,
                         Email = userEmail,
                         IsActive = true,
-                        LastLoginAt = DateTime.UtcNow
+                        LastLoginAt = DateTimeHelper.GetJstNow()
                     };
                 }
                 else
@@ -602,7 +603,7 @@ namespace ReactApp.Server.Services
                         Name = userName,
                         Email = userEmail,
                         IsActive = true,
-                        LastLoginAt = DateTime.UtcNow,
+                        LastLoginAt = DateTimeHelper.GetJstNow(),
                         Role = staffEntity.Role,
                         Position = staffEntity.Position,
                         ClassAssignments = classAssignments ?? new List<ClassAssignmentDto>()
@@ -617,7 +618,7 @@ namespace ReactApp.Server.Services
                     Name = userName,
                     Role = userType.ToString(),
                     IsVerified = true,
-                    CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    CreatedAt = DateTimeHelper.GetJstNow().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                     Parent = userType == UserType.Parent ? new { Id = userId.ToString(), Name = userName } : null,
                     Staff = userType == UserType.Staff ? new
                     {

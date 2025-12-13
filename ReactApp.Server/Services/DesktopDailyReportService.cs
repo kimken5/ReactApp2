@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
 using System.Text.Json;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -239,7 +240,7 @@ namespace ReactApp.Server.Services
                 }
 
                 // 未来の日付チェック
-                if (request.ReportDate.Date > DateTime.UtcNow.Date)
+                if (request.ReportDate.Date > DateTimeHelper.GetJstNow().Date)
                 {
                     throw new InvalidOperationException("未来の日付の日報は作成できません");
                 }
@@ -263,8 +264,8 @@ namespace ReactApp.Server.Services
                     Content = request.Content,
                     Photos = photosJson,
                     Status = status,
-                    PublishedAt = status == "published" ? DateTime.UtcNow : null,
-                    CreatedAt = DateTime.UtcNow,
+                    PublishedAt = status == "published" ? DateTimeHelper.GetJstNow() : null,
+                    CreatedAt = DateTimeHelper.GetJstNow(),
                     CreatedByAdminUser = true
                 };
 
@@ -309,7 +310,7 @@ namespace ReactApp.Server.Services
                 }
 
                 // 日付更新
-                if (request.ReportDate.Date > DateTime.UtcNow.Date)
+                if (request.ReportDate.Date > DateTimeHelper.GetJstNow().Date)
                 {
                     throw new InvalidOperationException("未来の日付の日報は作成できません");
                 }
@@ -349,11 +350,11 @@ namespace ReactApp.Server.Services
                     report.Status = request.Status;
                     if (request.Status == "published" && !report.PublishedAt.HasValue)
                     {
-                        report.PublishedAt = DateTime.UtcNow;
+                        report.PublishedAt = DateTimeHelper.GetJstNow();
                     }
                 }
 
-                report.UpdatedAt = DateTime.UtcNow;
+                report.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -405,7 +406,7 @@ namespace ReactApp.Server.Services
 
                 // 論理削除: IsActiveをfalseに設定
                 report.IsActive = false;
-                report.UpdatedAt = DateTime.UtcNow;
+                report.UpdatedAt = DateTimeHelper.GetJstNow();
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation(
@@ -434,8 +435,8 @@ namespace ReactApp.Server.Services
                 }
 
                 report.Status = "published";
-                report.PublishedAt = DateTime.UtcNow;
-                report.UpdatedAt = DateTime.UtcNow;
+                report.PublishedAt = DateTimeHelper.GetJstNow();
+                report.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 

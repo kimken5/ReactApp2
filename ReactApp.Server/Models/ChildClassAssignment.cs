@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models;
 
@@ -58,7 +59,7 @@ public class ChildClassAssignment
     /// このクラス所属が設定された日時
     /// </summary>
     [Required]
-    public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+    public DateTime AssignedAt { get; set; } = DateTimeHelper.GetJstNow();
 
     /// <summary>
     /// 割り当て実行者ID（任意）
@@ -70,7 +71,7 @@ public class ChildClassAssignment
     /// 作成日時（必須）
     /// </summary>
     [Required]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTimeHelper.GetJstNow();
 
     /// <summary>
     /// 更新日時（任意）

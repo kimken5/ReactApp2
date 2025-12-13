@@ -10,7 +10,6 @@ export interface DesktopLoginRequest {
 export interface NurseryInfo {
   id: number;
   name: string;
-  logoUrl?: string;
   currentAcademicYear: number;
   address?: string;
   phoneNumber?: string;

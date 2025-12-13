@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Services;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Controllers
 {
@@ -45,7 +46,7 @@ namespace ReactApp.Server.Controllers
             try
             {
                 var nurseryId = GetNurseryId();
-                var targetDate = date ?? DateTime.UtcNow;
+                var targetDate = date ?? DateTimeHelper.GetJstNow();
                 var statistics = await _dashboardService.GetClassContactStatisticsAsync(nurseryId, targetDate);
 
                 return Ok(new ApiResponse<List<ClassContactStatisticsDto>>

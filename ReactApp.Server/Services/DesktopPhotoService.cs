@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -149,7 +150,7 @@ namespace ReactApp.Server.Services
                 Description = request.Description,
                 UploadedByStaffNurseryId = nurseryId,
                 UploadedByStaffId = request.StaffId,
-                UploadedAt = DateTime.UtcNow,
+                UploadedAt = DateTimeHelper.GetJstNow(),
                 PublishedAt = request.PublishedAt,
                 VisibilityLevel = request.VisibilityLevel,
                 TargetClassId = request.TargetClassId,
@@ -174,7 +175,7 @@ namespace ReactApp.Server.Services
                         NurseryId = nurseryId,
                         ChildId = childId,
                         IsPrimarySubject = request.PrimaryChildId.HasValue && request.PrimaryChildId.Value == childId,
-                        AddedAt = DateTime.UtcNow,
+                        AddedAt = DateTimeHelper.GetJstNow(),
                         IsActive = true
                     };
 
@@ -204,7 +205,7 @@ namespace ReactApp.Server.Services
             photo.TargetClassId = request.TargetClassId;
             photo.Status = request.Status;
             photo.RequiresConsent = request.RequiresConsent;
-            photo.UpdatedAt = DateTime.UtcNow;
+            photo.UpdatedAt = DateTimeHelper.GetJstNow();
 
             // ChildIds更新（指定がある場合）
             if (request.ChildIds != null)
@@ -225,7 +226,7 @@ namespace ReactApp.Server.Services
                         NurseryId = nurseryId,
                         ChildId = childId,
                         IsPrimarySubject = request.PrimaryChildId.HasValue && request.PrimaryChildId.Value == childId,
-                        AddedAt = DateTime.UtcNow,
+                        AddedAt = DateTimeHelper.GetJstNow(),
                         IsActive = true
                     };
 
@@ -256,8 +257,8 @@ namespace ReactApp.Server.Services
 
             // 論理削除
             photo.IsActive = false;
-            photo.DeletedAt = DateTime.UtcNow;
-            photo.UpdatedAt = DateTime.UtcNow;
+            photo.DeletedAt = DateTimeHelper.GetJstNow();
+            photo.UpdatedAt = DateTimeHelper.GetJstNow();
 
             // 関連PhotoChildも論理削除
             var photoChildren = await _context.PhotoChildren

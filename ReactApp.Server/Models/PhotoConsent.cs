@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -48,7 +49,7 @@ namespace ReactApp.Server.Models
         /// 同意が依頼された日時（UTC）
         /// </summary>
         [Required]
-        public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+        public DateTime RequestedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// 回答日時（任意）

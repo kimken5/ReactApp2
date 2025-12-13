@@ -1,7 +1,8 @@
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
 using Microsoft.AspNetCore.Http;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -65,7 +66,7 @@ namespace ReactApp.Server.Services
                     Metadata = new Dictionary<string, string>
                     {
                         ["OriginalFileName"] = originalFileNameBase64,
-                        ["UploadedAt"] = DateTime.UtcNow.ToString("O"),
+                        ["UploadedAt"] = DateTimeHelper.GetJstNow().ToString("O"),
                         ["FileSize"] = file.Length.ToString()
                     }
                 };
@@ -103,7 +104,7 @@ namespace ReactApp.Server.Services
                     },
                     Metadata = new Dictionary<string, string>
                     {
-                        ["GeneratedAt"] = DateTime.UtcNow.ToString("O"),
+                        ["GeneratedAt"] = DateTimeHelper.GetJstNow().ToString("O"),
                         ["FileSize"] = imageData.Length.ToString(),
                         ["IsGenerated"] = "true"
                     }

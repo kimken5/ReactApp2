@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
@@ -234,9 +234,9 @@ namespace ReactApp.Server.Services
                 Content = dto.Content,
                 Photos = string.Join(",", dto.Photos),
                 Status = dto.Status ?? "draft",
-                PublishedAt = dto.Status == "published" ? DateTime.UtcNow : null,
+                PublishedAt = dto.Status == "published" ? DateTimeHelper.GetJstNow() : null,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeHelper.GetJstNow()
             };
 
             _logger.LogInformation("CreateReportAsync: Creating report with Status = '{Status}', PublishedAt = {PublishedAt}", report.Status, report.PublishedAt);
@@ -306,11 +306,11 @@ namespace ReactApp.Server.Services
                 // 公開状態に変更された場合はPublishedAtを設定
                 if (dto.Status == "published" && report.PublishedAt == null)
                 {
-                    report.PublishedAt = DateTime.UtcNow;
+                    report.PublishedAt = DateTimeHelper.GetJstNow();
                 }
             }
 
-            report.UpdatedAt = DateTime.UtcNow;
+            report.UpdatedAt = DateTimeHelper.GetJstNow();
 
             _logger.LogInformation("Saving changes for ReportId: {ReportId}", id);
             await _context.SaveChangesAsync();
@@ -330,8 +330,8 @@ namespace ReactApp.Server.Services
             }
 
             report.Status = "published";
-            report.PublishedAt = DateTime.UtcNow;
-            report.UpdatedAt = DateTime.UtcNow;
+            report.PublishedAt = DateTimeHelper.GetJstNow();
+            report.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -377,7 +377,7 @@ namespace ReactApp.Server.Services
             }
 
             report.Status = "archived";
-            report.UpdatedAt = DateTime.UtcNow;
+            report.UpdatedAt = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -395,7 +395,7 @@ namespace ReactApp.Server.Services
 
             // 論理削除: IsActiveをfalseに設定
             report.IsActive = false;
-            report.UpdatedAt = DateTime.UtcNow;
+            report.UpdatedAt = DateTimeHelper.GetJstNow();
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Daily report deleted (logical): {ReportId}", id);
@@ -418,7 +418,7 @@ namespace ReactApp.Server.Services
             {
                 // 既存の返信を更新
                 existingResponse.ResponseMessage = dto.ResponseMessage;
-                existingResponse.CreatedAt = DateTime.UtcNow; // 更新日時を記録
+                existingResponse.CreatedAt = DateTimeHelper.GetJstNow(); // 更新日時を記録
                 _context.DailyReportResponses.Update(existingResponse);
                 _logger.LogInformation("Daily report response updated: {ResponseId} for report {ReportId}",
                     existingResponse.Id, dto.DailyReportId);
@@ -432,7 +432,7 @@ namespace ReactApp.Server.Services
                     ParentId = parentId,
                     ResponseMessage = dto.ResponseMessage,
                     IsRead = false,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
 
                 _context.DailyReportResponses.Add(response);
@@ -456,15 +456,15 @@ namespace ReactApp.Server.Services
                     DailyReportId = reportId,
                     ParentId = parentId,
                     IsRead = true,
-                    ReadAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow
+                    ReadAt = DateTimeHelper.GetJstNow(),
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
                 _context.DailyReportResponses.Add(response);
             }
             else
             {
                 response.IsRead = true;
-                response.ReadAt = DateTime.UtcNow;
+                response.ReadAt = DateTimeHelper.GetJstNow();
             }
 
             await _context.SaveChangesAsync();

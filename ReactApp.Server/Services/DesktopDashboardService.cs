@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -116,7 +117,7 @@ namespace ReactApp.Server.Services
                         _ => "不明"
                     };
 
-                    var timeSpan = DateTime.UtcNow - report.CreatedAt;
+                    var timeSpan = DateTimeHelper.GetJstNow() - report.CreatedAt;
                     var timeAgo = timeSpan.TotalMinutes < 60
                         ? $"{(int)timeSpan.TotalMinutes}分前"
                         : timeSpan.TotalHours < 24
@@ -148,7 +149,7 @@ namespace ReactApp.Server.Services
         {
             try
             {
-                var today = DateTime.UtcNow.Date;
+                var today = DateTimeHelper.GetJstNow().Date;
                 // StaffIdとStaffNurseryIdはEventsテーブルに存在しないため、必要なプロパティのみを明示的にSelect
                 var events = await _context.Events
                     .Where(e => e.NurseryId == nurseryId &&
@@ -219,7 +220,7 @@ namespace ReactApp.Server.Services
                 var totalClasses = await _context.Classes
                     .CountAsync(c => c.NurseryId == nurseryId && c.IsActive);
 
-                var today = DateTime.UtcNow.Date;
+                var today = DateTimeHelper.GetJstNow().Date;
                 var todayAbsenceCount = await _context.AbsenceNotifications
                     .CountAsync(an => an.NurseryId == nurseryId &&
                                      an.Ymd.Date == today &&

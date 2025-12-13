@@ -3,7 +3,20 @@
  */
 
 /**
- * 申込フォーム送信リクエスト
+ * 園児情報（単体）
+ */
+export interface ChildInfo {
+  childName: string;
+  childNameKana: string;
+  childDateOfBirth: string; // YYYY-MM-DD形式
+  childGender: 'M' | 'F';
+  childBloodType?: string;
+  childMedicalNotes?: string;
+  childSpecialInstructions?: string;
+}
+
+/**
+ * 申込フォーム送信リクエスト（複数園児対応）
  */
 export interface CreateApplicationRequest {
   // 申請保護者情報 (13フィールド)
@@ -19,14 +32,8 @@ export interface CreateApplicationRequest {
   email?: string;
   relationshipToChild: string;
 
-  // 園児情報 (7フィールド)
-  childName: string;
-  childNameKana: string;
-  childDateOfBirth: string; // YYYY-MM-DD形式
-  childGender: 'M' | 'F';
-  childBloodType?: string;
-  childMedicalNotes?: string;
-  childSpecialInstructions?: string;
+  // 園児情報（配列、最大4人）
+  children: ChildInfo[];
 }
 
 /**
@@ -35,7 +42,8 @@ export interface CreateApplicationRequest {
 export interface CreateApplicationResponse {
   success: boolean;
   data?: {
-    applicationId: number;
+    applicationIds: number[]; // 複数園児分のID配列
+    childCount: number; // 登録された園児数
     message: string;
   };
   error?: {

@@ -1,5 +1,6 @@
-using ReactApp.Server.DTOs;
+﻿using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -170,6 +171,6 @@ namespace ReactApp.Server.Services
         /// <summary>
         /// 最終更新日時
         /// </summary>
-        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+        public DateTime LastUpdated { get; set; } = DateTimeHelper.GetJstNow();
     }
 }

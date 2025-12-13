@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -27,13 +28,13 @@ namespace ReactApp.Server.Models
         /// 作成日時
         /// リフレッシュトークンが作成された日時（UTC）
         /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// 有効期限
         /// リフレッシュトークンの有効期限（UTC、デフォルト7日後）
         /// </summary>
-        public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddDays(7);
+        public DateTime ExpiresAt { get; set; } = DateTimeHelper.GetJstNow().AddDays(7);
 
         /// <summary>
         /// 失効フラグ

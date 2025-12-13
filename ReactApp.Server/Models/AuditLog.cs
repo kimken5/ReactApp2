@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models;
 
@@ -91,5 +92,5 @@ public class AuditLog
     /// デフォルト: 現在時刻（UTC）
     /// </summary>
     [Required]
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTimeHelper.GetJstNow();
 }

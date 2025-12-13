@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -50,7 +51,7 @@ namespace ReactApp.Server.Models
         public virtual Staff UploadedByStaff { get; set; } = null!;
 
         [Required]
-        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UploadedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         [Required]
         public DateTime PublishedAt { get; set; }

@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services;
 
@@ -260,7 +261,7 @@ public class DesktopAttendanceService : IDesktopAttendanceService
                 attendance.Notes = request.Notes;
                 attendance.UpdatedByStaffId = request.RecordedByStaffId;
                 attendance.UpdatedByStaffNurseryId = request.RecordedByStaffNurseryId;
-                attendance.UpdatedAt = DateTime.UtcNow;
+                attendance.UpdatedAt = DateTimeHelper.GetJstNow();
             }
             else
             {
@@ -275,8 +276,8 @@ public class DesktopAttendanceService : IDesktopAttendanceService
                     Notes = request.Notes,
                     RecordedByStaffId = request.RecordedByStaffId,
                     RecordedByStaffNurseryId = request.RecordedByStaffNurseryId,
-                    RecordedAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
+                    RecordedAt = DateTimeHelper.GetJstNow(),
+                    CreatedAt = DateTimeHelper.GetJstNow(),
                     IsActive = true
                 };
 
@@ -336,7 +337,7 @@ public class DesktopAttendanceService : IDesktopAttendanceService
                 attendance.Notes = request.Notes;
                 attendance.UpdatedByStaffId = request.UpdatedByStaffId;
                 attendance.UpdatedByStaffNurseryId = request.UpdatedByStaffNurseryId;
-                attendance.UpdatedAt = DateTime.UtcNow;
+                attendance.UpdatedAt = DateTimeHelper.GetJstNow();
             }
             else
             {
@@ -350,8 +351,8 @@ public class DesktopAttendanceService : IDesktopAttendanceService
                     Notes = request.Notes,
                     RecordedByStaffId = request.UpdatedByStaffId,
                     RecordedByStaffNurseryId = request.UpdatedByStaffNurseryId,
-                    RecordedAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
+                    RecordedAt = DateTimeHelper.GetJstNow(),
+                    CreatedAt = DateTimeHelper.GetJstNow(),
                     IsActive = true
                 };
 
@@ -447,7 +448,7 @@ public class DesktopAttendanceService : IDesktopAttendanceService
                     existing.Status = "present";
                     existing.UpdatedByStaffId = request.RecordedByStaffId;
                     existing.UpdatedByStaffNurseryId = request.RecordedByStaffNurseryId;
-                    existing.UpdatedAt = DateTime.UtcNow;
+                    existing.UpdatedAt = DateTimeHelper.GetJstNow();
                     registered++;
                 }
                 else
@@ -461,8 +462,8 @@ public class DesktopAttendanceService : IDesktopAttendanceService
                         Status = "present",
                         RecordedByStaffId = request.RecordedByStaffId,
                         RecordedByStaffNurseryId = request.RecordedByStaffNurseryId,
-                        RecordedAt = DateTime.UtcNow,
-                        CreatedAt = DateTime.UtcNow,
+                        RecordedAt = DateTimeHelper.GetJstNow(),
+                        CreatedAt = DateTimeHelper.GetJstNow(),
                         IsActive = true
                     };
 

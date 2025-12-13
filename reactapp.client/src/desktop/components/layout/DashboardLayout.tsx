@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDesktopAuth } from '../../contexts/DesktopAuthContext';
 import { authService } from '../../services/authService';
+import { SecureAccessModal } from './SecureAccessModal';
 
 /**
  * デスクトップアプリ用ダッシュボードレイアウト
@@ -42,6 +43,8 @@ const getMenuIcon = (iconType: string) => {
       return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     case 'clipboard':
       return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>;
+    case 'document-text':
+      return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
     case 'cog':
       return <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
     default:
@@ -55,32 +58,53 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
+  // sessionStorageから鍵アクセス状態を復元
+  const [isSecureAccessUnlocked, setIsSecureAccessUnlocked] = useState(() => {
+    return sessionStorage.getItem('secureAccessUnlocked') === 'true';
+  });
+  const [showSecureAccessModal, setShowSecureAccessModal] = useState(false);
+
+  // 鍵アクセスのアンロック処理
+  const handleUnlock = () => {
+    setIsSecureAccessUnlocked(true);
+    sessionStorage.setItem('secureAccessUnlocked', 'true');
+  };
+
   const handleLogout = async () => {
     try {
+      // ログアウト時に鍵アクセス状態をクリア
+      sessionStorage.removeItem('secureAccessUnlocked');
       await authService.logout();
       logout();
       navigate('/desktop/login');
     } catch (error) {
       console.error('ログアウトエラー:', error);
       // エラーでもログアウト処理を続行
+      sessionStorage.removeItem('secureAccessUnlocked');
       logout();
       navigate('/desktop/login');
     }
   };
 
-  const menuItems = [
+  // 通常メニュー
+  const normalMenuItems = [
     { path: '/desktop/dashboard', label: 'ダッシュボード', icon: 'chart' },
-    { path: '/desktop/nurseries', label: '保育園情報', icon: 'building' },
-    { path: '/desktop/classes', label: 'クラス管理', icon: 'users' },
-    { path: '/desktop/children', label: '園児管理', icon: 'baby' },
-    { path: '/desktop/parents', label: '保護者管理', icon: 'user-group' },
-    { path: '/desktop/staff', label: '職員管理', icon: 'badge' },
-    { path: '/desktop/dailyreports', label: 'レポート管理', icon: 'document' },
-    { path: '/desktop/photos', label: '写真管理', icon: 'camera' },
     { path: '/desktop/attendance', label: '出欠表管理', icon: 'clipboard' },
     { path: '/desktop/contact-notifications', label: '連絡通知管理', icon: 'phone' },
-    { path: '/desktop/announcements', label: 'お知らせ管理', icon: 'megaphone' },
     { path: '/desktop/calendar', label: '予定管理', icon: 'calendar' },
+    { path: '/desktop/announcements', label: 'お知らせ管理', icon: 'megaphone' },
+    { path: '/desktop/dailyreports', label: 'レポート管理', icon: 'document' },
+    { path: '/desktop/photos', label: '写真管理', icon: 'camera' },
+    { path: '/desktop/classes', label: 'クラス管理', icon: 'users' },
+    { path: '/desktop/children', label: '園児管理', icon: 'baby' },
+  ];
+
+  // 制限メニュー（鍵アクセス後に表示）
+  const secureMenuItems = [
+    { path: '/desktop/nurseries', label: '保育園情報', icon: 'building' },
+    { path: '/desktop/parents', label: '保護者管理', icon: 'user-group' },
+    { path: '/desktop/staff', label: '職員管理', icon: 'badge' },
+    { path: '/desktop/applications', label: '入園申込管理', icon: 'document-text' },
     { path: '/desktop/academic-years', label: '年度管理', icon: 'clock' },
   ];
 
@@ -137,23 +161,52 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <p className="text-sm font-medium text-gray-900">{state.nursery?.name}</p>
                     <p className="text-xs text-gray-500 mt-1">年度: {state.nursery?.currentAcademicYear}年</p>
                   </div>
-                  <Link
-                    to="/desktop/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    onClick={() => setIsUserMenuOpen(false)}
+
+                  {/* 鍵アクセスボタン */}
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      setShowSecureAccessModal(true);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center space-x-2"
                   >
-                    プロフィール設定
-                  </Link>
-                  <Link
-                    to="/desktop/change-password"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    onClick={() => setIsUserMenuOpen(false)}
-                  >
-                    パスワード変更
-                  </Link>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span>鍵アクセス</span>
+                    {isSecureAccessUnlocked && (
+                      <span className="ml-auto text-green-600 text-xs">●</span>
+                    )}
+                  </button>
+
+                  {/* 制限メニュー（鍵アクセス後のみ表示） */}
+                  {isSecureAccessUnlocked && (
+                    <>
+                      <div className="my-2 border-t border-gray-200"></div>
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center space-x-2">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span>制限メニュー</span>
+                      </div>
+                      {secureMenuItems.map((item) => (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                        >
+                          {getMenuIcon(item.icon)}
+                          <span>{item.label}</span>
+                        </Link>
+                      ))}
+                    </>
+                  )}
+
+                  <div className="border-t border-gray-100 mt-2"></div>
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition border-t border-gray-100 mt-2"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
                   >
                     ログアウト
                   </button>
@@ -170,8 +223,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           isSidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden`}
       >
-        <nav className="p-4 space-y-1">
-          {menuItems.map((item) => (
+        <nav className="p-4 space-y-1 overflow-y-auto h-full">
+          {/* 通常メニュー */}
+          {normalMenuItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
@@ -192,6 +246,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         <div className="p-6">{children}</div>
       </main>
+
+      {/* 鍵アクセスモーダル */}
+      {showSecureAccessModal && (
+        <SecureAccessModal
+          onClose={() => setShowSecureAccessModal(false)}
+          onUnlock={handleUnlock}
+        />
+      )}
     </div>
   );
 }

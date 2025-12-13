@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Models
 {
@@ -105,14 +106,14 @@ namespace ReactApp.Server.Models
         /// 家族構成員として参加した日時（UTC）
         /// </summary>
         [Required]
-        public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
+        public DateTime JoinedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// 作成日時（必須）
         /// エンティティが作成された日時（UTC）
         /// </summary>
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTimeHelper.GetJstNow();
 
         /// <summary>
         /// アクティブ状態（必須、論理削除フラグ）

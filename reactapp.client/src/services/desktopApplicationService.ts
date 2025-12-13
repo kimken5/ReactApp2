@@ -2,7 +2,7 @@
  * デスクトップアプリ - 入園申込管理 APIサービス
  */
 
-import axios from 'axios';
+import { apiClient } from '../desktop/services/apiClient';
 import type {
   ApplicationWorkDto,
   ApplicationListItemDto,
@@ -30,32 +30,23 @@ export async function getApplicationList(
     queryParams.status = params.status;
   }
 
-  if (params.search) {
-    queryParams.search = params.search;
-  }
+  // Backend doesn't support search, sortBy, sortOrder yet
+  // TODO: Add these parameters to backend API if needed
 
-  if (params.sortBy) {
-    queryParams.sortBy = params.sortBy;
-  }
-
-  if (params.sortOrder) {
-    queryParams.sortOrder = params.sortOrder;
-  }
-
-  const response = await axios.get<PaginatedResult<ApplicationListItemDto>>(
+  const response = await apiClient.get<{ success: boolean; data: PaginatedResult<ApplicationListItemDto> }>(
     API_BASE_URL,
     { params: queryParams }
   );
 
-  return response.data;
+  return response.data.data;
 }
 
 /**
  * 申込詳細を取得
  */
 export async function getApplicationDetail(id: number): Promise<ApplicationWorkDto> {
-  const response = await axios.get<ApplicationWorkDto>(`${API_BASE_URL}/${id}`);
-  return response.data;
+  const response = await apiClient.get<{ success: boolean; data: ApplicationWorkDto }>(`${API_BASE_URL}/${id}`);
+  return response.data.data;
 }
 
 /**
@@ -65,11 +56,11 @@ export async function importApplication(
   id: number,
   request: ImportApplicationRequest
 ): Promise<ImportApplicationResult> {
-  const response = await axios.post<ImportApplicationResult>(
+  const response = await apiClient.post<{ success: boolean; data: ImportApplicationResult }>(
     `${API_BASE_URL}/${id}/import`,
     request
   );
-  return response.data;
+  return response.data.data;
 }
 
 /**
@@ -79,5 +70,5 @@ export async function rejectApplication(
   id: number,
   request: RejectApplicationRequest
 ): Promise<void> {
-  await axios.post(`${API_BASE_URL}/${id}/reject`, request);
+  await apiClient.post<{ success: boolean }>(`${API_BASE_URL}/${id}/reject`, request);
 }

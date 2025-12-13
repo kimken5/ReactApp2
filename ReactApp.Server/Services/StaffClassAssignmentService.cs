@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -191,8 +192,8 @@ namespace ReactApp.Server.Services
                     IsActive = true,
                     AssignedByUserId = request.AssignedByUserId,
                     Notes = request.Notes,
-                    AssignedAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow
+                    AssignedAt = DateTimeHelper.GetJstNow(),
+                    CreatedAt = DateTimeHelper.GetJstNow()
                 };
 
                 _context.StaffClassAssignments.Add(assignment);
@@ -255,7 +256,7 @@ namespace ReactApp.Server.Services
 
                 // 論理削除
                 assignment.IsActive = false;
-                assignment.UpdatedAt = DateTime.UtcNow;
+                assignment.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 
@@ -299,7 +300,7 @@ namespace ReactApp.Server.Services
 
                 assignment.AssignmentRole = assignmentRole;
                 assignment.Notes = notes;
-                assignment.UpdatedAt = DateTime.UtcNow;
+                assignment.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
 

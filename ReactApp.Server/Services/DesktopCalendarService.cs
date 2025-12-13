@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services;
 
@@ -94,7 +95,7 @@ public class DesktopCalendarService : IDesktopCalendarService
     {
         try
         {
-            var now = DateTime.UtcNow;
+            var now = DateTimeHelper.GetJstNow();
 
             // Eventエンティティを作成（デフォルト値は Model の初期化子で設定済み）
             var eventEntity = new Event();
@@ -165,7 +166,7 @@ public class DesktopCalendarService : IDesktopCalendarService
             eventEntity.IsAllDay = request.IsAllDay;
             eventEntity.TargetClassId = request.TargetClassId;
             eventEntity.TargetGradeLevel = request.TargetGrade;
-            eventEntity.LastModified = DateTime.UtcNow;
+            eventEntity.LastModified = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
 
@@ -206,7 +207,7 @@ public class DesktopCalendarService : IDesktopCalendarService
 
             // 論理削除
             eventEntity.IsActive = false;
-            eventEntity.LastModified = DateTime.UtcNow;
+            eventEntity.LastModified = DateTimeHelper.GetJstNow();
 
             await _context.SaveChangesAsync();
             return true;

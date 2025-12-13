@@ -15,6 +15,7 @@ export function RejectApplicationModal({ applicationId, onClose, onSuccess }: Pr
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleReject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,15 +39,19 @@ export function RejectApplicationModal({ applicationId, onClose, onSuccess }: Pr
         rejectionReason: rejectionReason.trim(),
       });
 
-      alert('申込を却下しました。');
-      onSuccess();
+      // 成功メッセージを設定（モーダル内に表示）
+      setSuccessMessage('申込を却下しました。');
+
+      // 2秒後にモーダルを閉じてリストを更新
+      setTimeout(() => {
+        onSuccess();
+      }, 2000);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
         setError('却下処理に失敗しました。');
       }
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -92,6 +97,12 @@ export function RejectApplicationModal({ applicationId, onClose, onSuccess }: Pr
 
         <form onSubmit={handleReject}>
           <div className="p-6">
+            {successMessage && (
+              <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-green-700 whitespace-pre-line">{successMessage}</p>
+              </div>
+            )}
+
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-600">{error}</p>

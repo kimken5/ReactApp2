@@ -1,5 +1,6 @@
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server.Services
 {
@@ -77,7 +78,7 @@ namespace ReactApp.Server.Services
                     Metadata = new Dictionary<string, string>
                     {
                         ["OriginalFileName"] = originalFileNameBase64,
-                        ["UploadedAt"] = DateTime.UtcNow.ToString("O"),
+                        ["UploadedAt"] = DateTimeHelper.GetJstNow().ToString("O"),
                         ["FileSize"] = file.Length.ToString()
                     }
                 };
@@ -114,7 +115,7 @@ namespace ReactApp.Server.Services
                     },
                     Metadata = new Dictionary<string, string>
                     {
-                        ["UploadedAt"] = DateTime.UtcNow.ToString("O"),
+                        ["UploadedAt"] = DateTimeHelper.GetJstNow().ToString("O"),
                         ["FileSize"] = fileData.Length.ToString()
                     }
                 };
@@ -221,7 +222,7 @@ namespace ReactApp.Server.Services
         public async Task<string> GenerateUniqueFileNameAsync(string originalFileName)
         {
             var extension = Path.GetExtension(originalFileName);
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var timestamp = DateTimeHelper.GetJstNow().ToString("yyyyMMddHHmmss");
             var guid = Guid.NewGuid().ToString("N").Substring(0, 8);
             var uniqueFileName = $"{timestamp}_{guid}{extension}";
 
