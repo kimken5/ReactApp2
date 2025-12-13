@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { MdKey } from 'react-icons/md';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { getApplicationList } from '../../services/desktopApplicationService';
 import type {
@@ -19,6 +20,7 @@ import {
 import { ApplicationDetailModal } from '../components/application/ApplicationDetailModal';
 import { ImportApplicationModal } from '../components/application/ImportApplicationModal';
 import { RejectApplicationModal } from '../components/application/RejectApplicationModal';
+import ApplicationKeyModal from '../components/settings/ApplicationKeyModal';
 
 /**
  * 年齢を計算する関数
@@ -75,6 +77,30 @@ function formatBirthDate(birthDate: string): string {
 }
 
 /**
+ * 申込日時をフォーマットする関数
+ * @param dateString 日時（ISO形式文字列）
+ * @returns "YY/MM/DD HH:MM" 形式の文字列
+ */
+function formatApplicationDate(dateString: string): string {
+  if (!dateString) return '';
+
+  const date = new Date(dateString);
+
+  // 無効な日付の場合
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = String(date.getFullYear()).slice(-2); // 下2桁
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+}
+
+/**
  * 続柄の英語値を日本語に変換するマッピング
  */
 const RELATIONSHIP_LABEL_MAP: Record<string, string> = {
@@ -101,7 +127,7 @@ export function ApplicationsPage() {
   const [error, setError] = useState('');
 
   // フィルター・検索状態
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'All'>('All');
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'All'>('Pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
@@ -111,6 +137,7 @@ export function ApplicationsPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [isApplicationKeyModalOpen, setIsApplicationKeyModalOpen] = useState(false);
 
   // データ取得
   const fetchApplications = async () => {
@@ -202,11 +229,20 @@ export function ApplicationsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">入園申込管理</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          保護者からの入園申込を確認し、インポートまたは却下します。
-        </p>
+      <div className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">入園申込管理</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            保護者からの入園申込を確認し、インポートまたは却下します。
+          </p>
+        </div>
+        <button
+          onClick={() => setIsApplicationKeyModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md"
+        >
+          <MdKey className="text-xl" />
+          入園申込キー管理
+        </button>
       </div>
 
       {/* フィルター・検索 */}
@@ -227,8 +263,8 @@ export function ApplicationsPage() {
             >
               <option value="All">全て</option>
               <option value="Pending">保留中</option>
-              <option value="Imported">取り込み済み</option>
-              <option value="Rejected">却下済み</option>
+              <option value="Imported">取込済</option>
+              <option value="Rejected">却下済</option>
             </select>
           </div>
 
@@ -280,12 +316,6 @@ export function ApplicationsPage() {
                     申請者名
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    園児名
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    生年月日
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     続柄
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -296,6 +326,12 @@ export function ApplicationsPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     重複
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    園児名
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    生年月日
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     操作
@@ -312,26 +348,28 @@ export function ApplicationsPage() {
                       {app.applicantName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {app.childName}（{calculateAge(app.childDateOfBirth)}）
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatBirthDate(app.childDateOfBirth)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatRelationship(app.relationshipToChild)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {app.mobilePhone}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(app.createdAt).toLocaleString('ja-JP')}
+                      {formatApplicationDate(app.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {app.hasDuplicateParent ? (
+                      {app.applicationStatus === 'Imported' || app.applicationStatus === 'Rejected' ? (
+                        <span className="text-gray-400">-</span>
+                      ) : app.hasDuplicateParent ? (
                         <span className="text-orange-600 font-medium">⚠️ あり</span>
                       ) : (
                         <span className="text-gray-400">なし</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {app.childName}（{calculateAge(app.childDateOfBirth)}）
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatBirthDate(app.childDateOfBirth)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-1">
@@ -486,6 +524,12 @@ export function ApplicationsPage() {
           onSuccess={handleRejectSuccess}
         />
       )}
+
+      {/* 入園申込キー管理モーダル */}
+      <ApplicationKeyModal
+        isOpen={isApplicationKeyModalOpen}
+        onClose={() => setIsApplicationKeyModalOpen(false)}
+      />
     </DashboardLayout>
   );
 }

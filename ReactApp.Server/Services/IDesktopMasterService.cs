@@ -43,5 +43,13 @@ namespace ReactApp.Server.Services
         // クラス構成管理
         Task<ClassCompositionDto> GetClassCompositionAsync(int nurseryId, string classId);
         Task<ClassCompositionDto> UpdateClassCompositionAsync(int nurseryId, string classId, UpdateClassCompositionRequestDto request);
+
+        // キーロックコード検証
+        Task<VerifyKeyLockCodeResponseDto> VerifyKeyLockCodeAsync(int nurseryId, string code);
+
+        // 入園申込キー管理
+        Task<ApplicationKeyStatusDto> GetApplicationKeyStatusAsync(int nurseryId, string? baseUrl = null);
+        Task<GenerateApplicationKeyResponseDto> GenerateApplicationKeyAsync(int nurseryId, string? baseUrl = null);
+        Task DeleteApplicationKeyAsync(int nurseryId);
     }
 }

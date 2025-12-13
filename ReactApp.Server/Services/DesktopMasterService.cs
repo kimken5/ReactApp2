@@ -48,6 +48,8 @@ namespace ReactApp.Server.Services
                     Address = nursery.Address,
                     PhoneNumber = nursery.PhoneNumber,
                     Email = nursery.Email,
+                    PrincipalName = nursery.PrincipalName,
+                    EstablishedDate = nursery.EstablishedDate,
                     CurrentAcademicYear = nursery.CurrentAcademicYear,
                     LoginId = nursery.LoginId,
                     LastLoginAt = nursery.LastLoginAt,
@@ -64,12 +66,74 @@ namespace ReactApp.Server.Services
         }
 
         /// <summary>
+        /// パスワードの強度をチェック（バランス型ポリシー）
+        /// - 最低8文字以上
+        /// - 大文字、小文字、数字、特殊文字のうち3種類以上
+        /// - 連続する同じ文字を3つ以上使用不可
+        /// - よくあるパスワードは禁止
+        /// </summary>
+        private (bool IsValid, string ErrorMessage) ValidatePasswordStrength(string password)
+        {
+            // 長さチェック
+            if (password.Length < 8)
+            {
+                return (false, "パスワードは8文字以上で入力してください。");
+            }
+
+            // 文字種のカウント
+            int typeCount = 0;
+            bool hasUpperCase = System.Text.RegularExpressions.Regex.IsMatch(password, @"[A-Z]");
+            bool hasLowerCase = System.Text.RegularExpressions.Regex.IsMatch(password, @"[a-z]");
+            bool hasDigit = System.Text.RegularExpressions.Regex.IsMatch(password, @"\d");
+            bool hasSpecialChar = System.Text.RegularExpressions.Regex.IsMatch(password, @"[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]");
+
+            if (hasUpperCase) typeCount++;
+            if (hasLowerCase) typeCount++;
+            if (hasDigit) typeCount++;
+            if (hasSpecialChar) typeCount++;
+
+            if (typeCount < 3)
+            {
+                return (false, "パスワードは大文字、小文字、数字、特殊文字のうち3種類以上を含む必要があります。");
+            }
+
+            // 連続する同じ文字チェック
+            if (System.Text.RegularExpressions.Regex.IsMatch(password, @"(.)\1{2,}"))
+            {
+                return (false, "同じ文字を3回以上連続して使用できません。");
+            }
+
+            // よくあるパスワードのブラックリスト
+            var commonPasswords = new[]
+            {
+                "password", "Password", "PASSWORD", "Password1", "Password123",
+                "12345678", "123456789", "1234567890",
+                "qwerty", "qwerty123", "Qwerty123",
+                "abc12345", "Abc12345",
+                "admin123", "Admin123",
+                "hoikuen", "hoikuen123", "Hoikuen123"
+            };
+
+            if (commonPasswords.Contains(password))
+            {
+                return (false, "このパスワードは一般的すぎるため使用できません。");
+            }
+
+            return (true, string.Empty);
+        }
+
+        /// <summary>
         /// 保育園情報を更新
         /// </summary>
         public async Task<NurseryDto> UpdateNurseryAsync(int nurseryId, UpdateNurseryRequestDto request)
         {
             try
             {
+                _logger.LogInformation("UpdateNurseryAsync - NurseryId: {NurseryId}, CurrentPassword: {HasCurrent}, NewPassword: {HasNew}",
+                    nurseryId,
+                    !string.IsNullOrEmpty(request.CurrentPassword),
+                    !string.IsNullOrEmpty(request.NewPassword));
+
                 var nursery = await _context.Nurseries
                     .Where(n => n.Id == nurseryId)
                     .FirstOrDefaultAsync();
@@ -79,10 +143,76 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"保育園が見つかりません。ID: {nurseryId}");
                 }
 
+                // パスワード変更のバリデーション
+                if (!string.IsNullOrEmpty(request.NewPassword) || !string.IsNullOrEmpty(request.CurrentPassword))
+                {
+                    // パスワード変更時は両方のフィールドが必須
+                    if (string.IsNullOrEmpty(request.CurrentPassword))
+                    {
+                        throw new InvalidOperationException("現在のパスワードを入力してください。");
+                    }
+
+                    if (string.IsNullOrEmpty(request.NewPassword))
+                    {
+                        throw new InvalidOperationException("新しいパスワードを入力してください。");
+                    }
+
+                    // 現在のパスワードが設定されていない場合
+                    if (string.IsNullOrEmpty(nursery.Password))
+                    {
+                        throw new InvalidOperationException("現在のパスワードが設定されていません。");
+                    }
+
+                    // 現在のパスワードを検証
+                    bool isPasswordValid = false;
+                    try
+                    {
+                        // BCryptハッシュかどうかを確認（$2a$, $2b$, $2y$ で始まる）
+                        if (nursery.Password.StartsWith("$2a$") || nursery.Password.StartsWith("$2b$") || nursery.Password.StartsWith("$2y$"))
+                        {
+                            // BCryptハッシュの場合は検証
+                            isPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, nursery.Password);
+                        }
+                        else
+                        {
+                            // 平文または他の形式の場合は単純比較
+                            isPasswordValid = request.CurrentPassword == nursery.Password;
+                            _logger.LogWarning("保育園パスワードが平文で保存されています。NurseryId: {NurseryId}", nurseryId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "パスワード検証中にエラーが発生しました。NurseryId: {NurseryId}", nurseryId);
+                        // 検証に失敗した場合は平文として比較
+                        isPasswordValid = request.CurrentPassword == nursery.Password;
+                    }
+
+                    if (!isPasswordValid)
+                    {
+                        throw new InvalidOperationException("現在のパスワードが正しくありません。");
+                    }
+
+                    // パスワード強度チェック
+                    var (isValid, errorMessage) = ValidatePasswordStrength(request.NewPassword);
+                    if (!isValid)
+                    {
+                        throw new InvalidOperationException(errorMessage);
+                    }
+
+                    // 新しいパスワードをハッシュ化して保存
+                    nursery.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, BCrypt.Net.BCrypt.GenerateSalt(10));
+                    _logger.LogInformation("保育園のパスワードを変更しました。NurseryId: {NurseryId}", nurseryId);
+                }
+
                 nursery.Name = request.Name;
-                nursery.Address = request.Address;
-                nursery.PhoneNumber = request.PhoneNumber;
-                nursery.Email = request.Email;
+                nursery.Address = request.Address ?? string.Empty;
+                nursery.PhoneNumber = request.PhoneNumber ?? string.Empty;
+                nursery.Email = request.Email ?? string.Empty;
+                nursery.PrincipalName = request.PrincipalName ?? string.Empty;
+                if (request.EstablishedDate.HasValue)
+                {
+                    nursery.EstablishedDate = request.EstablishedDate.Value;
+                }
                 nursery.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -96,6 +226,8 @@ namespace ReactApp.Server.Services
                     Address = nursery.Address,
                     PhoneNumber = nursery.PhoneNumber,
                     Email = nursery.Email,
+                    PrincipalName = nursery.PrincipalName,
+                    EstablishedDate = nursery.EstablishedDate,
                     CurrentAcademicYear = nursery.CurrentAcademicYear,
                     LoginId = nursery.LoginId,
                     LastLoginAt = nursery.LastLoginAt,
@@ -737,8 +869,14 @@ namespace ReactApp.Server.Services
             {
                 PhoneNumber = normalizedPhone,
                 Name = parentDto.Name,
+                NameKana = parentDto.NameKana,
+                DateOfBirth = parentDto.DateOfBirth,
+                PostalCode = parentDto.PostalCode,
+                Prefecture = parentDto.Prefecture,
+                City = parentDto.City,
+                AddressLine = parentDto.AddressLine,
+                HomePhone = parentDto.HomePhone,
                 Email = parentDto.Email,
-                Address = parentDto.Address,
                 NurseryId = nurseryId,
                 PushNotificationsEnabled = true,
                 AbsenceConfirmationEnabled = true,
@@ -979,8 +1117,14 @@ namespace ReactApp.Server.Services
                     Id = p.Id,
                     PhoneNumber = p.PhoneNumber,
                     Name = p.Name,
+                    NameKana = p.NameKana,
+                    DateOfBirth = p.DateOfBirth,
+                    PostalCode = p.PostalCode,
+                    Prefecture = p.Prefecture,
+                    City = p.City,
+                    AddressLine = p.AddressLine,
+                    HomePhone = p.HomePhone,
                     Email = p.Email,
-                    Address = p.Address,
                     NurseryId = p.NurseryId,
                     PushNotificationsEnabled = p.PushNotificationsEnabled,
                     AbsenceConfirmationEnabled = p.AbsenceConfirmationEnabled,
@@ -1045,8 +1189,14 @@ namespace ReactApp.Server.Services
                     Id = parent.Id,
                     PhoneNumber = parent.PhoneNumber,
                     Name = parent.Name,
+                    NameKana = parent.NameKana,
+                    DateOfBirth = parent.DateOfBirth,
+                    PostalCode = parent.PostalCode,
+                    Prefecture = parent.Prefecture,
+                    City = parent.City,
+                    AddressLine = parent.AddressLine,
+                    HomePhone = parent.HomePhone,
                     Email = parent.Email,
-                    Address = parent.Address,
                     NurseryId = parent.NurseryId,
                     PushNotificationsEnabled = parent.PushNotificationsEnabled,
                     AbsenceConfirmationEnabled = parent.AbsenceConfirmationEnabled,
@@ -1104,8 +1254,14 @@ namespace ReactApp.Server.Services
                 {
                     PhoneNumber = normalizedPhone,
                     Name = request.Name,
+                    NameKana = request.NameKana,
+                    DateOfBirth = request.DateOfBirth,
+                    PostalCode = request.PostalCode,
+                    Prefecture = request.Prefecture,
+                    City = request.City,
+                    AddressLine = request.AddressLine,
+                    HomePhone = request.HomePhone,
                     Email = request.Email,
-                    Address = request.Address,
                     NurseryId = nurseryId, // 保育園IDを設定
                     IsPrimary = true, // デスクトップアプリで登録する保護者は主保護者
                     IsActive = true,
@@ -1180,9 +1336,39 @@ namespace ReactApp.Server.Services
                     parent.Email = request.Email;
                 }
 
-                if (request.Address != null)
+                if (request.NameKana != null)
                 {
-                    parent.Address = request.Address;
+                    parent.NameKana = request.NameKana;
+                }
+
+                if (request.DateOfBirth.HasValue)
+                {
+                    parent.DateOfBirth = request.DateOfBirth;
+                }
+
+                if (request.PostalCode != null)
+                {
+                    parent.PostalCode = request.PostalCode;
+                }
+
+                if (request.Prefecture != null)
+                {
+                    parent.Prefecture = request.Prefecture;
+                }
+
+                if (request.City != null)
+                {
+                    parent.City = request.City;
+                }
+
+                if (request.AddressLine != null)
+                {
+                    parent.AddressLine = request.AddressLine;
+                }
+
+                if (request.HomePhone != null)
+                {
+                    parent.HomePhone = request.HomePhone;
                 }
 
                 if (request.PushNotificationsEnabled.HasValue)
@@ -1894,6 +2080,149 @@ namespace ReactApp.Server.Services
                     throw;
                 }
             });
+        }
+
+        #endregion
+
+        #region キーロックコード検証
+
+        /// <summary>
+        /// キーロックコード検証
+        /// </summary>
+        public async Task<VerifyKeyLockCodeResponseDto> VerifyKeyLockCodeAsync(int nurseryId, string code)
+        {
+            var nursery = await _context.Nurseries
+                .FirstOrDefaultAsync(n => n.Id == nurseryId);
+
+            if (nursery == null)
+            {
+                return new VerifyKeyLockCodeResponseDto
+                {
+                    IsValid = false,
+                    ErrorMessage = "保育園情報が見つかりません"
+                };
+            }
+
+            var isValid = nursery.KeyLockCode == code;
+
+            return new VerifyKeyLockCodeResponseDto
+            {
+                IsValid = isValid,
+                ErrorMessage = isValid ? null : "コードが正しくありません"
+            };
+        }
+
+        #endregion
+
+        #region 入園申込キー管理
+
+        /// <summary>
+        /// 入園申込キーステータス取得
+        /// </summary>
+        public async Task<ApplicationKeyStatusDto> GetApplicationKeyStatusAsync(int nurseryId, string? baseUrl = null)
+        {
+            var nursery = await _context.Nurseries
+                .FirstOrDefaultAsync(n => n.Id == nurseryId);
+
+            if (nursery == null)
+            {
+                throw new InvalidOperationException("保育園情報が見つかりません");
+            }
+
+            var hasKey = !string.IsNullOrWhiteSpace(nursery.ApplicationKey);
+
+            // ベースURLが指定されていない場合はデフォルト値を使用
+            var domain = baseUrl ?? "https://example.com";
+
+            return new ApplicationKeyStatusDto
+            {
+                ApplicationKey = hasKey ? nursery.ApplicationKey : null,
+                ApplicationUrl = hasKey ? $"{domain}/application?key={nursery.ApplicationKey}" : null,
+                HasKey = hasKey
+            };
+        }
+
+        /// <summary>
+        /// 入園申込キー生成（32文字の英数字、他園と重複しないことを保証）
+        /// </summary>
+        public async Task<GenerateApplicationKeyResponseDto> GenerateApplicationKeyAsync(int nurseryId, string? baseUrl = null)
+        {
+            var nursery = await _context.Nurseries
+                .FirstOrDefaultAsync(n => n.Id == nurseryId);
+
+            if (nursery == null)
+            {
+                throw new InvalidOperationException("保育園情報が見つかりません");
+            }
+
+            // 一意なキーを生成（最大10回試行）
+            string newKey;
+            int attempts = 0;
+            const int maxAttempts = 10;
+
+            do
+            {
+                newKey = GenerateRandomKey(32);
+                attempts++;
+
+                if (attempts > maxAttempts)
+                {
+                    throw new InvalidOperationException("一意なキーの生成に失敗しました。時間をおいて再度お試しください。");
+                }
+            }
+            while (await _context.Nurseries.AnyAsync(n => n.ApplicationKey == newKey));
+
+            // キーを更新
+            nursery.ApplicationKey = newKey;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"入園申込キー生成: NurseryId={nurseryId}, Key={newKey}");
+
+            // ベースURLが指定されていない場合はデフォルト値を使用
+            var domain = baseUrl ?? "https://example.com";
+            var applicationUrl = $"{domain}/application?key={newKey}";
+
+            return new GenerateApplicationKeyResponseDto
+            {
+                ApplicationKey = newKey,
+                ApplicationUrl = applicationUrl
+            };
+        }
+
+        /// <summary>
+        /// 入園申込キー削除
+        /// </summary>
+        public async Task DeleteApplicationKeyAsync(int nurseryId)
+        {
+            var nursery = await _context.Nurseries
+                .FirstOrDefaultAsync(n => n.Id == nurseryId);
+
+            if (nursery == null)
+            {
+                throw new InvalidOperationException("保育園情報が見つかりません");
+            }
+
+            nursery.ApplicationKey = null;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"入園申込キー削除: NurseryId={nurseryId}");
+        }
+
+        /// <summary>
+        /// ランダムキー生成（英数字のみ、大文字小文字混在）
+        /// </summary>
+        private static string GenerateRandomKey(int length)
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"; // 紛らわしい文字(O,0,I,1,l)を除外
+            var random = new Random();
+            var key = new char[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                key[i] = chars[random.Next(chars.Length)];
+            }
+
+            return new string(key);
         }
 
         #endregion

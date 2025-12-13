@@ -58,6 +58,9 @@ namespace ReactApp.Server.Controllers
                     });
                 }
 
+                _logger.LogInformation("保育園情報取得: PrincipalName={PrincipalName}, EstablishedDate={EstablishedDate}",
+                    nursery.PrincipalName, nursery.EstablishedDate);
+
                 return Ok(new ApiResponse<NurseryDto> { Success = true, Data = nursery });
             }
             catch (Exception ex)
@@ -84,6 +87,15 @@ namespace ReactApp.Server.Controllers
                 var nursery = await _masterService.UpdateNurseryAsync(nurseryId, request);
 
                 return Ok(new ApiResponse<NurseryDto> { Success = true, Data = nursery });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // パスワード変更時のバリデーションエラー
+                return BadRequest(new ApiResponse<NurseryDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "VALIDATION_ERROR", Message = ex.Message }
+                });
             }
             catch (KeyNotFoundException ex)
             {
@@ -884,6 +896,144 @@ namespace ReactApp.Server.Controllers
             {
                 _logger.LogError(ex, "職員クラス担当の更新中にエラーが発生しました: StaffId={StaffId}", staffId);
                 return StatusCode(500, new ApiResponse<List<StaffClassAssignmentDto>>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "SERVER_ERROR", Message = "サーバーエラーが発生しました" }
+                });
+            }
+        }
+
+        #endregion
+
+        #region キーロックコード検証
+
+        /// <summary>
+        /// キーロックコード検証
+        /// POST /api/desktop/master/verify-keylock
+        /// </summary>
+        [HttpPost("verify-keylock")]
+        public async Task<ActionResult<ApiResponse<VerifyKeyLockCodeResponseDto>>> VerifyKeyLockCode(
+            [FromBody] VerifyKeyLockCodeRequestDto request)
+        {
+            try
+            {
+                var nurseryId = GetNurseryId();
+                var result = await _masterService.VerifyKeyLockCodeAsync(nurseryId, request.Code);
+
+                return Ok(new ApiResponse<VerifyKeyLockCodeResponseDto>
+                {
+                    Success = result.IsValid,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "キーロックコード検証中にエラーが発生しました");
+                return StatusCode(500, new ApiResponse<VerifyKeyLockCodeResponseDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "SERVER_ERROR", Message = "サーバーエラーが発生しました" }
+                });
+            }
+        }
+
+        #endregion
+
+        #region 入園申込キー管理
+
+        /// <summary>
+        /// 入園申込キーステータス取得
+        /// GET /api/desktop/master/application-key/status
+        /// </summary>
+        [HttpGet("application-key/status")]
+        public async Task<ActionResult<ApiResponse<ApplicationKeyStatusDto>>> GetApplicationKeyStatus([FromQuery] string? baseUrl = null)
+        {
+            try
+            {
+                var nurseryId = GetNurseryId();
+
+                // クエリパラメータからbaseUrlを取得（なければデフォルト値を使用）
+                var status = await _masterService.GetApplicationKeyStatusAsync(nurseryId, baseUrl);
+
+                return Ok(new ApiResponse<ApplicationKeyStatusDto>
+                {
+                    Success = true,
+                    Data = status
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "入園申込キーステータス取得中にエラーが発生しました");
+                return StatusCode(500, new ApiResponse<ApplicationKeyStatusDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "SERVER_ERROR", Message = "サーバーエラーが発生しました" }
+                });
+            }
+        }
+
+        /// <summary>
+        /// 入園申込キー生成
+        /// POST /api/desktop/master/application-key/generate
+        /// </summary>
+        [HttpPost("application-key/generate")]
+        public async Task<ActionResult<ApiResponse<GenerateApplicationKeyResponseDto>>> GenerateApplicationKey([FromBody] GenerateApplicationKeyRequestDto? request = null)
+        {
+            try
+            {
+                var nurseryId = GetNurseryId();
+
+                // リクエストボディからbaseUrlを取得（なければデフォルト値を使用）
+                var result = await _masterService.GenerateApplicationKeyAsync(nurseryId, request?.BaseUrl);
+
+                return Ok(new ApiResponse<GenerateApplicationKeyResponseDto>
+                {
+                    Success = true,
+                    Data = result
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "入園申込キー生成失敗");
+                return BadRequest(new ApiResponse<GenerateApplicationKeyResponseDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "GENERATION_FAILED", Message = ex.Message }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "入園申込キー生成中にエラーが発生しました");
+                return StatusCode(500, new ApiResponse<GenerateApplicationKeyResponseDto>
+                {
+                    Success = false,
+                    Error = new ApiError { Code = "SERVER_ERROR", Message = "サーバーエラーが発生しました" }
+                });
+            }
+        }
+
+        /// <summary>
+        /// 入園申込キー削除
+        /// DELETE /api/desktop/master/application-key
+        /// </summary>
+        [HttpDelete("application-key")]
+        public async Task<ActionResult<ApiResponse<object>>> DeleteApplicationKey()
+        {
+            try
+            {
+                var nurseryId = GetNurseryId();
+                await _masterService.DeleteApplicationKeyAsync(nurseryId);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = new { message = "入園申込キーを削除しました" }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "入園申込キー削除中にエラーが発生しました");
+                return StatusCode(500, new ApiResponse<object>
                 {
                     Success = false,
                     Error = new ApiError { Code = "SERVER_ERROR", Message = "サーバーエラーが発生しました" }
