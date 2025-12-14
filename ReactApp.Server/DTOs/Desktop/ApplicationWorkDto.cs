@@ -90,7 +90,38 @@ namespace ReactApp.Server.DTOs.Desktop
     }
 
     /// <summary>
+    /// 園児情報DTO（複数園児対応）
+    /// </summary>
+    public class ChildInfoDto
+    {
+        [Required(ErrorMessage = "園児氏名は必須です")]
+        [StringLength(100, ErrorMessage = "園児氏名は100文字以内で入力してください")]
+        public string ChildName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "園児フリガナは必須です")]
+        [StringLength(100, ErrorMessage = "園児フリガナは100文字以内で入力してください")]
+        public string ChildNameKana { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "園児生年月日は必須です")]
+        public DateTime ChildDateOfBirth { get; set; }
+
+        [Required(ErrorMessage = "園児性別は必須です")]
+        [StringLength(2, ErrorMessage = "園児性別は2文字以内で入力してください")]
+        public string ChildGender { get; set; } = string.Empty;
+
+        [StringLength(10, ErrorMessage = "園児血液型は10文字以内で入力してください")]
+        public string? ChildBloodType { get; set; }
+
+        [StringLength(1000, ErrorMessage = "園児医療メモは1000文字以内で入力してください")]
+        public string? ChildMedicalNotes { get; set; }
+
+        [StringLength(1000, ErrorMessage = "園児特別指示は1000文字以内で入力してください")]
+        public string? ChildSpecialInstructions { get; set; }
+    }
+
+    /// <summary>
     /// 入園申込作成リクエストDTO（保護者向けWeb申込フォーム）
+    /// 複数園児対応（最大4人まで）
     /// </summary>
     public class CreateApplicationRequest
     {
@@ -135,30 +166,21 @@ namespace ReactApp.Server.DTOs.Desktop
         [StringLength(20, ErrorMessage = "お子様との続柄は20文字以内で入力してください")]
         public string RelationshipToChild { get; set; } = string.Empty;
 
-        // 園児情報
-        [Required(ErrorMessage = "園児氏名は必須です")]
-        [StringLength(100, ErrorMessage = "園児氏名は100文字以内で入力してください")]
-        public string ChildName { get; set; } = string.Empty;
+        // 園児情報（配列、最大4人）
+        [Required(ErrorMessage = "園児情報は必須です")]
+        [MinLength(1, ErrorMessage = "少なくとも1人の園児情報が必要です")]
+        [MaxLength(4, ErrorMessage = "園児は最大4人までです")]
+        public List<ChildInfoDto> Children { get; set; } = new List<ChildInfoDto>();
+    }
 
-        [Required(ErrorMessage = "園児フリガナは必須です")]
-        [StringLength(100, ErrorMessage = "園児フリガナは100文字以内で入力してください")]
-        public string ChildNameKana { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "園児生年月日は必須です")]
-        public DateTime ChildDateOfBirth { get; set; }
-
-        [Required(ErrorMessage = "園児性別は必須です")]
-        [StringLength(2, ErrorMessage = "園児性別は2文字以内で入力してください")]
-        public string ChildGender { get; set; } = string.Empty;
-
-        [StringLength(10, ErrorMessage = "園児血液型は10文字以内で入力してください")]
-        public string? ChildBloodType { get; set; }
-
-        [StringLength(1000, ErrorMessage = "園児医療メモは1000文字以内で入力してください")]
-        public string? ChildMedicalNotes { get; set; }
-
-        [StringLength(1000, ErrorMessage = "園児特別指示は1000文字以内で入力してください")]
-        public string? ChildSpecialInstructions { get; set; }
+    /// <summary>
+    /// 入園申込作成レスポンスDTO
+    /// </summary>
+    public class CreateApplicationResponse
+    {
+        public List<int> ApplicationIds { get; set; } = new List<int>();
+        public int ChildCount { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -184,6 +206,12 @@ namespace ReactApp.Server.DTOs.Desktop
         public bool IsNewParent { get; set; }
         public bool IsNewChild { get; set; }
         public string Message { get; set; } = "入園申込を取り込みました。";
+
+        // フロントエンド表示用の追加プロパティ
+        public string ParentName { get; set; } = string.Empty;
+        public string ChildName { get; set; } = string.Empty;
+        public bool WasParentCreated { get; set; }
+        public bool WasParentUpdated { get; set; }
     }
 
     /// <summary>

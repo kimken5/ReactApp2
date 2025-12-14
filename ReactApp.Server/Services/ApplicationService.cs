@@ -60,8 +60,9 @@ namespace ReactApp.Server.Services
 
         /// <summary>
         /// 入園申込作成（保護者向けWeb申込）
+        /// 複数園児対応（Children配列で最大4人まで）
         /// </summary>
-        public async Task<int> CreateApplicationAsync(CreateApplicationRequest request, string applicationKey)
+        public async Task<CreateApplicationResponse> CreateApplicationAsync(CreateApplicationRequest request, string applicationKey)
         {
             try
             {
@@ -77,41 +78,70 @@ namespace ReactApp.Server.Services
 
                 // 携帯電話番号を正規化（ハイフン除去）
                 var normalizedMobilePhone = NormalizePhoneNumber(request.MobilePhone);
+                var normalizedHomePhone = request.HomePhone != null ? NormalizePhoneNumber(request.HomePhone) : null;
 
-                var application = new ApplicationWork
+                var applications = new List<ApplicationWork>();
+
+                // 各園児ごとにApplicationWorkレコードを作成
+                foreach (var child in request.Children)
                 {
-                    NurseryId = nursery.Id,
-                    ApplicantName = request.ApplicantName,
-                    ApplicantNameKana = request.ApplicantNameKana,
-                    DateOfBirth = request.DateOfBirth,
-                    PostalCode = request.PostalCode,
-                    Prefecture = request.Prefecture,
-                    City = request.City,
-                    AddressLine = request.AddressLine,
-                    MobilePhone = normalizedMobilePhone,
-                    HomePhone = request.HomePhone != null ? NormalizePhoneNumber(request.HomePhone) : null,
-                    Email = request.Email,
-                    RelationshipToChild = request.RelationshipToChild,
-                    ChildName = request.ChildName,
-                    ChildNameKana = request.ChildNameKana,
-                    ChildDateOfBirth = request.ChildDateOfBirth,
-                    ChildGender = request.ChildGender,
-                    ChildBloodType = request.ChildBloodType,
-                    ChildMedicalNotes = request.ChildMedicalNotes,
-                    ChildSpecialInstructions = request.ChildSpecialInstructions,
-                    ApplicationStatus = "Pending",
-                    IsImported = false,
-                    CreatedAt = DateTimeHelper.GetJstNow()
-                };
+                    var application = new ApplicationWork
+                    {
+                        NurseryId = nursery.Id,
 
-                _context.ApplicationWorks.Add(application);
+                        // 保護者情報（全レコード共通）
+                        ApplicantName = request.ApplicantName,
+                        ApplicantNameKana = request.ApplicantNameKana,
+                        DateOfBirth = request.DateOfBirth,
+                        PostalCode = request.PostalCode,
+                        Prefecture = request.Prefecture,
+                        City = request.City,
+                        AddressLine = request.AddressLine,
+                        MobilePhone = normalizedMobilePhone,
+                        HomePhone = normalizedHomePhone,
+                        Email = request.Email,
+                        RelationshipToChild = request.RelationshipToChild,
+
+                        // 園児情報（各レコード異なる）
+                        ChildName = child.ChildName,
+                        ChildNameKana = child.ChildNameKana,
+                        ChildDateOfBirth = child.ChildDateOfBirth,
+                        ChildGender = child.ChildGender,
+                        ChildBloodType = child.ChildBloodType,
+                        ChildMedicalNotes = child.ChildMedicalNotes,
+                        ChildSpecialInstructions = child.ChildSpecialInstructions,
+
+                        // 申込管理情報
+                        ApplicationStatus = "Pending",
+                        IsImported = false,
+                        CreatedAt = DateTimeHelper.GetJstNow()
+                    };
+
+                    applications.Add(application);
+                    _context.ApplicationWorks.Add(application);
+                }
+
+                // 一括保存（EF Coreが自動的にトランザクション管理）
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation(
-                    "入園申込を受け付けました。ApplicationId: {Id}, NurseryId: {NurseryId}, ChildName: {ChildName}",
-                    application.Id, nursery.Id, request.ChildName);
+                // 保存後にIDを取得
+                var applicationIds = applications.Select(a => a.Id).ToList();
 
-                return application.Id;
+                var childCount = request.Children.Count;
+                var message = childCount == 1
+                    ? "申込を受け付けました。保育園からの連絡をお待ちください。"
+                    : $"申込を受け付けました。（園児{childCount}人分）保育園からの連絡をお待ちください。";
+
+                _logger.LogInformation(
+                    "入園申込完了。NurseryId: {NurseryId}, ChildCount: {ChildCount}, ApplicationIds: [{Ids}]",
+                    nursery.Id, childCount, string.Join(", ", applicationIds));
+
+                return new CreateApplicationResponse
+                {
+                    ApplicationIds = applicationIds,
+                    ChildCount = childCount,
+                    Message = message
+                };
             }
             catch (Exception ex)
             {
@@ -269,8 +299,6 @@ namespace ReactApp.Server.Services
             ImportApplicationRequest request,
             int userId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
                 // 申込データ取得
@@ -311,30 +339,46 @@ namespace ReactApp.Server.Services
                     {
                         // 保護者情報更新
                         existingParent.Name = application.ApplicantName;
+                        existingParent.NameKana = application.ApplicantNameKana;
                         existingParent.Email = application.Email;
-                        existingParent.Address = BuildFullAddress(application.Prefecture, application.City, application.AddressLine);
+                        existingParent.DateOfBirth = application.DateOfBirth;
+                        existingParent.PostalCode = application.PostalCode;
+                        existingParent.Prefecture = application.Prefecture;
+                        existingParent.City = application.City;
+                        existingParent.AddressLine = application.AddressLine;
+                        existingParent.HomePhone = application.HomePhone;
                         existingParent.UpdatedAt = DateTimeHelper.GetJstNow();
                     }
                 }
                 else
                 {
-                    // 新規保護者作成
-                    parentId = await GetNextParentIdAsync(nurseryId);
+                    // 新規保護者作成（IDはIDENTITY列なので自動採番）
                     isNewParent = true;
 
                     var newParent = new Parent
                     {
-                        Id = parentId,
+                        // Id は IDENTITY 列なので設定しない（自動採番）
                         NurseryId = nurseryId,
                         Name = application.ApplicantName,
+                        NameKana = application.ApplicantNameKana,
                         PhoneNumber = application.MobilePhone,
                         Email = application.Email,
-                        Address = BuildFullAddress(application.Prefecture, application.City, application.AddressLine),
+                        DateOfBirth = application.DateOfBirth,
+                        PostalCode = application.PostalCode,
+                        Prefecture = application.Prefecture,
+                        City = application.City,
+                        AddressLine = application.AddressLine,
+                        HomePhone = application.HomePhone,
                         IsActive = true,
                         CreatedAt = DateTimeHelper.GetJstNow()
                     };
 
                     _context.Parents.Add(newParent);
+
+                    // SaveChangesAsync後にIDが自動的に設定される
+                    // 一旦保存してIDを取得する必要がある
+                    await _context.SaveChangesAsync();
+                    parentId = newParent.Id;
                 }
 
                 // 園児マスタ作成（常に新規）
@@ -347,10 +391,11 @@ namespace ReactApp.Server.Services
                     Name = application.ChildName,
                     Furigana = application.ChildNameKana,
                     DateOfBirth = application.ChildDateOfBirth,
-                    Gender = application.ChildGender == "男" ? "male" : "female",
+                    Gender = application.ChildGender == "男" ? "Male" : "Female",
                     BloodType = application.ChildBloodType,
                     MedicalNotes = application.ChildMedicalNotes,
                     SpecialInstructions = application.ChildSpecialInstructions,
+                    GraduationStatus = "Active", // 入園申し込み承認時は在籍中
                     IsActive = true,
                     ClassId = null, // 初期値はnull（後でクラス割り当て）
                     CreatedAt = DateTimeHelper.GetJstNow()
@@ -377,8 +422,10 @@ namespace ReactApp.Server.Services
                 application.ImportedByUserId = userId;
                 application.UpdatedAt = DateTimeHelper.GetJstNow();
 
+                // 一括保存（EF Coreが自動的にトランザクション管理）
+                // 注: 新規保護者の場合は既に1回SaveChangesAsyncを実行済み
+                // ここでは園児、リレーションシップ、申込ステータス更新を保存
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
 
                 _logger.LogInformation(
                     "入園申込を取り込みました。ApplicationId: {ApplicationId}, ParentId: {ParentId}, ChildId: {ChildId}, IsNewParent: {IsNewParent}",
@@ -390,12 +437,15 @@ namespace ReactApp.Server.Services
                     ChildId = childId,
                     IsNewParent = isNewParent,
                     IsNewChild = true,
-                    Message = "入園申込を取り込みました。"
+                    Message = "入園申込を取り込みました。",
+                    ParentName = application.ApplicantName,
+                    ChildName = application.ChildName,
+                    WasParentCreated = isNewParent,
+                    WasParentUpdated = !isNewParent && request.OverwriteParent
                 };
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "入園申込の取込に失敗しました。Id: {Id}, NurseryId: {NurseryId}", id, nurseryId);
                 throw;
             }

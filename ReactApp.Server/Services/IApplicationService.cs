@@ -17,11 +17,12 @@ namespace ReactApp.Server.Services
 
         /// <summary>
         /// 入園申込作成（保護者向けWeb申込）
+        /// 複数園児対応（Children配列で最大4人まで）
         /// </summary>
         /// <param name="request">申込情報</param>
         /// <param name="applicationKey">申込キー</param>
-        /// <returns>作成された申込ID</returns>
-        Task<int> CreateApplicationAsync(CreateApplicationRequest request, string applicationKey);
+        /// <returns>作成された申込IDリストとメッセージ</returns>
+        Task<CreateApplicationResponse> CreateApplicationAsync(CreateApplicationRequest request, string applicationKey);
 
         /// <summary>
         /// 入園申込一覧取得（デスクトップアプリ）
