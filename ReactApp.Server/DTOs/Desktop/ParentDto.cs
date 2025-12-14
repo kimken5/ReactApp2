@@ -10,7 +10,14 @@ namespace ReactApp.Server.DTOs.Desktop
         public int Id { get; set; }
         public string PhoneNumber { get; set; } = string.Empty;
         public string? Name { get; set; }
+        public string? NameKana { get; set; }
+        public DateTime? DateOfBirth { get; set; }
         public string? Email { get; set; }
+        public string? PostalCode { get; set; }
+        public string? Prefecture { get; set; }
+        public string? City { get; set; }
+        public string? AddressLine { get; set; }
+        public string? HomePhone { get; set; }
         public string? Address { get; set; }
         public int NurseryId { get; set; }
         public bool PushNotificationsEnabled { get; set; }
@@ -43,9 +50,29 @@ namespace ReactApp.Server.DTOs.Desktop
         [StringLength(100, ErrorMessage = "氏名は100文字以内で入力してください")]
         public string? Name { get; set; }
 
+        [StringLength(100, ErrorMessage = "ふりがなは100文字以内で入力してください")]
+        public string? NameKana { get; set; }
+
+        public string? DateOfBirth { get; set; }
+
         [EmailAddress(ErrorMessage = "有効なメールアドレスを入力してください")]
         [StringLength(200, ErrorMessage = "メールアドレスは200文字以内で入力してください")]
         public string? Email { get; set; }
+
+        [StringLength(10, ErrorMessage = "郵便番号は10文字以内で入力してください")]
+        public string? PostalCode { get; set; }
+
+        [StringLength(50, ErrorMessage = "都道府県は50文字以内で入力してください")]
+        public string? Prefecture { get; set; }
+
+        [StringLength(100, ErrorMessage = "市区町村は100文字以内で入力してください")]
+        public string? City { get; set; }
+
+        [StringLength(200, ErrorMessage = "町名・番地は200文字以内で入力してください")]
+        public string? AddressLine { get; set; }
+
+        [StringLength(15, ErrorMessage = "自宅電話番号は15文字以内で入力してください")]
+        public string? HomePhone { get; set; }
 
         [StringLength(200, ErrorMessage = "住所は200文字以内で入力してください")]
         public string? Address { get; set; }
@@ -68,9 +95,29 @@ namespace ReactApp.Server.DTOs.Desktop
         [StringLength(100, ErrorMessage = "氏名は100文字以内で入力してください")]
         public string? Name { get; set; }
 
+        [StringLength(100, ErrorMessage = "ふりがなは100文字以内で入力してください")]
+        public string? NameKana { get; set; }
+
+        public string? DateOfBirth { get; set; }
+
         [EmailAddress(ErrorMessage = "有効なメールアドレスを入力してください")]
         [StringLength(200, ErrorMessage = "メールアドレスは200文字以内で入力してください")]
         public string? Email { get; set; }
+
+        [StringLength(10, ErrorMessage = "郵便番号は10文字以内で入力してください")]
+        public string? PostalCode { get; set; }
+
+        [StringLength(50, ErrorMessage = "都道府県は50文字以内で入力してください")]
+        public string? Prefecture { get; set; }
+
+        [StringLength(100, ErrorMessage = "市区町村は100文字以内で入力してください")]
+        public string? City { get; set; }
+
+        [StringLength(200, ErrorMessage = "町名・番地は200文字以内で入力してください")]
+        public string? AddressLine { get; set; }
+
+        [StringLength(15, ErrorMessage = "自宅電話番号は15文字以内で入力してください")]
+        public string? HomePhone { get; set; }
 
         [StringLength(200, ErrorMessage = "住所は200文字以内で入力してください")]
         public string? Address { get; set; }

@@ -41,11 +41,52 @@ namespace ReactApp.Server.Models
         public string? Email { get; set; }
 
         /// <summary>
-        /// 住所（任意）
-        /// 最大200文字、緊急連絡先情報として使用
+        /// 保護者名ふりがな（任意）
+        /// 最大100文字、名前のふりがな表示
+        /// </summary>
+        [StringLength(100)]
+        public string? NameKana { get; set; }
+
+        /// <summary>
+        /// 生年月日（任意）
+        /// 保護者の生年月日
+        /// </summary>
+        public DateTime? DateOfBirth { get; set; }
+
+        /// <summary>
+        /// 郵便番号（任意）
+        /// 最大10文字、住所の郵便番号
+        /// </summary>
+        [StringLength(10)]
+        public string? PostalCode { get; set; }
+
+        /// <summary>
+        /// 都道府県（任意）
+        /// 最大50文字、住所の都道府県
+        /// </summary>
+        [StringLength(50)]
+        public string? Prefecture { get; set; }
+
+        /// <summary>
+        /// 市区町村（任意）
+        /// 最大100文字、住所の市区町村
+        /// </summary>
+        [StringLength(100)]
+        public string? City { get; set; }
+
+        /// <summary>
+        /// 町名・番地（任意）
+        /// 最大200文字、住所の町名・番地
         /// </summary>
         [StringLength(200)]
-        public string? Address { get; set; }
+        public string? AddressLine { get; set; }
+
+        /// <summary>
+        /// 自宅電話番号（任意）
+        /// 最大15文字、自宅の固定電話番号
+        /// </summary>
+        [StringLength(15)]
+        public string? HomePhone { get; set; }
 
         /// <summary>
         /// 保育園ID（必須）
