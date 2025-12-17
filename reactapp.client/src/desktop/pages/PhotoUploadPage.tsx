@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { photoService } from '../services/photoService';
 import { masterService } from '../services/masterService';
-import type { UploadPhotoRequestDto } from '../types/photo';
+import { NoPhotoWarningDialog } from '../components/photo/NoPhotoWarningDialog';
+import type { UploadPhotoRequestDto, ValidateChildrenForPhotoResponseDto } from '../types/photo';
 import type { ChildDto, ClassDto, StaffDto } from '../types/master';
 
 /**
@@ -24,7 +25,6 @@ export function PhotoUploadPage() {
   const [visibilityLevel, setVisibilityLevel] = useState<'class' | 'grade' | 'all'>('class');
   const [targetClassId, setTargetClassId] = useState<string>('');
   const [targetGrade, setTargetGrade] = useState<number | null>(null);
-  const [requiresConsent, setRequiresConsent] = useState(true);
   const [selectedChildIds, setSelectedChildIds] = useState<number[]>([]);
   const [primaryChildId, setPrimaryChildId] = useState<number | null>(null);
   const [childSelectionMode, setChildSelectionMode] = useState<'individual' | 'class'>('individual');
@@ -40,6 +40,12 @@ export function PhotoUploadPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // NoPhoto warning dialog state
+  const [showNoPhotoWarning, setShowNoPhotoWarning] = useState(false);
+  const [noPhotoValidationResult, setNoPhotoValidationResult] =
+    useState<ValidateChildrenForPhotoResponseDto | null>(null);
+  const [pendingAction, setPendingAction] = useState<'draft' | 'publish' | null>(null);
 
   // Load master data
   useEffect(() => {
@@ -264,19 +270,33 @@ export function PhotoUploadPage() {
     return Object.keys(errors).length === 0;
   };
 
-  // Handle save as draft (multiple files)
-  const handleSaveDraft = async () => {
-    setErrorMessage(null);
-
-    if (!validateForm()) {
-      setErrorMessage('入力内容に誤りがあります。各項目を確認してください。');
-      return;
+  // Validate children for NoPhoto setting
+  const validateChildrenForNoPhoto = async (): Promise<boolean> => {
+    if (selectedChildIds.length === 0) {
+      return true; // No children selected, skip validation
     }
 
-    if (selectedFiles.length === 0 || !selectedStaffId) {
-      return;
-    }
+    try {
+      const result = await photoService.validateChildrenForPhoto({
+        childIds: selectedChildIds,
+      });
 
+      if (result.hasNoPhotoChildren) {
+        setNoPhotoValidationResult(result);
+        setShowNoPhotoWarning(true);
+        return false; // Show warning dialog
+      }
+
+      return true; // No NoPhoto children, proceed
+    } catch (error) {
+      console.error('園児の撮影禁止チェックに失敗しました:', error);
+      // エラーが発生しても警告を表示せずに続行（フォールバック）
+      return true;
+    }
+  };
+
+  // Execute upload after NoPhoto warning confirmation
+  const executeUpload = async (status: 'draft' | 'published') => {
     setIsLoading(true);
 
     try {
@@ -290,9 +310,8 @@ export function PhotoUploadPage() {
           visibilityLevel,
           targetClassId: visibilityLevel === 'class' ? targetClassId : undefined,
           targetGrade: visibilityLevel === 'grade' ? targetGrade ?? undefined : undefined,
-          status: 'draft',
-          requiresConsent,
-          staffId: selectedStaffId,
+          status,
+          staffId: selectedStaffId!,
           childIds: selectedChildIds,
           primaryChildId: primaryChildId || undefined,
         };
@@ -304,13 +323,53 @@ export function PhotoUploadPage() {
       // Navigate to photo list page after all uploads complete
       navigate('/desktop/photos');
     } catch (error: any) {
-      console.error('下書き保存に失敗しました:', error);
+      console.error('アップロードに失敗しました:', error);
       setErrorMessage(
-        error.response?.data?.message || '下書き保存に失敗しました。もう一度お試しください。'
+        error.response?.data?.message || 'アップロードに失敗しました。もう一度お試しください。'
       );
     } finally {
       setIsLoading(false);
+      setPendingAction(null);
     }
+  };
+
+  // Handle NoPhoto warning confirmation
+  const handleNoPhotoConfirm = () => {
+    setShowNoPhotoWarning(false);
+    if (pendingAction) {
+      executeUpload(pendingAction);
+    }
+  };
+
+  // Handle NoPhoto warning cancel
+  const handleNoPhotoCancel = () => {
+    setShowNoPhotoWarning(false);
+    setPendingAction(null);
+    setNoPhotoValidationResult(null);
+  };
+
+  // Handle save as draft (multiple files)
+  const handleSaveDraft = async () => {
+    setErrorMessage(null);
+
+    if (!validateForm()) {
+      setErrorMessage('入力内容に誤りがあります。各項目を確認してください。');
+      return;
+    }
+
+    if (selectedFiles.length === 0 || !selectedStaffId) {
+      return;
+    }
+
+    // Validate NoPhoto setting
+    const isValidated = await validateChildrenForNoPhoto();
+    if (!isValidated) {
+      setPendingAction('draft');
+      return; // Wait for user confirmation in dialog
+    }
+
+    // No NoPhoto children, proceed with upload
+    await executeUpload('draft');
   };
 
   // Handle publish (multiple files)
@@ -326,40 +385,15 @@ export function PhotoUploadPage() {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      // Upload all files sequentially
-      const uploadedPhotos = [];
-      for (const file of selectedFiles) {
-        const request: UploadPhotoRequestDto = {
-          file,
-          description: description.trim() || undefined,
-          publishedAt: new Date().toISOString(), // 現在時刻
-          visibilityLevel,
-          targetClassId: visibilityLevel === 'class' ? targetClassId : undefined,
-          targetGrade: visibilityLevel === 'grade' ? targetGrade ?? undefined : undefined,
-          status: 'published',
-          requiresConsent,
-          staffId: selectedStaffId,
-          childIds: selectedChildIds,
-          primaryChildId: primaryChildId || undefined,
-        };
-
-        const uploadedPhoto = await photoService.uploadPhoto(request);
-        uploadedPhotos.push(uploadedPhoto);
-      }
-
-      // Navigate to photo list page after all uploads complete
-      navigate('/desktop/photos');
-    } catch (error: any) {
-      console.error('公開に失敗しました:', error);
-      setErrorMessage(
-        error.response?.data?.message || '公開に失敗しました。もう一度お試しください。'
-      );
-    } finally {
-      setIsLoading(false);
+    // Validate NoPhoto setting
+    const isValidated = await validateChildrenForNoPhoto();
+    if (!isValidated) {
+      setPendingAction('publish');
+      return; // Wait for user confirmation in dialog
     }
+
+    // No NoPhoto children, proceed with upload
+    await executeUpload('published');
   };
 
   const handleCancel = () => {
@@ -587,21 +621,6 @@ export function PhotoUploadPage() {
               </div>
             )}
 
-            {/* Requires Consent */}
-            <div>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={requiresConsent}
-                  onChange={(e) => setRequiresConsent(e.target.checked)}
-                  disabled={isLoading}
-                  className="h-4 w-4 text-orange-600 focus:ring-orange-400 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">同意が必要</span>
-              </label>
-              <p className="mt-1 text-xs text-gray-500">保護者の同意が必要な写真の場合はチェックしてください</p>
-            </div>
-
             {/* Child Selection Mode */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -758,12 +777,18 @@ export function PhotoUploadPage() {
                             <div className="mt-2 ml-7 pl-3 border-l-2 border-orange-200">
                               <div className="flex flex-wrap gap-2">
                                 {childrenInClass.map((child) => (
-                                  <span
-                                    key={child.childId}
-                                    className="inline-block bg-orange-50 text-orange-800 text-xs px-2 py-1 rounded"
-                                  >
-                                    {child.name}
-                                  </span>
+                                  <label key={child.childId} className="flex items-center cursor-pointer bg-orange-50 px-2 py-1 rounded">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedChildIds.includes(child.childId)}
+                                      onChange={() => handleChildToggle(child.childId)}
+                                      disabled={isLoading}
+                                      className="h-3 w-3 text-orange-600 focus:ring-orange-400 rounded"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">
+                                      {child.name}
+                                    </span>
+                                  </label>
                                 ))}
                               </div>
                             </div>
@@ -905,6 +930,17 @@ export function PhotoUploadPage() {
           </div>
         </div>
       </div>
+
+      {/* NoPhoto Warning Dialog */}
+      {noPhotoValidationResult && (
+        <NoPhotoWarningDialog
+          isOpen={showNoPhotoWarning}
+          noPhotoChildren={noPhotoValidationResult.noPhotoChildren}
+          warningMessage={noPhotoValidationResult.warningMessage || ''}
+          onConfirm={handleNoPhotoConfirm}
+          onCancel={handleNoPhotoCancel}
+        />
+      )}
     </DashboardLayout>
   );
 }

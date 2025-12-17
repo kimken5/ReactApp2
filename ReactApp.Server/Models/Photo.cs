@@ -68,9 +68,6 @@ namespace ReactApp.Server.Models
         public string Status { get; set; } = "published"; // "draft", "published", "archived"
 
         [Required]
-        public bool RequiresConsent { get; set; } = true;
-
-        [Required]
         public int ViewCount { get; set; } = 0;
 
         [Required]

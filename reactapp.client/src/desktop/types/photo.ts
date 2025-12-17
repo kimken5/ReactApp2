@@ -26,7 +26,6 @@ export interface PhotoDto {
   targetClassName?: string;
   targetGrade?: number; // 0-5: 0歳児～5歳児
   status: string; // "draft" | "published" | "archived"
-  requiresConsent: boolean;
   viewCount: number;
   downloadCount: number;
   isActive: boolean;
@@ -56,7 +55,6 @@ export interface UploadPhotoRequestDto {
   targetClassId?: string;
   targetGrade?: number; // 0-5: 0歳児～5歳児
   status: string; // "draft" | "published"
-  requiresConsent: boolean;
   staffId: number;
   childIds: number[];
   primaryChildId?: number;
@@ -72,7 +70,6 @@ export interface UpdatePhotoRequestDto {
   targetClassId?: string;
   targetGrade?: number; // 0-5: 0歳児～5歳児
   status: string;
-  requiresConsent: boolean;
   childIds?: number[];
   primaryChildId?: number;
 }
@@ -88,6 +85,30 @@ export interface PhotoFilterDto {
   endDate?: string; // ISO date string
   visibilityLevel?: string;
   status?: string;
-  requiresConsent?: boolean;
   searchKeyword?: string;
+}
+
+/**
+ * 園児の撮影禁止チェックリクエストDTO
+ */
+export interface ValidateChildrenForPhotoRequestDto {
+  childIds: number[];
+}
+
+/**
+ * 園児の撮影禁止チェックレスポンスDTO
+ */
+export interface ValidateChildrenForPhotoResponseDto {
+  hasNoPhotoChildren: boolean;
+  noPhotoChildren: NoPhotoChildInfoDto[];
+  warningMessage?: string;
+}
+
+/**
+ * 撮影禁止園児情報DTO
+ */
+export interface NoPhotoChildInfoDto {
+  childId: number;
+  childName: string;
+  className?: string;
 }

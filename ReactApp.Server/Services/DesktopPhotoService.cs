@@ -72,11 +72,6 @@ namespace ReactApp.Server.Services
                 query = query.Where(p => p.Status == filter.Status);
             }
 
-            if (filter.RequiresConsent.HasValue)
-            {
-                query = query.Where(p => p.RequiresConsent == filter.RequiresConsent.Value);
-            }
-
             if (!string.IsNullOrEmpty(filter.SearchKeyword))
             {
                 query = query.Where(p =>
@@ -155,7 +150,6 @@ namespace ReactApp.Server.Services
                 VisibilityLevel = request.VisibilityLevel,
                 TargetClassId = request.TargetClassId,
                 Status = request.Status,
-                RequiresConsent = request.RequiresConsent,
                 UploadedByAdminUser = true, // デスクトップアプリからのアップロードはtrue
                 IsReportCreate = request.IsReportCreate, // 日報作成フラグ
                 IsActive = true
@@ -204,7 +198,6 @@ namespace ReactApp.Server.Services
             photo.VisibilityLevel = request.VisibilityLevel;
             photo.TargetClassId = request.TargetClassId;
             photo.Status = request.Status;
-            photo.RequiresConsent = request.RequiresConsent;
             photo.UpdatedAt = DateTimeHelper.GetJstNow();
 
             // ChildIds更新（指定がある場合）
@@ -383,7 +376,6 @@ namespace ReactApp.Server.Services
                 TargetClassId = photo.TargetClassId,
                 TargetClassName = targetClassName,
                 Status = photo.Status,
-                RequiresConsent = photo.RequiresConsent,
                 ViewCount = photo.ViewCount,
                 DownloadCount = photo.DownloadCount,
                 IsActive = photo.IsActive,
@@ -408,6 +400,72 @@ namespace ReactApp.Server.Services
                 _logger.LogWarning(ex, "画像サイズ取得失敗、デフォルト値を使用");
                 return (800, 600); // デフォルト値
             }
+        }
+
+        /// <summary>
+        /// 園児の撮影禁止チェック
+        /// 指定された園児IDリストに撮影禁止の園児が含まれているかをチェックし、
+        /// 該当する園児の情報を返す
+        /// </summary>
+        /// <param name="nurseryId">保育園ID</param>
+        /// <param name="childIds">チェック対象の園児IDリスト</param>
+        /// <returns>撮影禁止の園児情報</returns>
+        public async Task<ValidateChildrenForPhotoResponseDto> ValidateChildrenForPhotoAsync(int nurseryId, List<int> childIds)
+        {
+            if (childIds == null || !childIds.Any())
+            {
+                return new ValidateChildrenForPhotoResponseDto
+                {
+                    HasNoPhotoChildren = false,
+                    NoPhotoChildren = new List<NoPhotoChildInfoDto>(),
+                    WarningMessage = null
+                };
+            }
+
+            // 指定された園児のうち、NoPhoto=trueの園児を取得
+            var noPhotoChildren = await _context.Children
+                .Where(c => c.NurseryId == nurseryId && childIds.Contains(c.ChildId) && c.NoPhoto && c.IsActive)
+                .Select(c => new
+                {
+                    c.ChildId,
+                    c.Name,
+                    c.ClassId
+                })
+                .ToListAsync();
+
+            if (!noPhotoChildren.Any())
+            {
+                return new ValidateChildrenForPhotoResponseDto
+                {
+                    HasNoPhotoChildren = false,
+                    NoPhotoChildren = new List<NoPhotoChildInfoDto>(),
+                    WarningMessage = null
+                };
+            }
+
+            // クラス名を取得（クラスIDがある場合のみ）
+            var classIds = noPhotoChildren.Where(c => !string.IsNullOrEmpty(c.ClassId)).Select(c => c.ClassId).Distinct().ToList();
+            var classes = await _context.Classes
+                .Where(c => c.NurseryId == nurseryId && classIds.Contains(c.ClassId))
+                .ToDictionaryAsync(c => c.ClassId, c => c.Name);
+
+            var noPhotoChildInfos = noPhotoChildren.Select(c => new NoPhotoChildInfoDto
+            {
+                ChildId = c.ChildId,
+                ChildName = c.Name,
+                ClassName = !string.IsNullOrEmpty(c.ClassId) && classes.ContainsKey(c.ClassId) ? classes[c.ClassId] : null
+            }).ToList();
+
+            var warningMessage = noPhotoChildInfos.Count == 1
+                ? $"選択された園児の中に撮影禁止の設定がされている園児が1名含まれています。"
+                : $"選択された園児の中に撮影禁止の設定がされている園児が{noPhotoChildInfos.Count}名含まれています。";
+
+            return new ValidateChildrenForPhotoResponseDto
+            {
+                HasNoPhotoChildren = true,
+                NoPhotoChildren = noPhotoChildInfos,
+                WarningMessage = warningMessage
+            };
         }
     }
 }

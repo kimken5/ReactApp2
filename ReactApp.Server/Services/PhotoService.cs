@@ -98,7 +98,6 @@ namespace ReactApp.Server.Services
                 PublishedAt = dto.PublishedAt ?? DateTimeHelper.GetJstNow(),
                 VisibilityLevel = dto.VisibilityLevel,
                 TargetClassId = dto.TargetClassId,
-                RequiresConsent = dto.RequiresConsent,
                 Status = "published"
             };
 
@@ -124,12 +123,6 @@ namespace ReactApp.Server.Services
 
             // Generate thumbnail asynchronously
             _ = Task.Run(async () => await ProcessPhotoThumbnailAsync(photo.Id));
-
-            // Request consent if required
-            if (dto.RequiresConsent)
-            {
-                await RequestConsentsForPhotoAsync(photo.Id, dto.ChildIds);
-            }
 
             var result = await GetPhotoWithDetailsAsync(photo.Id, staffId);
             _logger.LogInformation("Photo uploaded: {PhotoId} by staff {StaffId}", photo.Id, staffId);
@@ -325,8 +318,6 @@ namespace ReactApp.Server.Services
                 photo.TargetClassId = dto.TargetClassId;
             if (dto.PublishedAt.HasValue)
                 photo.PublishedAt = dto.PublishedAt.Value;
-            if (dto.RequiresConsent.HasValue)
-                photo.RequiresConsent = dto.RequiresConsent.Value;
             if (dto.Status != null)
                 photo.Status = dto.Status;
 
@@ -497,16 +488,6 @@ namespace ReactApp.Server.Services
                 _logger.LogWarning($"CanParentViewPhotoAsync: Parent has no access to any child in photo");
                 return false;
             }
-
-            // Check consent if required
-            // TODO: 写真同意機能は現在無効化されています（RequiresConsentのチェックをスキップ）
-            // if (photo.RequiresConsent)
-            // {
-            //     _logger.LogWarning($"CanParentViewPhotoAsync: Photo requires consent, checking...");
-            //     var hasConsent = await HasPhotoConsentAsync(photoId, parentId);
-            //     _logger.LogWarning($"CanParentViewPhotoAsync: hasConsent={hasConsent}");
-            //     return hasConsent;
-            // }
 
             _logger.LogWarning($"CanParentViewPhotoAsync: Access granted for ParentId={parentId}, PhotoId={photoId}");
             return true;

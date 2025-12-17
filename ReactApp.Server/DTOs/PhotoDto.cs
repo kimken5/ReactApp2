@@ -27,7 +27,6 @@ namespace ReactApp.Server.DTOs
         public string VisibilityLevel { get; set; } = string.Empty;
         public string? TargetClassId { get; set; }
         public string Status { get; set; } = string.Empty;
-        public bool RequiresConsent { get; set; }
         public int ViewCount { get; set; }
         public int DownloadCount { get; set; }
         public List<PhotoChildDto> Children { get; set; } = new List<PhotoChildDto>();
@@ -63,8 +62,6 @@ namespace ReactApp.Server.DTOs
         public string? TargetClassId { get; set; }
 
         public DateTime? PublishedAt { get; set; }
-
-        public bool RequiresConsent { get; set; } = true;
     }
 
     public class UpdatePhotoDto
@@ -79,8 +76,6 @@ namespace ReactApp.Server.DTOs
         public string? TargetClassId { get; set; }
 
         public DateTime? PublishedAt { get; set; }
-
-        public bool? RequiresConsent { get; set; }
 
         [StringLength(20)]
         public string? Status { get; set; }

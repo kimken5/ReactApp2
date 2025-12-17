@@ -26,7 +26,6 @@ namespace ReactApp.Server.DTOs.Desktop
         public string? TargetClassName { get; set; }
         public int? TargetGrade { get; set; }
         public string Status { get; set; } = string.Empty; // "draft", "published", "archived"
-        public bool RequiresConsent { get; set; }
         public int ViewCount { get; set; }
         public int DownloadCount { get; set; }
         public bool IsActive { get; set; }
@@ -76,8 +75,6 @@ namespace ReactApp.Server.DTOs.Desktop
         [StringLength(20)]
         public string Status { get; set; } = "published"; // "draft", "published"
 
-        public bool RequiresConsent { get; set; } = true;
-
         [Required(ErrorMessage = "職員IDは必須です")]
         public int StaffId { get; set; }
 
@@ -117,8 +114,6 @@ namespace ReactApp.Server.DTOs.Desktop
         [StringLength(20)]
         public string Status { get; set; } = "published";
 
-        public bool RequiresConsent { get; set; } = true;
-
         // 写っている園児IDリスト（更新する場合）
         public List<int>? ChildIds { get; set; }
 
@@ -138,7 +133,46 @@ namespace ReactApp.Server.DTOs.Desktop
         public DateTime? EndDate { get; set; }
         public string? VisibilityLevel { get; set; }
         public string? Status { get; set; }
-        public bool? RequiresConsent { get; set; }
         public string? SearchKeyword { get; set; }
+    }
+
+    /// <summary>
+    /// 園児の撮影禁止チェックリクエストDTO
+    /// </summary>
+    public class ValidateChildrenForPhotoRequestDto
+    {
+        [Required(ErrorMessage = "園児IDリストは必須です")]
+        public List<int> ChildIds { get; set; } = new();
+    }
+
+    /// <summary>
+    /// 園児の撮影禁止チェックレスポンスDTO
+    /// </summary>
+    public class ValidateChildrenForPhotoResponseDto
+    {
+        /// <summary>
+        /// 撮影禁止の園児が含まれているか
+        /// </summary>
+        public bool HasNoPhotoChildren { get; set; }
+
+        /// <summary>
+        /// 撮影禁止の園児リスト
+        /// </summary>
+        public List<NoPhotoChildInfoDto> NoPhotoChildren { get; set; } = new();
+
+        /// <summary>
+        /// 警告メッセージ
+        /// </summary>
+        public string? WarningMessage { get; set; }
+    }
+
+    /// <summary>
+    /// 撮影禁止園児情報DTO
+    /// </summary>
+    public class NoPhotoChildInfoDto
+    {
+        public int ChildId { get; set; }
+        public string ChildName { get; set; } = string.Empty;
+        public string? ClassName { get; set; }
     }
 }

@@ -136,7 +136,6 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(15);
                 entity.Property(e => e.Name).HasMaxLength(100);
                 entity.Property(e => e.Email).HasMaxLength(200);
-                entity.Property(e => e.Address).HasMaxLength(200);
                 entity.Property(e => e.NurseryId).IsRequired();
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
 
@@ -461,8 +460,6 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.PrincipalName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.LogoUrl).HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
@@ -668,7 +665,6 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.VisibilityLevel).IsRequired().HasMaxLength(20).HasDefaultValue("class");
                 entity.Property(e => e.TargetClassId).HasMaxLength(50);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("draft");
-                entity.Property(e => e.RequiresConsent).HasDefaultValue(true);
                 entity.Property(e => e.ViewCount).HasDefaultValue(0);
                 entity.Property(e => e.DownloadCount).HasDefaultValue(0);
                 entity.Property(e => e.UploadedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
