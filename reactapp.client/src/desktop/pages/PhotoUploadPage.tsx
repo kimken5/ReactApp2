@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { useDesktopAuth } from '../contexts/DesktopAuthContext';
 import { photoService } from '../services/photoService';
 import { masterService } from '../services/masterService';
 import { NoPhotoWarningDialog } from '../components/photo/NoPhotoWarningDialog';
@@ -13,6 +14,29 @@ import type { ChildDto, ClassDto, StaffDto } from '../types/master';
  */
 export function PhotoUploadPage() {
   const navigate = useNavigate();
+  const { state } = useDesktopAuth();
+
+  // 写真機能の利用可否をチェック
+  const photoFunctionEnabled = state.nursery?.photoFunction ?? true;
+
+  // 写真機能が無効な場合はアクセス制限
+  if (!photoFunctionEnabled) {
+    return (
+      <DashboardLayout>
+        <div className="p-6">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-6 text-center">
+            <svg className="w-16 h-16 text-yellow-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">写真機能は利用できません</h2>
+            <p className="text-gray-600">
+              この保育園では写真機能が有効になっていません。
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   // Form state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);

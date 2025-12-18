@@ -48,7 +48,8 @@ namespace ReactApp.Server.Services
                 {
                     IsValid = true,
                     NurseryName = nursery.Name,
-                    NurseryId = nursery.Id
+                    NurseryId = nursery.Id,
+                    PhotoFunction = nursery.PhotoFunction
                 };
             }
             catch (Exception ex)
@@ -110,6 +111,7 @@ namespace ReactApp.Server.Services
                         ChildBloodType = child.ChildBloodType,
                         ChildMedicalNotes = child.ChildMedicalNotes,
                         ChildSpecialInstructions = child.ChildSpecialInstructions,
+                        ChildNoPhoto = child.ChildNoPhoto, // 撮影禁止フラグ（デフォルト: false）
 
                         // 申込管理情報
                         ApplicationStatus = "Pending",
@@ -395,6 +397,7 @@ namespace ReactApp.Server.Services
                     BloodType = application.ChildBloodType,
                     MedicalNotes = application.ChildMedicalNotes,
                     SpecialInstructions = application.ChildSpecialInstructions,
+                    NoPhoto = application.ChildNoPhoto, // 撮影禁止フラグを引き継ぐ
                     GraduationStatus = "Active", // 入園申し込み承認時は在籍中
                     IsActive = true,
                     ClassId = null, // 初期値はnull（後でクラス割り当て）
@@ -441,7 +444,8 @@ namespace ReactApp.Server.Services
                     ParentName = application.ApplicantName,
                     ChildName = application.ChildName,
                     WasParentCreated = isNewParent,
-                    WasParentUpdated = !isNewParent && request.OverwriteParent
+                    WasParentUpdated = !isNewParent && request.OverwriteParent,
+                    NoPhotoSet = application.ChildNoPhoto // 撮影禁止設定
                 };
             }
             catch (Exception ex)

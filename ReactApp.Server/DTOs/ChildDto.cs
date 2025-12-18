@@ -91,6 +91,11 @@ namespace ReactApp.Server.DTOs
         public DateTime? UpdatedAt { get; set; }
 
         /// <summary>
+        /// 撮影禁止フラグ（デフォルト: false - 撮影・共有を許可）
+        /// </summary>
+        public bool NoPhoto { get; set; }
+
+        /// <summary>
         /// 関連保護者一覧
         /// この園児に関連する保護者たちの情報一覧
         /// </summary>

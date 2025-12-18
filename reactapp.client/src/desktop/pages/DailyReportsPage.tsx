@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { useDesktopAuth } from '../contexts/DesktopAuthContext';
 import { DailyReportDetailModal } from '../components/DailyReportDetailModal';
 import { DailyReportEditModal } from '../components/DailyReportEditModal';
 import { dailyReportService } from '../services/dailyReportService';
@@ -208,6 +209,8 @@ export function DailyReportsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isDemoMode = searchParams.get('demo') === 'true';
+  const { state } = useDesktopAuth();
+  const photoFunctionEnabled = state.nursery?.photoFunction ?? true; // 写真機能の利用可否
 
   const [reports, setReports] = useState<DailyReportDto[]>([]);
   const [filteredReports, setFilteredReports] = useState<DailyReportDto[]>([]);
@@ -748,38 +751,40 @@ export function DailyReportsPage() {
           </div>
 
           {/* 写真・キーワード検索 */}
-          <div className="grid grid-cols-4 gap-4">
-            {/* 写真フィルター */}
-            <div>
-              <label htmlFor="hasPhoto" className="block text-sm font-medium text-gray-700 mb-2">
-                写真
-              </label>
-              <select
-                id="hasPhoto"
-                value={
-                  filter.hasPhoto === undefined
-                    ? ''
-                    : filter.hasPhoto
-                      ? 'true'
-                      : 'false'
-                }
-                onChange={e =>
-                  setFilter(prev => ({
-                    ...prev,
-                    hasPhoto:
-                      e.target.value === '' ? undefined : e.target.value === 'true',
-                  }))
-                }
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
-              >
-                <option value="">すべて</option>
-                <option value="true">有</option>
-                <option value="false">－</option>
-              </select>
-            </div>
+          <div className={`grid gap-4 ${photoFunctionEnabled ? 'grid-cols-4' : 'grid-cols-1'}`}>
+            {/* 写真フィルター - 写真機能が有効な場合のみ表示 */}
+            {photoFunctionEnabled && (
+              <div>
+                <label htmlFor="hasPhoto" className="block text-sm font-medium text-gray-700 mb-2">
+                  写真
+                </label>
+                <select
+                  id="hasPhoto"
+                  value={
+                    filter.hasPhoto === undefined
+                      ? ''
+                      : filter.hasPhoto
+                        ? 'true'
+                        : 'false'
+                  }
+                  onChange={e =>
+                    setFilter(prev => ({
+                      ...prev,
+                      hasPhoto:
+                        e.target.value === '' ? undefined : e.target.value === 'true',
+                    }))
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+                >
+                  <option value="">すべて</option>
+                  <option value="true">有</option>
+                  <option value="false">－</option>
+                </select>
+              </div>
+            )}
 
             {/* キーワード検索 */}
-            <div className="col-span-3">
+            <div className={photoFunctionEnabled ? 'col-span-3' : ''}>
               <label htmlFor="searchKeyword" className="block text-sm font-medium text-gray-700 mb-2">
                 キーワード検索
               </label>
@@ -838,9 +843,11 @@ export function DailyReportsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     タイトル
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    写真
-                  </th>
+                  {photoFunctionEnabled && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      写真
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ステータス
                   </th>
@@ -884,9 +891,11 @@ export function DailyReportsPage() {
                         {getReportKindLabel(report.reportKind)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">{report.title}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                        {report.photos && report.photos.length > 0 ? '有' : 'ー'}
-                      </td>
+                      {photoFunctionEnabled && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                          {report.photos && report.photos.length > 0 ? '有' : 'ー'}
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(report.status)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getAcknowledgedBadge(report.parentAcknowledged)}

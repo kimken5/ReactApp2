@@ -99,6 +99,7 @@ export function DesktopAuthProvider({ children }: DesktopAuthProviderProps) {
             name: 'デモ保育園',
             phoneNumber: '000-0000-0000',
             currentAcademicYear: 2025,
+            photoFunction: true, // デモモードでは写真機能有効
           };
           console.log('DesktopAuthContext - Setting demo mode with nursery:', demoNursery);
           dispatch({

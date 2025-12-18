@@ -34,6 +34,7 @@ const childSchema = z.object({
   childBloodType: z.string().optional(),
   childMedicalNotes: z.string().max(1000, '1000文字以内で入力してください').optional(),
   childSpecialInstructions: z.string().max(1000, '1000文字以内で入力してください').optional(),
+  childNoPhoto: z.boolean().default(false), // 撮影禁止フラグ（デフォルト: false）
 });
 
 // Zodバリデーションスキーマ
@@ -73,6 +74,7 @@ export function ApplicationFormPage() {
   const [isValidating, setIsValidating] = useState(true);
   const [keyValidationError, setKeyValidationError] = useState<string | null>(null);
   const [nurseryName, setNurseryName] = useState<string>('');
+  const [photoFunctionEnabled, setPhotoFunctionEnabled] = useState<boolean>(true); // 写真機能の利用可否（デフォルトtrue）
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ApplicationFormData | null>(null);
@@ -96,6 +98,7 @@ export function ApplicationFormPage() {
           childBloodType: '',
           childMedicalNotes: '',
           childSpecialInstructions: '',
+          childNoPhoto: false, // デフォルトfalse（撮影・共有を許可）
         },
       ],
     },
@@ -121,6 +124,7 @@ export function ApplicationFormPage() {
         const result = await validateApplicationKey(applicationKey);
         if (result.success && result.data?.isValid && result.data?.nurseryName) {
           setNurseryName(result.data.nurseryName);
+          setPhotoFunctionEnabled(result.data.photoFunction ?? true); // 写真機能の利用可否を設定（デフォルトtrue）
           setKeyValidationError(null);
         } else {
           setKeyValidationError(result.error?.message || '無効な申込キーです。');
@@ -161,6 +165,7 @@ export function ApplicationFormPage() {
         childBloodType: '',
         childMedicalNotes: '',
         childSpecialInstructions: '',
+        childNoPhoto: false, // デフォルトfalse（撮影・共有を許可）
       });
     }
   };
@@ -213,6 +218,8 @@ export function ApplicationFormPage() {
           childBloodType: child.childBloodType || undefined,
           childMedicalNotes: child.childMedicalNotes || undefined,
           childSpecialInstructions: child.childSpecialInstructions || undefined,
+          // 写真機能が無効の場合は常にfalse（撮影OK）、有効な場合はユーザーの選択値
+          childNoPhoto: photoFunctionEnabled ? child.childNoPhoto : false,
         })),
       };
 
@@ -485,7 +492,7 @@ export function ApplicationFormPage() {
                   type="text"
                   {...register('applicantNameKana')}
                   className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                  placeholder="ヤマダ タロウ"
+                  placeholder="やまだ たろう"
                 />
                 <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
                 {errors.applicantNameKana && (
@@ -681,7 +688,7 @@ export function ApplicationFormPage() {
                     type="text"
                     {...register(`children.${index}.childNameKana`)}
                     className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                    placeholder="ヤマダ ハナコ"
+                    placeholder="やまだ はなこ"
                   />
                   <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
                   {errors.children?.[index]?.childNameKana && (
@@ -778,6 +785,40 @@ export function ApplicationFormPage() {
                     </p>
                   )}
                 </div>
+
+                {/* 写真共有に関する説明と撮影禁止チェックボックス（写真機能が有効な場合のみ表示） */}
+                {photoFunctionEnabled && (
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-gray-700 mb-2 flex items-start">
+                      <svg className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>
+                        <strong>写真共有について</strong>
+                      </span>
+                    </p>
+                    <p className="text-sm text-gray-600 mb-3 ml-7">
+                      当園では、保育園での日常の様子や行事の写真を専用アプリを通じて保護者の皆様と共有しています。
+                      アプリは保護者のみがアクセス可能で、お子様の成長記録を安全にご覧いただけます。
+                      クラスの集合写真なども含まれますので、ぜひご活用ください。
+                    </p>
+
+                    <label className="flex items-start cursor-pointer ml-7">
+                      <input
+                        type="checkbox"
+                        {...register(`children.${index}.childNoPhoto`)}
+                        className="mt-1 h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        写真の撮影・共有を希望しない
+                        <span className="block text-xs text-gray-500 mt-1">
+                          （チェックを入れた場合、お子様が写った写真は共有されません）
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { useDesktopAuth } from '../contexts/DesktopAuthContext';
 import { DailyReportPhotoUpload } from '../components/DailyReportPhotoUpload';
 import { dailyReportService } from '../services/dailyReportService';
 import { masterService } from '../services/masterService';
@@ -28,6 +29,10 @@ export function DailyReportFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const isEditMode = !!id;
+  const { state } = useDesktopAuth();
+
+  // 写真機能の利用可否を取得
+  const photoFunctionEnabled = state.nursery?.photoFunction ?? true;
 
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [isSaving, setIsSaving] = useState(false);
@@ -822,14 +827,16 @@ export function DailyReportFormPage() {
               {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content}</p>}
             </div>
 
-            {/* 写真アップロード */}
-            <DailyReportPhotoUpload
-              uploadedPhotos={uploadedPhotos}
-              onPhotosChange={handlePhotosChange}
-              disabled={isReadOnly || false}
-              maxPhotos={10}
-              maxFileSize={10 * 1024 * 1024}
-            />
+            {/* 写真アップロード（写真機能が有効な場合のみ表示） */}
+            {photoFunctionEnabled && (
+              <DailyReportPhotoUpload
+                uploadedPhotos={uploadedPhotos}
+                onPhotosChange={handlePhotosChange}
+                disabled={isReadOnly || false}
+                maxPhotos={10}
+                maxFileSize={10 * 1024 * 1024}
+              />
+            )}
             {errors.photos && <p className="mt-1 text-sm text-red-600">{errors.photos}</p>}
 
           </div>

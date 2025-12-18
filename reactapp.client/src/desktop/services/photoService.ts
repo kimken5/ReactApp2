@@ -9,6 +9,8 @@ import type {
   UploadPhotoRequestDto,
   UpdatePhotoRequestDto,
   PhotoFilterDto,
+  ValidateChildrenForPhotoRequestDto,
+  ValidateChildrenForPhotoResponseDto,
 } from '../types/photo';
 
 /**
@@ -106,6 +108,20 @@ export const photoService = {
    */
   async getPhotosByClass(classId: string): Promise<PhotoDto[]> {
     const response = await apiClient.get<{ data: PhotoDto[] }>(`/api/desktop/photos/class/${classId}`);
+    return response.data.data;
+  },
+
+  /**
+   * 園児の撮影禁止チェック
+   * @param request チェック対象の園児IDリスト
+   */
+  async validateChildrenForPhoto(
+    request: ValidateChildrenForPhotoRequestDto
+  ): Promise<ValidateChildrenForPhotoResponseDto> {
+    const response = await apiClient.post<{ data: ValidateChildrenForPhotoResponseDto }>(
+      '/api/desktop/photos/validate-children',
+      request
+    );
     return response.data.data;
   },
 };

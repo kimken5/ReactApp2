@@ -58,12 +58,6 @@ public class Nursery
     public DateTime EstablishedDate { get; set; }
 
     /// <summary>
-    /// ロゴ画像URL（任意、500文字以内）
-    /// </summary>
-    [StringLength(500)]
-    public string? LogoUrl { get; set; }
-
-    /// <summary>
     /// 作成日時（必須）
     /// </summary>
     [Required]
@@ -130,4 +124,14 @@ public class Nursery
     /// </summary>
     [StringLength(255)]
     public string? ApplicationKey { get; set; }
+
+    /// <summary>
+    /// 写真機能の利用可否（必須）
+    /// True: 写真機能を利用可能
+    /// False: 写真機能を利用不可（写真関連UI非表示）
+    /// デフォルト: true
+    /// 運営側でのみ変更可能
+    /// </summary>
+    [Required]
+    public bool PhotoFunction { get; set; } = true;
 }

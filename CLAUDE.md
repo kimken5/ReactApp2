@@ -273,21 +273,13 @@ npm run db:reset
 - Axe for accessibility testing
 - Lighthouse for performance testing
 
-## Deployment
-
-### Docker Production Deployment
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
-```
-
-### Health Checks
-- `/health` - Overall system health
-- `/health/database` - Database connectivity
-- `/health/redis` - Redis connectivity
-- `/health/external` - External services status
-
 ### Monitoring
 - Serilog logs: `logs/kindergarten-YYYY-MM-DD.txt`
 - Application Insights (production)
 - Prometheus metrics endpoint (if configured)
 - Grafana dashboards (production)
+
+
+・回答は全て日本語で回答すること
+・バックエンドのコードを修正する場合はサーバーを落としてから修正し、再度サーバを立ち上げるようにすること
+・Azure SQL Databaseのテーブル構造を変更する際は、その内容を提案し、実際にテーブルを変更しないこと

@@ -9,6 +9,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using ReactApp.Server.Helpers;
+using BCrypt.Net;
 
 namespace ReactApp.Server.Services;
 
@@ -77,11 +78,23 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             _logger.LogInformation("Account lock expired and reset for NurseryId: {NurseryId}", nursery.Id);
         }
 
-        // パスワード検証（平文比較）
-        _logger.LogInformation("DEBUG: Verifying password for NurseryId: {NurseryId}, InputPassword: {InputPassword}, StoredPassword: {StoredPassword}",
-            nursery.Id, request.Password, nursery.Password);
-        
-        if (string.IsNullOrEmpty(nursery.Password) || nursery.Password != request.Password)
+        // パスワード検証（BCrypt）
+        _logger.LogInformation("DEBUG: Verifying password for NurseryId: {NurseryId}", nursery.Id);
+
+        bool isPasswordValid = false;
+        if (!string.IsNullOrEmpty(nursery.Password))
+        {
+            try
+            {
+                isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, nursery.Password);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verifying password for NurseryId: {NurseryId}", nursery.Id);
+            }
+        }
+
+        if (!isPasswordValid)
         {
             // ログイン試行回数を増やす
             nursery.LoginAttempts++;
@@ -128,8 +141,8 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             {
                 Id = nursery.Id,
                 Name = nursery.Name,
-                LogoUrl = nursery.LogoUrl,
-                CurrentAcademicYear = nursery.CurrentAcademicYear
+                CurrentAcademicYear = nursery.CurrentAcademicYear,
+                PhotoFunction = nursery.PhotoFunction
             }
         };
     }
@@ -183,7 +196,6 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
             {
                 Id = nursery.Id,
                 Name = nursery.Name,
-                LogoUrl = nursery.LogoUrl,
                 CurrentAcademicYear = nursery.CurrentAcademicYear
             }
         };

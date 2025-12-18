@@ -11,6 +11,7 @@ export interface NurseryInfo {
   id: number;
   name: string;
   currentAcademicYear: number;
+  photoFunction?: boolean;
   address?: string;
   phoneNumber?: string;
   email?: string;

@@ -37,16 +37,6 @@ export function ApplicationCompletePage() {
           </p>
         </div>
 
-        {/* ボタン */}
-        <div className="text-center">
-          <button
-            onClick={() => window.close()}
-            className="px-8 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-semibold rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all"
-          >
-            このページを閉じる
-          </button>
-        </div>
-
         {/* フッター */}
         <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
           <p>

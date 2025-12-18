@@ -13,6 +13,7 @@ export interface ChildInfo {
   childBloodType?: string;
   childMedicalNotes?: string;
   childSpecialInstructions?: string;
+  childNoPhoto: boolean; // 撮影禁止フラグ（デフォルト: false - 撮影・共有を許可）
 }
 
 /**
@@ -62,6 +63,7 @@ export interface ValidateKeyResponse {
     isValid: boolean;
     nurseryId?: number;
     nurseryName?: string;
+    photoFunction?: boolean; // 写真機能の利用可否
   };
   error?: {
     code: string;

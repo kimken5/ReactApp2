@@ -31,6 +31,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public string? ChildBloodType { get; set; }
         public string? ChildMedicalNotes { get; set; }
         public string? ChildSpecialInstructions { get; set; }
+        public bool ChildNoPhoto { get; set; }
 
         // 申込管理情報
         public string ApplicationStatus { get; set; } = "Pending";
@@ -87,6 +88,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public DateTime CreatedAt { get; set; }
         public DateTime? ImportedAt { get; set; }
         public bool HasDuplicateParent { get; set; }
+        public bool ChildNoPhoto { get; set; }
     }
 
     /// <summary>
@@ -117,6 +119,11 @@ namespace ReactApp.Server.DTOs.Desktop
 
         [StringLength(1000, ErrorMessage = "園児特別指示は1000文字以内で入力してください")]
         public string? ChildSpecialInstructions { get; set; }
+
+        /// <summary>
+        /// 撮影禁止フラグ（デフォルト: false - 撮影・共有を許可）
+        /// </summary>
+        public bool ChildNoPhoto { get; set; } = false;
     }
 
     /// <summary>
@@ -212,6 +219,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public string ChildName { get; set; } = string.Empty;
         public bool WasParentCreated { get; set; }
         public bool WasParentUpdated { get; set; }
+        public bool NoPhotoSet { get; set; } // 撮影禁止設定が有効か
     }
 
     /// <summary>
@@ -241,5 +249,10 @@ namespace ReactApp.Server.DTOs.Desktop
         public bool IsValid { get; set; }
         public string? NurseryName { get; set; }
         public int? NurseryId { get; set; }
+
+        /// <summary>
+        /// 写真機能の利用可否（True: 利用可, False: 利用不可）
+        /// </summary>
+        public bool PhotoFunction { get; set; }
     }
 }

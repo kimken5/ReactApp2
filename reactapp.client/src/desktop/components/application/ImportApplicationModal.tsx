@@ -7,6 +7,7 @@ import {
   getApplicationDetail,
   importApplication,
 } from '../../../services/desktopApplicationService';
+import { useDesktopAuth } from '../../contexts/DesktopAuthContext';
 import type { ApplicationWorkDto } from '../../../types/desktopApplication';
 
 /**
@@ -49,6 +50,9 @@ interface Props {
 }
 
 export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Props) {
+  const { state } = useDesktopAuth();
+  const photoFunctionEnabled = state.nursery?.photoFunction ?? true; // 写真機能の利用可否
+
   const [application, setApplication] = useState<ApplicationWorkDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -130,35 +134,8 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose, isSubmitting]);
 
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8">
-          <p className="text-gray-600">読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!application) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 max-w-md">
-          <h2 className="text-xl font-bold text-red-600 mb-4">エラー</h2>
-          <p className="text-gray-700 mb-6">申込が見つかりません。</p>
-          <button
-            onClick={onClose}
-            className="w-full bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded hover:bg-gray-400"
-          >
-            閉じる
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const hasDuplicate =
-    application.duplicateParentInfo && application.duplicateParentInfo.hasDuplicate;
+    application?.duplicateParentInfo && application.duplicateParentInfo.hasDuplicate;
 
   return (
     <>
@@ -188,6 +165,29 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
           </div>
 
         <div className="p-6">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">読み込み中...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {!isLoading && !application && (
+            <div className="py-8">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                <h3 className="text-lg font-bold text-red-600 mb-2">エラー</h3>
+                <p className="text-gray-700">申込が見つかりません。</p>
+              </div>
+            </div>
+          )}
+
+          {/* Content */}
+          {!isLoading && application && (
+            <>
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-600">{error}</p>
@@ -262,7 +262,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
             <h3 className="text-lg font-semibold text-gray-800 mb-3">インポート内容</h3>
 
             {/* 保護者 */}
-            <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="mb-4 border border-blue-200 rounded-lg p-4">
               <h4 className="font-semibold text-blue-900 mb-2">
                 {useExistingParent && hasDuplicate ? '✓ 既存保護者' : '+ 新規保護者'}
               </h4>
@@ -287,7 +287,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
             </div>
 
             {/* 園児 */}
-            <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="mb-4 border border-green-200 rounded-lg p-4">
               <h4 className="font-semibold text-green-900 mb-2">+ 新規園児</h4>
               <dl className="grid grid-cols-2 gap-2 text-sm">
                 <div>
@@ -308,6 +308,29 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
                   <dt className="text-gray-600">性別:</dt>
                   <dd className="font-medium">{formatGender(application.childGender)}</dd>
                 </div>
+                {/* NoPhoto情報 - 写真機能が有効な場合のみ表示 */}
+                {photoFunctionEnabled && (
+                  <div className="col-span-2">
+                    <dt className="text-gray-600 mb-1">写真撮影・共有:</dt>
+                    <dd>
+                      {application.childNoPhoto ? (
+                        <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-yellow-100 border border-yellow-300">
+                          <svg className="w-5 h-5 text-yellow-700 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-semibold text-yellow-800">撮影・共有を希望しない</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 border border-green-300">
+                          <svg className="w-5 h-5 text-green-700 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-semibold text-green-800">撮影・共有を許可</span>
+                        </div>
+                      )}
+                    </dd>
+                  </div>
+                )}
               </dl>
             </div>
           </div>
@@ -317,9 +340,12 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
               ⚠️ インポート後、この申込のステータスは「取り込み済み」に変更され、再度インポートすることはできません。
             </p>
           </div>
+          </>
+          )}
         </div>
 
         {/* Footer */}
+        {!isLoading && application && (
         <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end space-x-3">
           <button
             onClick={onClose}
@@ -342,6 +368,7 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
             <span>{isSubmitting ? 'インポート中...' : 'インポート実行'}</span>
           </button>
         </div>
+        )}
       </div>
       </div>
     </>

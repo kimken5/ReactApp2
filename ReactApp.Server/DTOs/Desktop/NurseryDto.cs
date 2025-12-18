@@ -26,6 +26,12 @@ namespace ReactApp.Server.DTOs.Desktop
 
         public int CurrentAcademicYear { get; set; }
 
+        /// <summary>
+        /// 写真機能の利用可否（True: 利用可, False: 利用不可）
+        /// デフォルト: True
+        /// </summary>
+        public bool PhotoFunction { get; set; } = true;
+
         [StringLength(50, ErrorMessage = "ログインIDは50文字以内で入力してください")]
         public string? LoginId { get; set; }
 

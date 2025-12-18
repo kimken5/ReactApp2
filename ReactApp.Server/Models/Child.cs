@@ -141,6 +141,14 @@ public class Child
     /// </summary>
     public DateTime? LastAttendanceDate { get; set; }
 
+    /// <summary>
+    /// 撮影禁止フラグ（園児マスタ）
+    /// True = 撮影禁止, False = 撮影可（デフォルト）
+    /// 入園後も編集可能な設定。写真アップロード時に警告表示の判定に使用
+    /// </summary>
+    [Required]
+    public bool NoPhoto { get; set; } = false;
+
     // ナビゲーションプロパティ（関連エンティティとの関係性）
 
     /// <summary>

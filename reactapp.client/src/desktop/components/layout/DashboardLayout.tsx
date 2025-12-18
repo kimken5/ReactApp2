@@ -86,6 +86,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   };
 
+  // 写真機能の利用可否を取得
+  const photoFunctionEnabled = state.nursery?.photoFunction ?? true;
+
   // 通常メニュー
   const normalMenuItems = [
     { path: '/desktop/dashboard', label: 'ダッシュボード', icon: 'chart' },
@@ -94,7 +97,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { path: '/desktop/calendar', label: '予定管理', icon: 'calendar' },
     { path: '/desktop/announcements', label: 'お知らせ管理', icon: 'megaphone' },
     { path: '/desktop/dailyreports', label: 'レポート管理', icon: 'document' },
-    { path: '/desktop/photos', label: '写真管理', icon: 'camera' },
+    ...(photoFunctionEnabled ? [{ path: '/desktop/photos', label: '写真管理', icon: 'camera' }] : []),
     { path: '/desktop/classes', label: 'クラス管理', icon: 'users' },
     { path: '/desktop/children', label: '園児管理', icon: 'baby' },
   ];

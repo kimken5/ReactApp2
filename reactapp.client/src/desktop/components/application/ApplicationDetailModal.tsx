@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getApplicationDetail } from '../../../services/desktopApplicationService';
+import { useDesktopAuth } from '../../contexts/DesktopAuthContext';
 import type { ApplicationWorkDto } from '../../../types/desktopApplication';
 import {
   APPLICATION_STATUS_LABELS,
@@ -52,6 +53,9 @@ interface Props {
 }
 
 export function ApplicationDetailModal({ applicationId, onClose, onImport, onReject }: Props) {
+  const { state } = useDesktopAuth();
+  const photoFunctionEnabled = state.nursery?.photoFunction ?? true; // 写真機能の利用可否
+
   const [application, setApplication] = useState<ApplicationWorkDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -90,34 +94,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8">
-          <p className="text-gray-600">読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !application) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 max-w-md">
-          <h2 className="text-xl font-bold text-red-600 mb-4">エラー</h2>
-          <p className="text-gray-700 mb-6">{error || '申込が見つかりません。'}</p>
-          <button
-            onClick={onClose}
-            className="w-full bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded hover:bg-gray-400"
-          >
-            閉じる
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const isPending = application.applicationStatus === 'Pending';
+  const isPending = application?.applicationStatus === 'Pending';
 
   return (
     <>
@@ -146,6 +123,29 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
           </div>
 
         <div className="p-6">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">読み込み中...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !isLoading && (
+            <div className="py-8">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                <h3 className="text-lg font-bold text-red-600 mb-2">エラー</h3>
+                <p className="text-gray-700">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Content */}
+          {!isLoading && !error && application && (
+            <>
           {/* ステータス */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">ステータス</h3>
@@ -328,13 +328,39 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
                     </dd>
                   </div>
                 )}
+                {/* NoPhoto (撮影禁止) 情報 - 写真機能が有効な場合のみ表示 */}
+                {photoFunctionEnabled && (
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">写真撮影・共有</dt>
+                    <dd className="mt-1">
+                      {application.childNoPhoto ? (
+                        <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-yellow-100 border border-yellow-300">
+                          <svg className="w-5 h-5 text-yellow-700 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-semibold text-yellow-800">撮影・共有を希望しない</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 border border-green-300">
+                          <svg className="w-5 h-5 text-green-700 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-semibold text-green-800">撮影・共有を許可</span>
+                        </div>
+                      )}
+                    </dd>
+                  </div>
+                )}
               </dl>
               </div>
             </div>
           </div>
+          </>
+          )}
         </div>
 
         {/* Footer */}
+        {!isLoading && application && (
         <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end space-x-3">
           <button
             onClick={onClose}
@@ -359,6 +385,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
             </button>
           )}
         </div>
+        )}
       </div>
       </div>
     </>

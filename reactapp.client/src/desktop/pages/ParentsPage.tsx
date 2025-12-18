@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
 import type { ParentDto, ParentFilterDto, ClassDto } from '../types/master';
+import { ParentEditModal } from '../components/parents/ParentEditModal';
 
 /**
  * 電話番号を XXX-XXXX-XXXX 形式にフォーマット
@@ -186,6 +187,10 @@ export function ParentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 編集モーダル状態
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingParentId, setEditingParentId] = useState<number | null>(null);
+
   // フィルタ状態
   const [filter, setFilter] = useState<{
     classId?: string;
@@ -226,6 +231,7 @@ export function ParentsPage() {
   };
 
   const loadParents = async () => {
+    console.log('loadParents called with filter:', filter);
     try {
       setIsLoading(true);
       setError(null);
@@ -254,6 +260,7 @@ export function ParentsPage() {
         setParents(filteredData);
       } else {
         const data = await masterService.getParents(filter);
+        console.log('保護者データ取得:', data.length, '件');
         setParents(data);
       }
     } catch (err) {
@@ -323,6 +330,27 @@ export function ParentsPage() {
       console.error('削除に失敗しました:', err);
       alert('削除に失敗しました');
     }
+  };
+
+  // 編集モーダル開く
+  const handleEdit = (parentId: number) => {
+    setEditingParentId(parentId);
+    setIsEditModalOpen(true);
+  };
+
+  // 編集モーダル閉じる
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingParentId(null);
+  };
+
+  // 編集成功
+  const handleEditSuccess = () => {
+    console.log('handleEditSuccess called');
+    setIsEditModalOpen(false);
+    setEditingParentId(null);
+    console.log('Calling loadParents...');
+    loadParents();
   };
 
   return (
@@ -496,7 +524,7 @@ export function ParentsPage() {
                             <div className="flex gap-1">
                               {/* 編集ボタン */}
                               <button
-                                onClick={() => navigate(`/desktop/parents/edit/${parent.id}`)}
+                                onClick={() => handleEdit(parent.id)}
                                 className="relative group p-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200"
                                 title="編集"
                               >
@@ -539,6 +567,16 @@ export function ParentsPage() {
           </div>
         )}
       </div>
+
+      {/* 編集モーダル */}
+      {editingParentId && (
+        <ParentEditModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          onSuccess={handleEditSuccess}
+          parentId={editingParentId}
+        />
+      )}
     </DashboardLayout>
   );
 }

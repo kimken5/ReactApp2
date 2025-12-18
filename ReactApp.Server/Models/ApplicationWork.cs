@@ -88,12 +88,6 @@ public class ApplicationWork
     public string? HomePhone { get; set; }
 
     /// <summary>
-    /// 緊急連絡先（任意、最大20文字）
-    /// </summary>
-    [StringLength(20)]
-    public string? EmergencyContact { get; set; }
-
-    /// <summary>
     /// メールアドレス（任意、最大255文字）
     /// </summary>
     [StringLength(255)]
@@ -158,6 +152,14 @@ public class ApplicationWork
     /// </summary>
     [StringLength(1000)]
     public string? ChildSpecialInstructions { get; set; }
+
+    /// <summary>
+    /// 撮影禁止フラグ（申込時）
+    /// True = 撮影禁止を希望, False = 撮影可（デフォルト）
+    /// 保護者が写真撮影・共有を希望しない場合にTrueを設定
+    /// </summary>
+    [Required]
+    public bool ChildNoPhoto { get; set; } = false;
 
     // ===== 申込管理情報 =====
 

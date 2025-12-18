@@ -42,12 +42,12 @@ public class NurseryInfoDto
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// ロゴURL
-    /// </summary>
-    public string? LogoUrl { get; set; }
-
-    /// <summary>
     /// 現在の年度
     /// </summary>
     public int CurrentAcademicYear { get; set; }
+
+    /// <summary>
+    /// 写真機能の利用可否（True: 利用可, False: 利用不可）
+    /// </summary>
+    public bool PhotoFunction { get; set; }
 }

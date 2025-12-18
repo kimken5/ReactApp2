@@ -16,6 +16,7 @@ import type {
 export function DashboardPage() {
   const { state } = useDesktopAuth();
   const navigate = useNavigate();
+  const photoFunctionEnabled = state.nursery?.photoFunction ?? true; // 写真機能の利用可否
   const [classStats, setClassStats] = useState<ClassContactStatistics[]>([]);
   const [recentReports, setRecentReports] = useState<RecentDailyReport[]>([]);
   const [todayEvents, setTodayEvents] = useState<TodayEvent[]>([]);
@@ -139,7 +140,9 @@ export function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <QuickActionButton iconType="document" label="連絡帳作成" href="/desktop/dailyreports/create" />
             <QuickActionButton iconType="user-add" label="園児登録" href="/desktop/children/create" />
-            <QuickActionButton iconType="camera" label="写真アップロード" href="/desktop/photos/upload" />
+            {photoFunctionEnabled && (
+              <QuickActionButton iconType="camera" label="写真アップロード" href="/desktop/photos/upload" />
+            )}
             <QuickActionButton iconType="megaphone" label="お知らせ作成" href="/desktop/announcements/create" />
           </div>
         </div>

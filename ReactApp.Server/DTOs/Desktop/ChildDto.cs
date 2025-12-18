@@ -25,6 +25,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public DateTime? LastAttendanceDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public bool NoPhoto { get; set; }
 
         // 計算フィールド
         public int Age { get; set; }
@@ -61,6 +62,11 @@ namespace ReactApp.Server.DTOs.Desktop
 
         [StringLength(500, ErrorMessage = "特記事項は500文字以内で入力してください")]
         public string? SpecialInstructions { get; set; }
+
+        /// <summary>
+        /// 撮影禁止フラグ（デフォルト: false - 撮影・共有を許可）
+        /// </summary>
+        public bool NoPhoto { get; set; } = false;
 
         /// <summary>
         /// 保護者の登録方法: "select" (既存保護者選択) または "create" (新規作成)
@@ -147,6 +153,11 @@ namespace ReactApp.Server.DTOs.Desktop
         public DateTime? LastAttendanceDate { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// 撮影禁止フラグ（デフォルト: false - 撮影・共有を許可）
+        /// </summary>
+        public bool NoPhoto { get; set; } = false;
     }
 
     /// <summary>

@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { useDesktopAuth } from '../contexts/DesktopAuthContext';
 import { masterService } from '../services/masterService';
 import type { ChildDto, ClassDto } from '../types/master';
+import { ChildEditModal } from '../components/children/ChildEditModal';
 
 // デモデータ生成
 const generateDemoData = (): ChildDto[] => {
@@ -71,6 +73,8 @@ export function ChildrenPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isDemoMode = searchParams.get('demo') === 'true';
+  const { state } = useDesktopAuth();
+  const photoFunctionEnabled = state.nursery?.photoFunction ?? true; // 写真機能の利用可否
 
   const [children, setChildren] = useState<ChildDto[]>([]);
   const [classes, setClasses] = useState<ClassDto[]>([]);
@@ -78,6 +82,10 @@ export function ChildrenPage() {
   const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 編集モーダル状態
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingChildId, setEditingChildId] = useState<number | null>(null);
 
   // 日付入力フィールドのref
   const graduationDateFromRef = useRef<HTMLInputElement>(null);
@@ -130,6 +138,7 @@ export function ChildrenPage() {
         graduationDateTo: filters.graduationDateTo || undefined,
         dateOfBirthFrom: filters.dateOfBirthFrom || undefined,
         dateOfBirthTo: filters.dateOfBirthTo || undefined,
+        isActive: true, // 常にアクティブな園児のみ表示
       };
 
       console.log('=== 園児一覧取得 フィルターパラメータ ===', filterParams);
@@ -235,6 +244,7 @@ export function ChildrenPage() {
           graduationDateTo: resetFilters.graduationDateTo || undefined,
           dateOfBirthFrom: resetFilters.dateOfBirthFrom || undefined,
           dateOfBirthTo: resetFilters.dateOfBirthTo || undefined,
+          isActive: true, // 常にアクティブな園児のみ表示
         };
 
         console.log('=== フィルターリセット後の検索 ===', filterParams);
@@ -271,6 +281,27 @@ export function ChildrenPage() {
       setErrorMessage('削除に失敗しました');
       setTimeout(() => setErrorMessage(null), 3000);
     }
+  };
+
+  // 編集モーダル開く
+  const handleEdit = (childId: number) => {
+    setEditingChildId(childId);
+    setIsEditModalOpen(true);
+  };
+
+  // 編集モーダル閉じる
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingChildId(null);
+  };
+
+  // 編集成功
+  const handleEditSuccess = () => {
+    setIsEditModalOpen(false);
+    setEditingChildId(null);
+    setSuccessMessage('園児情報を更新しました');
+    loadData();
+    setTimeout(() => setSuccessMessage(null), 3000);
   };
 
   // 年齢計算
@@ -382,6 +413,7 @@ export function ChildrenPage() {
                 className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               >
                 <option value="">すべて</option>
+                <option value="unassigned">無所属</option>
                 {classes.map(cls => (
                   <option key={cls.classId} value={cls.classId}>
                     {cls.name}
@@ -576,6 +608,11 @@ export function ChildrenPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ステータス
                   </th>
+                  {photoFunctionEnabled && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      撮影禁止
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ID
                   </th>
@@ -587,7 +624,7 @@ export function ChildrenPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {children.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
                       園児が見つかりませんでした
                     </td>
                   </tr>
@@ -627,6 +664,25 @@ export function ChildrenPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge child={child} />
                       </td>
+                      {photoFunctionEnabled && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {child.noPhoto ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                              禁止
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              許可
+                            </span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                         {String(child.childId).padStart(6, '0')}
                       </td>
@@ -634,7 +690,7 @@ export function ChildrenPage() {
                         <div className="flex gap-1">
                           {/* 編集ボタン */}
                           <button
-                            onClick={() => navigate(`/desktop/children/edit/${child.childId}`)}
+                            onClick={() => handleEdit(child.childId)}
                             className="relative group p-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200"
                             title="編集"
                           >
@@ -670,6 +726,16 @@ export function ChildrenPage() {
           )}
         </div>
       </div>
+
+      {/* 編集モーダル */}
+      {editingChildId && (
+        <ChildEditModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          onSuccess={handleEditSuccess}
+          childId={editingChildId}
+        />
+      )}
     </DashboardLayout>
   );
 }

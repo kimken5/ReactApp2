@@ -110,6 +110,7 @@ export interface ChildDto {
   lastAttendanceDate?: string;
   createdAt: string;
   updatedAt?: string;
+  noPhoto: boolean; // 撮影禁止フラグ
   age: number;
   parents: ParentBasicInfoDto[];
 }
@@ -123,6 +124,7 @@ export interface CreateChildRequestDto {
   bloodType?: string;
   medicalNotes?: string;
   specialInstructions?: string;
+  noPhoto?: boolean; // 撮影禁止フラグ（デフォルト: false）
   parentRegistrationMode: 'select' | 'create';
   parentIds: number[];
   parent1?: CreateParentWithChildDto;
@@ -156,6 +158,7 @@ export interface UpdateChildRequestDto {
   withdrawalReason?: string;
   lastAttendanceDate?: string;
   isActive: boolean;
+  noPhoto?: boolean; // 撮影禁止フラグ（デフォルト: false）
 }
 
 export interface ChildFilterDto {
