@@ -6,7 +6,7 @@
 export function ApplicationCompletePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-md shadow-sm border border-gray-200 p-8">
+      <div className="max-w-2xl w-full bg-white rounded-md border border-gray-100 p-8">
         {/* 成功アイコン */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
@@ -28,17 +28,8 @@ export function ApplicationCompletePage() {
           <p className="text-lg text-gray-600">入園申込を受け付けました</p>
         </div>
 
-        {/* メッセージ */}
-        <div className="bg-gray-50 rounded-lg p-6 mb-8 text-center">
-          <p className="text-gray-700">
-            ご入力いただいた内容で申込を受け付けました。
-            <br />
-            保育園より後日ご連絡いたします。
-          </p>
-        </div>
-
         {/* フッター */}
-        <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
+        <div className="mt-8 pt-6 text-center text-sm text-gray-500">
           <p>
             お問い合わせは保育園まで直接ご連絡ください。
             <br />

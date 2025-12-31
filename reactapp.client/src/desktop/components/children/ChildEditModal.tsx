@@ -30,8 +30,11 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
 
   // フォーム状態
   const [formData, setFormData] = useState({
-    name: '',
-    furigana: '',
+    familyName: '',
+    firstName: '',
+    familyFurigana: '',
+    firstFurigana: '',
+    allergy: '',
     dateOfBirth: '',
     gender: '',
     classId: '',
@@ -66,8 +69,11 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
       setClasses(classesData);
       setChild(childData);
       setFormData({
-        name: childData.name,
-        furigana: childData.furigana || '',
+        familyName: childData.familyName,
+        firstName: childData.firstName,
+        familyFurigana: childData.familyFurigana || '',
+        firstFurigana: childData.firstFurigana || '',
+        allergy: childData.allergy || '',
         dateOfBirth: childData.dateOfBirth.split('T')[0],
         gender: childData.gender,
         classId: childData.classId || '',
@@ -115,8 +121,11 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = '氏名は必須です';
+    if (!formData.familyName.trim()) {
+      newErrors.familyName = '姓は必須です';
+    }
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = '名は必須です';
     }
 
     if (!formData.dateOfBirth) {
@@ -150,8 +159,11 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
       setErrors({});
 
       const updateRequest: UpdateChildRequestDto = {
-        name: formData.name,
-        furigana: formData.furigana || undefined,
+        familyName: formData.familyName,
+        firstName: formData.firstName,
+        familyFurigana: formData.familyFurigana || undefined,
+        firstFurigana: formData.firstFurigana || undefined,
+        allergy: formData.allergy || undefined,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         classId: formData.classId || undefined,
@@ -242,35 +254,71 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">基本情報</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* 氏名 */}
+                      {/* 姓 */}
                       <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                          氏名 <span className="text-red-600">*</span>
+                        <label htmlFor="familyName" className="block text-sm font-medium text-gray-700 mb-2">
+                          姓 <span className="text-red-600">*</span>
                         </label>
                         <input
                           type="text"
-                          id="name"
-                          name="name"
-                          value={formData.name}
+                          id="familyName"
+                          name="familyName"
+                          value={formData.familyName}
                           onChange={handleChange}
-                          className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${errors.name ? 'border-red-500' : 'border-gray-200'}`}
+                          className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${errors.familyName ? 'border-red-500' : 'border-gray-200'}`}
+                          placeholder="例: 山田"
                         />
-                        {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                        {errors.familyName && <p className="mt-1 text-sm text-red-600">{errors.familyName}</p>}
                       </div>
 
-                      {/* ふりがな */}
+                      {/* 名 */}
                       <div>
-                        <label htmlFor="furigana" className="block text-sm font-medium text-gray-700 mb-2">
-                          ふりがな
+                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                          名 <span className="text-red-600">*</span>
                         </label>
                         <input
                           type="text"
-                          id="furigana"
-                          name="furigana"
-                          value={formData.furigana}
+                          id="firstName"
+                          name="firstName"
+                          value={formData.firstName}
                           onChange={handleChange}
-                          maxLength={100}
+                          className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 ${errors.firstName ? 'border-red-500' : 'border-gray-200'}`}
+                          placeholder="例: 太郎"
+                        />
+                        {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
+                      </div>
+
+                      {/* 姓（ふりがな） */}
+                      <div>
+                        <label htmlFor="familyFurigana" className="block text-sm font-medium text-gray-700 mb-2">
+                          姓（ふりがな）
+                        </label>
+                        <input
+                          type="text"
+                          id="familyFurigana"
+                          name="familyFurigana"
+                          value={formData.familyFurigana}
+                          onChange={handleChange}
+                          maxLength={50}
                           className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                          placeholder="例: やまだ"
+                        />
+                      </div>
+
+                      {/* 名（ふりがな） */}
+                      <div>
+                        <label htmlFor="firstFurigana" className="block text-sm font-medium text-gray-700 mb-2">
+                          名（ふりがな）
+                        </label>
+                        <input
+                          type="text"
+                          id="firstFurigana"
+                          name="firstFurigana"
+                          value={formData.firstFurigana}
+                          onChange={handleChange}
+                          maxLength={50}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                          placeholder="例: たろう"
                         />
                       </div>
 
@@ -383,6 +431,24 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">医療・特記事項</h3>
                     <div className="space-y-4">
+                      {/* 食物アレルギー */}
+                      <div>
+                        <label htmlFor="allergy" className="block text-sm font-medium text-gray-700 mb-2">
+                          食物アレルギー
+                        </label>
+                        <input
+                          type="text"
+                          id="allergy"
+                          name="allergy"
+                          value={formData.allergy}
+                          onChange={handleChange}
+                          maxLength={200}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                          placeholder="例: 卵、牛乳・乳製品、小麦"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">最大200文字まで入力できます</p>
+                      </div>
+
                       <div>
                         <label htmlFor="medicalNotes" className="block text-sm font-medium text-gray-700 mb-2">
                           医療メモ
@@ -394,7 +460,7 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
                           onChange={handleChange}
                           rows={3}
                           className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                          placeholder="アレルギー、既往症などを入力してください"
+                          placeholder="上記以外のアレルギーや持病がある場合は記入してください"
                         />
                       </div>
                       <div>

@@ -23,17 +23,27 @@ import {
 
 // 園児情報のバリデーションスキーマ
 const childSchema = z.object({
-  childName: z.string().min(1, '園児氏名は必須です').max(100, '100文字以内で入力してください'),
-  childNameKana: z
+  childFamilyName: z.string().min(1, '園児姓は必須です').max(50, '50文字以内で入力してください'),
+  childFirstName: z.string().min(1, '園児名は必須です').max(50, '50文字以内で入力してください'),
+  childFamilyNameKana: z
     .string()
-    .min(1, '園児氏名（ふりがな）は必須です')
-    .max(100, '100文字以内で入力してください')
-    .regex(/^[ぁ-ん\s]+$/, 'ひらがなで入力してください'),
-  childDateOfBirth: z.string().min(1, '園児生年月日は必須です'),
+    .min(1, '園児姓（ふりがな）は必須です')
+    .max(50, '50文字以内で入力してください')
+    .regex(/^[ぁ-ん]+$/, 'ひらがなで入力してください'),
+  childFirstNameKana: z
+    .string()
+    .min(1, '園児名（ふりがな）は必須です')
+    .max(50, '50文字以内で入力してください')
+    .regex(/^[ぁ-ん]+$/, 'ひらがなで入力してください'),
+  childAllergy: z.string().max(200, '200文字以内で入力してください').optional(),
+  childDateOfBirth: z
+    .string()
+    .min(1, '園児生年月日は必須です')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, '生年月日の年・月・日をすべて選択してください'),
   childGender: z.enum(['M', 'F']),
   childBloodType: z.string().optional(),
-  childMedicalNotes: z.string().max(1000, '1000文字以内で入力してください').optional(),
-  childSpecialInstructions: z.string().max(1000, '1000文字以内で入力してください').optional(),
+  childMedicalNotes: z.string().max(500, '500文字以内で入力してください').optional(),
+  childSpecialInstructions: z.string().max(500, '500文字以内で入力してください').optional(),
   childNoPhoto: z.boolean().default(false), // 撮影禁止フラグ（デフォルト: false）
 });
 
@@ -46,7 +56,10 @@ const applicationSchema = z.object({
     .min(1, '申請者氏名（ふりがな）は必須です')
     .max(100, '100文字以内で入力してください')
     .regex(/^[ぁ-ん\s]+$/, 'ひらがなで入力してください'),
-  dateOfBirth: z.string().min(1, '生年月日は必須です'),
+  dateOfBirth: z
+    .string()
+    .min(1, '生年月日は必須です')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, '生年月日の年・月・日をすべて選択してください'),
   postalCode: z.string().optional(),
   prefecture: z.string().optional(),
   city: z.string().optional(),
@@ -87,12 +100,15 @@ export function ApplicationFormPage() {
     control,
     formState: { errors },
   } = useForm<ApplicationFormData>({
-    resolver: zodResolver(applicationSchema),
+    resolver: zodResolver(applicationSchema) as any,
     defaultValues: {
       children: [
         {
-          childName: '',
-          childNameKana: '',
+          childFamilyName: '',
+          childFirstName: '',
+          childFamilyNameKana: '',
+          childFirstNameKana: '',
+          childAllergy: '',
           childDateOfBirth: '',
           childGender: 'M',
           childBloodType: '',
@@ -158,8 +174,11 @@ export function ApplicationFormPage() {
   const handleAddChild = () => {
     if (fields.length < 4) {
       append({
-        childName: '',
-        childNameKana: '',
+        childFamilyName: '',
+        childFirstName: '',
+        childFamilyNameKana: '',
+        childFirstNameKana: '',
+        childAllergy: '',
         childDateOfBirth: '',
         childGender: 'M',
         childBloodType: '',
@@ -178,8 +197,8 @@ export function ApplicationFormPage() {
   };
 
   // 確認画面へ遷移
-  const onConfirm = (data: ApplicationFormData) => {
-    setFormData(data);
+  const onConfirm = (data: any) => {
+    setFormData(data as ApplicationFormData);
     setCurrentStep('confirm');
     window.scrollTo(0, 0);
   };
@@ -211,8 +230,11 @@ export function ApplicationFormPage() {
         email: formData.email || undefined,
         relationshipToChild: formData.relationshipToChild,
         children: formData.children.map((child) => ({
-          childName: child.childName,
-          childNameKana: child.childNameKana,
+          childFamilyName: child.childFamilyName,
+          childFirstName: child.childFirstName,
+          childFamilyNameKana: child.childFamilyNameKana,
+          childFirstNameKana: child.childFirstNameKana,
+          childAllergy: child.childAllergy || undefined,
           childDateOfBirth: child.childDateOfBirth,
           childGender: child.childGender,
           childBloodType: child.childBloodType || undefined,
@@ -224,6 +246,7 @@ export function ApplicationFormPage() {
       };
 
       const response = await submitApplication(applicationKey, submitData);
+
       if (response.success && response.data) {
         navigate(`/application/complete`);
       } else {
@@ -254,7 +277,7 @@ export function ApplicationFormPage() {
   if (keyValidationError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-md shadow-sm border border-gray-200 p-8">
+        <div className="max-w-md w-full bg-white rounded-md border border-gray-100 p-8">
           <div className="text-center">
             <div className="text-red-600 text-5xl mb-4">⚠️</div>
             <h1 className="text-2xl font-bold text-gray-800 mb-4">アクセスエラー</h1>
@@ -276,7 +299,7 @@ export function ApplicationFormPage() {
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           {/* ヘッダー */}
-          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-2">申込内容の確認</h1>
             <p className="text-base text-gray-700 font-medium">{nurseryName}</p>
             <p className="text-sm text-gray-600 mt-2">
@@ -292,7 +315,7 @@ export function ApplicationFormPage() {
           )}
 
           {/* 申請保護者情報 */}
-          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">申請者（保護者）情報</h2>
             <dl className="space-y-3">
               <div className="grid grid-cols-3 gap-4">
@@ -350,19 +373,25 @@ export function ApplicationFormPage() {
             const bloodTypeLabel = BLOOD_TYPE_OPTIONS.find(opt => opt.value === child.childBloodType)?.label;
 
             return (
-              <div key={index} className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+              <div key={index} className="bg-white rounded-md border border-gray-100 p-6 mb-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">
                   園児情報 {formData.children.length > 1 ? `（${index + 1}人目）` : ''}
                 </h2>
                 <dl className="space-y-3">
                   <div className="grid grid-cols-3 gap-4">
                     <dt className="text-sm font-medium text-gray-500">氏名</dt>
-                    <dd className="col-span-2 text-base text-gray-900">{child.childName}</dd>
+                    <dd className="col-span-2 text-base text-gray-900">{child.childFamilyName} {child.childFirstName}</dd>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <dt className="text-sm font-medium text-gray-500">ふりがな</dt>
-                    <dd className="col-span-2 text-base text-gray-900">{child.childNameKana}</dd>
+                    <dd className="col-span-2 text-base text-gray-900">{child.childFamilyNameKana} {child.childFirstNameKana}</dd>
                   </div>
+                  {child.childAllergy && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">アレルギー情報</dt>
+                      <dd className="col-span-2 text-base text-gray-900">{child.childAllergy}</dd>
+                    </div>
+                  )}
                   <div className="grid grid-cols-3 gap-4">
                     <dt className="text-sm font-medium text-gray-500">生年月日</dt>
                     <dd className="col-span-2 text-base text-gray-900">{child.childDateOfBirth}</dd>
@@ -446,7 +475,7 @@ export function ApplicationFormPage() {
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         {/* ヘッダー */}
-        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">入園申込フォーム</h1>
           <p className="text-base text-gray-700 font-medium">{nurseryName}</p>
           <p className="text-sm text-gray-600 mt-2">
@@ -460,7 +489,7 @@ export function ApplicationFormPage() {
         {/* フォーム */}
         <form onSubmit={handleSubmit(onConfirm)} className="space-y-6">
           {/* 申請保護者情報 */}
-          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-md border border-gray-100 p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
               申請者（保護者）情報
             </h2>
@@ -505,11 +534,65 @@ export function ApplicationFormPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   生年月日 <span className="text-red-600">*</span>
                 </label>
-                <input
-                  type="date"
-                  {...register('dateOfBirth')}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                />
+                <div className="flex gap-2">
+                  {/* 年 */}
+                  <select
+                    {...register('dateOfBirth')}
+                    onChange={(e) => {
+                      const year = e.target.value;
+                      const currentValue = watch('dateOfBirth') || '';
+                      const [, month = '01', day = '01'] = currentValue.split('-');
+                      setValue('dateOfBirth', year ? `${year}-${month}-${day}` : '');
+                    }}
+                    value={watch('dateOfBirth')?.split('-')[0] || ''}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  >
+                    <option value="">年</option>
+                    {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* 月 */}
+                  <select
+                    onChange={(e) => {
+                      const month = e.target.value;
+                      const currentValue = watch('dateOfBirth') || '';
+                      const [year = '', , day = '01'] = currentValue.split('-');
+                      setValue('dateOfBirth', month && year ? `${year}-${month}-${day}` : '');
+                    }}
+                    value={watch('dateOfBirth')?.split('-')[1] || ''}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  >
+                    <option value="">月</option>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                      <option key={month} value={String(month).padStart(2, '0')}>
+                        {month}月
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* 日 */}
+                  <select
+                    onChange={(e) => {
+                      const day = e.target.value;
+                      const currentValue = watch('dateOfBirth') || '';
+                      const [year = '', month = '01'] = currentValue.split('-');
+                      setValue('dateOfBirth', day && year ? `${year}-${month}-${day}` : '');
+                    }}
+                    value={watch('dateOfBirth')?.split('-')[2] || ''}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                  >
+                    <option value="">日</option>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <option key={day} value={String(day).padStart(2, '0')}>
+                        {day}日
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {errors.dateOfBirth && (
                   <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>
                 )}
@@ -645,7 +728,7 @@ export function ApplicationFormPage() {
 
           {/* 園児情報（動的フィールド配列） */}
           {fields.map((field, index) => (
-            <div key={field.id} className="bg-white rounded-md shadow-sm border border-gray-200 p-6">
+            <div key={field.id} className="bg-white rounded-md border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-800">
                   園児情報 {fields.length > 1 ? `（${index + 1}人目）` : ''}
@@ -662,52 +745,67 @@ export function ApplicationFormPage() {
               </div>
 
               <div className="space-y-4">
-                {/* 園児氏名 */}
+                {/* 園児姓 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    氏名 <span className="text-red-600">*</span>
+                    姓 <span className="text-red-600">*</span>
                   </label>
                   <input
                     type="text"
-                    {...register(`children.${index}.childName`)}
+                    {...register(`children.${index}.childFamilyName`)}
                     className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                    placeholder="山田 花子"
+                    placeholder="山田"
                   />
-                  <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
-                  {errors.children?.[index]?.childName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childName?.message}</p>
+                  {errors.children?.[index]?.childFamilyName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childFamilyName?.message}</p>
                   )}
                 </div>
 
-                {/* 園児氏名（ふりがな） */}
+                {/* 園児名 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    氏名（ふりがな） <span className="text-red-600">*</span>
+                    名 <span className="text-red-600">*</span>
                   </label>
                   <input
                     type="text"
-                    {...register(`children.${index}.childNameKana`)}
+                    {...register(`children.${index}.childFirstName`)}
                     className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                    placeholder="やまだ はなこ"
+                    placeholder="花子"
                   />
-                  <p className="mt-1 text-xs text-gray-500">※苗字と名前の間にスペースを入れてください</p>
-                  {errors.children?.[index]?.childNameKana && (
-                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childNameKana?.message}</p>
+                  {errors.children?.[index]?.childFirstName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childFirstName?.message}</p>
                   )}
                 </div>
 
-                {/* 園児生年月日 */}
+                {/* 園児姓（ふりがな） */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    生年月日 <span className="text-red-600">*</span>
+                    姓（ふりがな） <span className="text-red-600">*</span>
                   </label>
                   <input
-                    type="date"
-                    {...register(`children.${index}.childDateOfBirth`)}
+                    type="text"
+                    {...register(`children.${index}.childFamilyNameKana`)}
                     className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="やまだ"
                   />
-                  {errors.children?.[index]?.childDateOfBirth && (
-                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childDateOfBirth?.message}</p>
+                  {errors.children?.[index]?.childFamilyNameKana && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childFamilyNameKana?.message}</p>
+                  )}
+                </div>
+
+                {/* 園児名（ふりがな） */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    名（ふりがな） <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register(`children.${index}.childFirstNameKana`)}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="はなこ"
+                  />
+                  {errors.children?.[index]?.childFirstNameKana && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childFirstNameKana?.message}</p>
                   )}
                 </div>
 
@@ -716,14 +814,14 @@ export function ApplicationFormPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     性別 <span className="text-red-600">*</span>
                   </label>
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 h-[42px] items-center">
                     {GENDER_OPTIONS.map((option) => (
-                      <label key={option.value} className="flex items-center">
+                      <label key={option.value} className="flex items-center cursor-pointer">
                         <input
                           type="radio"
                           value={option.value}
                           {...register(`children.${index}.childGender`)}
-                          className="mr-2"
+                          className="mr-2 cursor-pointer"
                         />
                         <span className="text-gray-700">{option.label}</span>
                       </label>
@@ -731,6 +829,75 @@ export function ApplicationFormPage() {
                   </div>
                   {errors.children?.[index]?.childGender && (
                     <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childGender?.message}</p>
+                  )}
+                </div>
+
+                {/* 園児生年月日 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    生年月日 <span className="text-red-600">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    {/* 年 */}
+                    <select
+                      {...register(`children.${index}.childDateOfBirth`)}
+                      onChange={(e) => {
+                        const year = e.target.value;
+                        const currentValue = watch(`children.${index}.childDateOfBirth`) || '';
+                        const [, month = '01', day = '01'] = currentValue.split('-');
+                        setValue(`children.${index}.childDateOfBirth`, year ? `${year}-${month}-${day}` : '');
+                      }}
+                      value={watch(`children.${index}.childDateOfBirth`)?.split('-')[0] || ''}
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    >
+                      <option value="">年</option>
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                        <option key={year} value={year}>
+                          {year}年
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* 月 */}
+                    <select
+                      onChange={(e) => {
+                        const month = e.target.value;
+                        const currentValue = watch(`children.${index}.childDateOfBirth`) || '';
+                        const [year = '', , day = '01'] = currentValue.split('-');
+                        setValue(`children.${index}.childDateOfBirth`, month && year ? `${year}-${month}-${day}` : '');
+                      }}
+                      value={watch(`children.${index}.childDateOfBirth`)?.split('-')[1] || ''}
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    >
+                      <option value="">月</option>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                        <option key={month} value={String(month).padStart(2, '0')}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* 日 */}
+                    <select
+                      onChange={(e) => {
+                        const day = e.target.value;
+                        const currentValue = watch(`children.${index}.childDateOfBirth`) || '';
+                        const [year = '', month = '01'] = currentValue.split('-');
+                        setValue(`children.${index}.childDateOfBirth`, day && year ? `${year}-${month}-${day}` : '');
+                      }}
+                      value={watch(`children.${index}.childDateOfBirth`)?.split('-')[2] || ''}
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    >
+                      <option value="">日</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                        <option key={day} value={String(day).padStart(2, '0')}>
+                          {day}日
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.children?.[index]?.childDateOfBirth && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childDateOfBirth?.message}</p>
                   )}
                 </div>
 
@@ -752,6 +919,51 @@ export function ApplicationFormPage() {
                   )}
                 </div>
 
+                {/* 食物アレルギー */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    食物アレルギー
+                  </label>
+                  <div className="grid grid-cols-2 gap-3 p-4 border border-gray-200 rounded-md bg-gray-50">
+                    {[
+                      '卵', '牛乳・乳製品', '小麦', 'そば', '落花生',
+                      'えび', 'かに', '大豆', 'ごま', 'ナッツ類',
+                      '魚卵', '魚類', 'りんご', 'キウイフルーツ', 'バナナ',
+                      'もも', '柑橘類', 'いちご', 'ぶどう', '梨',
+                      'さくらんぼ', 'パイナップル', 'マンゴー', 'メロン', 'ゼラチン',
+                      '牛肉', '鶏肉', '豚肉'
+                    ].map((allergen) => {
+                      const currentAllergies = watch(`children.${index}.childAllergy`) || '';
+                      const allergyList = currentAllergies.split('、').filter(a => a);
+                      const isChecked = allergyList.includes(allergen);
+
+                      return (
+                        <label key={allergen} className="flex items-center cursor-pointer hover:bg-white px-2 py-1 rounded transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              let newAllergies: string[];
+                              if (e.target.checked) {
+                                newAllergies = [...allergyList, allergen];
+                              } else {
+                                newAllergies = allergyList.filter(a => a !== allergen);
+                              }
+                              setValue(`children.${index}.childAllergy`, newAllergies.join('、'));
+                            }}
+                            className="mr-2 h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-700">{allergen}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">該当する食物アレルギーをすべて選択してください</p>
+                  {errors.children?.[index]?.childAllergy && (
+                    <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childAllergy?.message}</p>
+                  )}
+                </div>
+
                 {/* 医療メモ */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -761,7 +973,7 @@ export function ApplicationFormPage() {
                     {...register(`children.${index}.childMedicalNotes`)}
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                    placeholder="アレルギーや持病がある場合は記入してください"
+                    placeholder="上記以外のアレルギーや持病がある場合は記入してください"
                   />
                   {errors.children?.[index]?.childMedicalNotes && (
                     <p className="mt-1 text-sm text-red-600">{errors.children[index]?.childMedicalNotes?.message}</p>
