@@ -144,8 +144,6 @@ export function AttendancePage() {
               childName: child.childName,
               attendanceDate: date,
               status: 'blank',
-              notes: null,
-              isActive: true,
             } as AttendanceDto);
           }
         });

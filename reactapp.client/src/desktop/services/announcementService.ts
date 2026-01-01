@@ -24,7 +24,6 @@ export const announcementService = {
     const params = new URLSearchParams();
 
     if (filter?.category) params.append('category', filter.category);
-    if (filter?.priority) params.append('priority', filter.priority);
     if (filter?.targetAudience) params.append('targetAudience', filter.targetAudience);
     if (filter?.status) params.append('status', filter.status);
     if (filter?.startDate) params.append('startDate', filter.startDate);

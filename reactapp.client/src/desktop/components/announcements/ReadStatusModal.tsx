@@ -53,16 +53,16 @@ export function ReadStatusModal({
 
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] flex flex-col">
         {/* ヘッダー */}
-        <div className="bg-gradient-to-r from-orange-500 to-yellow-500 px-6 py-4 flex justify-between items-center">
+        <div className="bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between rounded-t-lg">
           <div>
-            <h2 className="text-2xl font-bold text-white">閲覧状況</h2>
-            <p className="text-white text-sm mt-1">{announcementTitle}</p>
+            <h2 className="text-xl font-semibold text-gray-800">閲覧状況</h2>
+            <p className="text-gray-600 text-sm mt-1">{announcementTitle}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors duration-200"
+            className="text-gray-400 hover:text-gray-600 transition"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -74,13 +74,13 @@ export function ReadStatusModal({
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">既読率</span>
-            <span className="text-2xl font-bold text-orange-600">{readStatus.readRate.toFixed(1)}%</span>
+            <span className="text-2xl font-bold text-blue-600">{readStatus.readRate.toFixed(1)}%</span>
           </div>
 
           {/* プログレスバー */}
           <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-orange-500 to-yellow-500 h-4 rounded-full transition-all duration-500"
+              className="bg-blue-600 h-4 rounded-full transition-all duration-500"
               style={{ width: `${readStatus.readRate}%` }}
             ></div>
           </div>
@@ -114,7 +114,7 @@ export function ReadStatusModal({
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                 filter === 'all'
-                  ? 'bg-orange-500 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -289,10 +289,10 @@ export function ReadStatusModal({
         </div>
 
         {/* フッター */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+        <div className="px-6 py-4 bg-white border-t border-gray-200 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200 font-medium"
+            className="px-6 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors duration-200 font-medium"
           >
             閉じる
           </button>

@@ -105,18 +105,32 @@ public class ApplicationWork
     // ===== 園児情報 =====
 
     /// <summary>
-    /// 園児氏名（必須、最大100文字）
+    /// 園児苗字（必須、最大20文字）
     /// </summary>
     [Required]
-    [StringLength(100)]
-    public string ChildName { get; set; } = string.Empty;
+    [StringLength(20)]
+    public string ChildFamilyName { get; set; } = string.Empty;
 
     /// <summary>
-    /// 園児フリガナ（必須、最大100文字）
+    /// 園児名前（必須、最大20文字）
     /// </summary>
     [Required]
-    [StringLength(100)]
-    public string ChildNameKana { get; set; } = string.Empty;
+    [StringLength(20)]
+    public string ChildFirstName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 園児ふりがな（苗字）（必須、最大20文字）
+    /// </summary>
+    [Required]
+    [StringLength(20)]
+    public string ChildFamilyNameKana { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 園児ふりがな（名前）（必須、最大20文字）
+    /// </summary>
+    [Required]
+    [StringLength(20)]
+    public string ChildFirstNameKana { get; set; } = string.Empty;
 
     /// <summary>
     /// 園児生年月日（必須）
@@ -140,17 +154,23 @@ public class ApplicationWork
     public string? ChildBloodType { get; set; }
 
     /// <summary>
-    /// 園児医療メモ（任意、最大1000文字）
-    /// アレルギー情報、既往症等
+    /// 園児アレルギー情報（任意、最大200文字）
     /// </summary>
-    [StringLength(1000)]
+    [StringLength(200)]
+    public string? ChildAllergy { get; set; }
+
+    /// <summary>
+    /// 園児医療メモ（任意、最大500文字）
+    /// 既往症等
+    /// </summary>
+    [StringLength(500)]
     public string? ChildMedicalNotes { get; set; }
 
     /// <summary>
-    /// 園児特別指示（任意、最大1000文字）
+    /// 園児特別指示（任意、最大500文字）
     /// 保育に関する特別な指示事項
     /// </summary>
-    [StringLength(1000)]
+    [StringLength(500)]
     public string? ChildSpecialInstructions { get; set; }
 
     /// <summary>

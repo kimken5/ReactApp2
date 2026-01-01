@@ -360,7 +360,7 @@ export function EventFormModal({ isOpen, onClose, onSubmit, event, classes, mode
                     <option value="">クラスを選択してください</option>
                     {classes.map((cls) => (
                       <option key={cls.classId} value={cls.classId}>
-                        {cls.className} ({cls.gradeLevel})
+                        {cls.name} ({cls.ageGroupMin}-{cls.ageGroupMax}歳)
                       </option>
                     ))}
                   </select>

@@ -281,6 +281,9 @@ builder.Services.AddScoped<IAttendanceStatisticsService, AttendanceStatisticsSer
 // Application Service (入園申込サービス)
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
 
+// Menu Management Service (献立管理サービス)
+builder.Services.AddScoped<IDesktopMenuService, DesktopMenuService>();
+
 // Database Seeding Service (Development only)
 builder.Services.AddScoped<DatabaseSeeder>();
 
@@ -551,6 +554,25 @@ using (var scope = app.Services.CreateScope())
         //
         // await context.Database.ExecuteSqlRawAsync(fixPhotoScript);
         Log.Information("既存写真レコードのNurseryId確認スキップ（既に正しい値が設定済み）");
+
+        // MenuMaster.MenuType カラム削除（新スキーマ移行）
+        var dropMenuTypePath = Path.Combine(Directory.GetCurrentDirectory(), "scripts", "drop_menumaster_menutype.sql");
+        if (File.Exists(dropMenuTypePath))
+        {
+            var dropMenuTypeScript = await File.ReadAllTextAsync(dropMenuTypePath);
+            if (!string.IsNullOrEmpty(dropMenuTypeScript))
+            {
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(dropMenuTypeScript);
+                    Log.Information("MenuMaster.MenuType カラム削除スクリプト実行完了");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "MenuMaster.MenuType カラム削除エラー（既に削除済みの可能性）");
+                }
+            }
+        }
 
         Log.Information("データベース初期化完了");
     }

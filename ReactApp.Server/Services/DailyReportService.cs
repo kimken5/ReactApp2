@@ -353,7 +353,7 @@ namespace ReactApp.Server.Services
                     {
                         ParentIds = parentIds,
                         NotificationType = "report",
-                        Title = $"{child.Name}さんの日報が投稿されました",
+                        Title = $"{child.FamilyName} {child.FirstName}さんの日報が投稿されました",
                         Content = $"レポート種別: {report.ReportKind} - {report.Title}",
                         DeliveryMethod = "push",
                         RelatedEntityId = report.Id,

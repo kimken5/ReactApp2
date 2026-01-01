@@ -83,7 +83,7 @@ public class ApplicationController : ControllerBase
     /// <returns>作成された申込ID</returns>
     [HttpPost("submit")]
     [EnableRateLimiting("application-submit")]
-    [ProducesResponseType(typeof(ApiResponse<ApplicationSubmitResult>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<CreateApplicationResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
@@ -104,8 +104,23 @@ public class ApplicationController : ControllerBase
                 });
             }
 
+            // デバッグ: リクエスト内容をログ出力
+            _logger.LogInformation(
+                "申込リクエスト受信: ApplicantName={ApplicantName}, ChildrenCount={ChildrenCount}",
+                request?.ApplicantName ?? "null", request?.Children?.Count ?? 0);
+
             if (!ModelState.IsValid)
             {
+                // デバッグ: バリデーションエラーの詳細をログ出力
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                _logger.LogWarning(
+                    "申込バリデーションエラー: {Errors}",
+                    string.Join(", ", errors));
+
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
@@ -113,31 +128,24 @@ public class ApplicationController : ControllerBase
                     {
                         Code = "VALIDATION_ERROR",
                         Message = "入力内容に誤りがあります。",
-                        Details = ModelState.Values
-                            .SelectMany(v => v.Errors)
-                            .Select(e => e.ErrorMessage)
-                            .ToList()
+                        Details = errors
                     }
                 });
             }
 
-            var applicationId = await _applicationService.CreateApplicationAsync(request, key);
+            var result = await _applicationService.CreateApplicationAsync(request, key);
 
             _logger.LogInformation(
-                "入園申込を受け付けました。ApplicationId: {Id}, ChildName: {ChildName}",
-                applicationId, request.ChildName);
+                "入園申込を受け付けました。ApplicationIds: [{Ids}], ChildCount: {Count}",
+                string.Join(", ", result.ApplicationIds), result.ChildCount);
 
             return CreatedAtAction(
                 nameof(Submit),
-                new { id = applicationId },
-                new ApiResponse<ApplicationSubmitResult>
+                new { ids = result.ApplicationIds },
+                new ApiResponse<CreateApplicationResponse>
                 {
                     Success = true,
-                    Data = new ApplicationSubmitResult
-                    {
-                        ApplicationId = applicationId,
-                        Message = "入園申込を受け付けました。保育園からの連絡をお待ちください。"
-                    }
+                    Data = result
                 });
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("無効"))
@@ -167,15 +175,6 @@ public class ApplicationController : ControllerBase
             });
         }
     }
-}
-
-/// <summary>
-/// 申込送信結果DTO
-/// </summary>
-public class ApplicationSubmitResult
-{
-    public int ApplicationId { get; set; }
-    public string Message { get; set; } = string.Empty;
 }
 
 /// <summary>

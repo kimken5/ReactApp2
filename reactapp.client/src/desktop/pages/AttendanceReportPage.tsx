@@ -267,7 +267,7 @@ const AttendanceReportPage: React.FC = () => {
 
           {/* Class Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
               クラス選択（複数選択可能、未選択の場合は全クラス）
             </label>
             <div className="flex flex-wrap gap-2">
@@ -275,10 +275,10 @@ const AttendanceReportPage: React.FC = () => {
                 <button
                   key={cls.classId}
                   onClick={() => handleClassToggle(cls.classId)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-md border transition-colors ${
                     selectedClassIds.includes(cls.classId)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   {cls.name}

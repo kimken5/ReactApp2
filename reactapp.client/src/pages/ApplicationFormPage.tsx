@@ -20,6 +20,7 @@ import {
   GENDER_OPTIONS,
   BLOOD_TYPE_OPTIONS,
 } from '../types/publicApplication';
+import { fetchAllergens, type Allergen } from '../services/allergenService';
 
 // 園児情報のバリデーションスキーマ
 const childSchema = z.object({
@@ -91,6 +92,7 @@ export function ApplicationFormPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ApplicationFormData | null>(null);
+  const [allergens, setAllergens] = useState<Allergen[]>([]); // AllergenMasterから取得したアレルゲン一覧
 
   const {
     register,
@@ -126,6 +128,21 @@ export function ApplicationFormPage() {
   });
 
   const postalCode = watch('postalCode');
+
+  // アレルゲンマスター取得
+  useEffect(() => {
+    const loadAllergens = async () => {
+      try {
+        const data = await fetchAllergens();
+        setAllergens(data);
+      } catch (error) {
+        console.error('アレルゲンマスターの取得に失敗しました:', error);
+        // エラーの場合は空配列のまま（フォームは表示される）
+      }
+    };
+
+    loadAllergens();
+  }, []);
 
   // ApplicationKeyの検証
   useEffect(() => {
@@ -291,36 +308,41 @@ export function ApplicationFormPage() {
     );
   }
 
-  // 確認画面
-  if (currentStep === 'confirm' && formData) {
-    const relationshipLabel = RELATIONSHIP_OPTIONS.find(opt => opt.value === formData.relationshipToChild)?.label;
+  // 確認画面の関係ラベルを取得
+  const relationshipLabel = formData
+    ? RELATIONSHIP_OPTIONS.find(opt => opt.value === formData.relationshipToChild)?.label
+    : undefined;
 
-    return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+  return (
+    <>
+      {/* 確認画面 */}
+      <div className={`min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 ${currentStep === 'confirm' ? 'block' : 'hidden'}`}>
         <div className="max-w-3xl mx-auto">
-          {/* ヘッダー */}
-          <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">申込内容の確認</h1>
-            <p className="text-base text-gray-700 font-medium">{nurseryName}</p>
-            <p className="text-sm text-gray-600 mt-2">
-              入力内容をご確認ください。修正する場合は「戻る」ボタンを押してください。
-            </p>
-          </div>
+          {formData && (
+            <>
+              {/* ヘッダー */}
+              <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">申込内容の確認</h1>
+                <p className="text-base text-gray-700 font-medium">{nurseryName}</p>
+                <p className="text-sm text-gray-600 mt-2">
+                  入力内容をご確認ください。修正する場合は「戻る」ボタンを押してください。
+                </p>
+              </div>
 
-          {/* エラーメッセージ */}
-          {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <p className="text-red-800">{submitError}</p>
-            </div>
-          )}
+              {/* エラーメッセージ */}
+              {submitError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <p className="text-red-800">{submitError}</p>
+                </div>
+              )}
 
-          {/* 申請保護者情報 */}
-          <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">申請者（保護者）情報</h2>
-            <dl className="space-y-3">
-              <div className="grid grid-cols-3 gap-4">
-                <dt className="text-sm font-medium text-gray-500">氏名</dt>
-                <dd className="col-span-2 text-base text-gray-900">{formData.applicantName}</dd>
+              {/* 申請保護者情報 */}
+              <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">申請者（保護者）情報</h2>
+                <dl className="space-y-3">
+                  <div className="grid grid-cols-3 gap-4">
+                    <dt className="text-sm font-medium text-gray-500">氏名</dt>
+                    <dd className="col-span-2 text-base text-gray-900">{formData.applicantName}</dd>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <dt className="text-sm font-medium text-gray-500">ふりがな</dt>
@@ -389,7 +411,12 @@ export function ApplicationFormPage() {
                   {child.childAllergy && (
                     <div className="grid grid-cols-3 gap-4">
                       <dt className="text-sm font-medium text-gray-500">アレルギー情報</dt>
-                      <dd className="col-span-2 text-base text-gray-900">{child.childAllergy}</dd>
+                      <dd className="col-span-2 text-base text-gray-900">
+                        {child.childAllergy.split(',').filter(id => id.trim()).map((allergenId) => {
+                          const allergen = allergens.find(a => a.id === parseInt(allergenId));
+                          return allergen ? allergen.allergenName : null;
+                        }).filter(Boolean).join('、')}
+                      </dd>
                     </div>
                   )}
                   <div className="grid grid-cols-3 gap-4">
@@ -465,36 +492,35 @@ export function ApplicationFormPage() {
               )}
             </button>
           </div>
+          </>
+        )}
         </div>
       </div>
-    );
-  }
 
-  // 入力フォーム
-  return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        {/* ヘッダー */}
-        <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">入園申込フォーム</h1>
-          <p className="text-base text-gray-700 font-medium">{nurseryName}</p>
-          <p className="text-sm text-gray-600 mt-2">
-            必須項目（<span className="text-red-600">*</span>）を入力してください。
-          </p>
-          <p className="text-sm text-gray-600 mt-1">
-            同じ保護者で複数の園児を申し込む場合は、園児情報追加ボタンで最大4人まで登録できます。
-          </p>
-        </div>
+      {/* 入力フォーム */}
+      <div className={`min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 ${currentStep === 'form' ? 'block' : 'hidden'}`}>
+        <div className="max-w-3xl mx-auto">
+          {/* ヘッダー */}
+          <div className="bg-white rounded-md border border-gray-100 p-6 mb-6">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">入園申込フォーム</h1>
+            <p className="text-base text-gray-700 font-medium">{nurseryName}</p>
+            <p className="text-sm text-gray-600 mt-2">
+              必須項目（<span className="text-red-600">*</span>）を入力してください。
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              同じ保護者で複数の園児を申し込む場合は、園児情報追加ボタンで最大4人まで登録できます。
+            </p>
+          </div>
 
-        {/* フォーム */}
-        <form onSubmit={handleSubmit(onConfirm)} className="space-y-6">
-          {/* 申請保護者情報 */}
-          <div className="bg-white rounded-md border border-gray-100 p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              申請者（保護者）情報
-            </h2>
+          {/* フォーム */}
+          <form onSubmit={handleSubmit(onConfirm)} className="space-y-6">
+            {/* 申請保護者情報 */}
+            <div className="bg-white rounded-md border border-gray-100 p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                申請者（保護者）情報
+              </h2>
 
-            <div className="space-y-4">
+              <div className="space-y-4">
               {/* 氏名 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -925,35 +951,28 @@ export function ApplicationFormPage() {
                     食物アレルギー
                   </label>
                   <div className="grid grid-cols-2 gap-3 p-4 border border-gray-200 rounded-md bg-gray-50">
-                    {[
-                      '卵', '牛乳・乳製品', '小麦', 'そば', '落花生',
-                      'えび', 'かに', '大豆', 'ごま', 'ナッツ類',
-                      '魚卵', '魚類', 'りんご', 'キウイフルーツ', 'バナナ',
-                      'もも', '柑橘類', 'いちご', 'ぶどう', '梨',
-                      'さくらんぼ', 'パイナップル', 'マンゴー', 'メロン', 'ゼラチン',
-                      '牛肉', '鶏肉', '豚肉'
-                    ].map((allergen) => {
+                    {allergens.map((allergenItem) => {
                       const currentAllergies = watch(`children.${index}.childAllergy`) || '';
-                      const allergyList = currentAllergies.split('、').filter(a => a);
-                      const isChecked = allergyList.includes(allergen);
+                      const allergyIdList = currentAllergies.split(',').filter(a => a);
+                      const isChecked = allergyIdList.includes(String(allergenItem.id));
 
                       return (
-                        <label key={allergen} className="flex items-center cursor-pointer hover:bg-white px-2 py-1 rounded transition-colors">
+                        <label key={allergenItem.id} className="flex items-center cursor-pointer hover:bg-white px-2 py-1 rounded transition-colors">
                           <input
                             type="checkbox"
                             checked={isChecked}
                             onChange={(e) => {
-                              let newAllergies: string[];
+                              let newAllergyIds: string[];
                               if (e.target.checked) {
-                                newAllergies = [...allergyList, allergen];
+                                newAllergyIds = [...allergyIdList, String(allergenItem.id)];
                               } else {
-                                newAllergies = allergyList.filter(a => a !== allergen);
+                                newAllergyIds = allergyIdList.filter(id => id !== String(allergenItem.id));
                               }
-                              setValue(`children.${index}.childAllergy`, newAllergies.join('、'));
+                              setValue(`children.${index}.childAllergy`, newAllergyIds.join(','));
                             }}
                             className="mr-2 h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
                           />
-                          <span className="text-sm text-gray-700">{allergen}</span>
+                          <span className="text-sm text-gray-700">{allergenItem.allergenName}</span>
                         </label>
                       );
                     })}
@@ -1067,8 +1086,9 @@ export function ApplicationFormPage() {
               入力内容を確認する
             </button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

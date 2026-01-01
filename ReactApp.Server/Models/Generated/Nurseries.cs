@@ -44,11 +44,6 @@ public partial class Nurseries
     public DateTime EstablishedDate { get; set; }
 
     /// <summary>
-    /// ロゴURL
-    /// </summary>
-    public string? LogoUrl { get; set; }
-
-    /// <summary>
     /// 作成日時
     /// </summary>
     public DateTime CreatedAt { get; set; }

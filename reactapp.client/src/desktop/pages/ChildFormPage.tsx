@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { masterService } from '../services/masterService';
+import { fetchAllergens, type Allergen } from '../../services/allergenService';
 import type {
   ChildDto,
   CreateChildRequestDto,
@@ -23,6 +24,7 @@ export function ChildFormPage() {
   const [child, setChild] = useState<ChildDto | null>(null);
   const [classes, setClasses] = useState<ClassDto[]>([]);
   const [parents, setParents] = useState<ParentDto[]>([]);
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -32,14 +34,18 @@ export function ChildFormPage() {
 
   // フォーム状態
   const [formData, setFormData] = useState({
-    name: '',
-    furigana: '',
+    familyName: '',
+    firstName: '',
+    familyFurigana: '',
+    firstFurigana: '',
+    allergy: '',
     dateOfBirth: '',
     gender: '',
     classId: '',
     bloodType: '',
     medicalNotes: '',
     specialInstructions: '',
+    noPhoto: false,
     parentIds: [] as number[],
     graduationDate: '',
     graduationStatus: '',
@@ -52,14 +58,12 @@ export function ChildFormPage() {
     phoneNumber: '',
     name: '',
     email: '',
-    address: '',
   });
 
   const [parent2Data, setParent2Data] = useState<CreateParentWithChildDto>({
     phoneNumber: '',
     name: '',
     email: '',
-    address: '',
   });
 
   const [enableParent2, setEnableParent2] = useState(false);
@@ -67,6 +71,20 @@ export function ChildFormPage() {
   // オートコンプリート用状態
   const [parentSearchQuery, setParentSearchQuery] = useState('');
   const [showParentSuggestions, setShowParentSuggestions] = useState(false);
+
+  // アレルゲンマスター取得
+  useEffect(() => {
+    const loadAllergens = async () => {
+      try {
+        const data = await fetchAllergens();
+        setAllergens(data);
+      } catch (error) {
+        console.error('アレルゲンマスターの取得に失敗しました:', error);
+      }
+    };
+
+    loadAllergens();
+  }, []);
 
   // 初期データ読み込み
   useEffect(() => {
@@ -91,14 +109,18 @@ export function ChildFormPage() {
         const childData = await masterService.getChild(parseInt(childId, 10));
         setChild(childData);
         setFormData({
-          name: childData.name,
-          furigana: childData.furigana || '',
+          familyName: childData.familyName,
+          firstName: childData.firstName,
+          familyFurigana: childData.familyFurigana || '',
+          firstFurigana: childData.firstFurigana || '',
+          allergy: childData.allergy || '',
           dateOfBirth: childData.dateOfBirth.split('T')[0],
           gender: childData.gender,
           classId: childData.classId || '',
           bloodType: childData.bloodType || '',
           medicalNotes: childData.medicalNotes || '',
           specialInstructions: childData.specialInstructions || '',
+          noPhoto: childData.noPhoto,
           parentIds: childData.parents.map(p => p.id),
           graduationDate: childData.graduationDate?.split('T')[0] || '',
           graduationStatus: childData.graduationStatus || '',
@@ -244,8 +266,12 @@ export function ChildFormPage() {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = '氏名は必須です';
+    if (!formData.familyName.trim()) {
+      newErrors.familyName = '姓は必須です';
+    }
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = '名は必須です';
     }
 
     if (!formData.dateOfBirth) {
@@ -308,14 +334,18 @@ export function ChildFormPage() {
       if (isEditMode && childId) {
         // 編集モード
         const updateRequest: UpdateChildRequestDto = {
-          name: formData.name,
-          furigana: formData.furigana || undefined,
+          familyName: formData.familyName,
+          firstName: formData.firstName,
+          familyFurigana: formData.familyFurigana || undefined,
+          firstFurigana: formData.firstFurigana || undefined,
+          allergy: formData.allergy || undefined,
           dateOfBirth: formData.dateOfBirth,
           gender: formData.gender,
           classId: formData.classId || undefined,
           bloodType: formData.bloodType || undefined,
           medicalNotes: formData.medicalNotes || undefined,
           specialInstructions: formData.specialInstructions || undefined,
+          noPhoto: formData.noPhoto,
           graduationDate: formData.graduationDate || undefined,
           graduationStatus: formData.graduationStatus || undefined,
           withdrawalReason: formData.withdrawalReason || undefined,
@@ -325,27 +355,29 @@ export function ChildFormPage() {
       } else {
         // 新規作成モード
         const createRequest: CreateChildRequestDto = {
-          name: formData.name,
-          furigana: formData.furigana || undefined,
+          familyName: formData.familyName,
+          firstName: formData.firstName,
+          familyFurigana: formData.familyFurigana || undefined,
+          firstFurigana: formData.firstFurigana || undefined,
+          allergy: formData.allergy || undefined,
           dateOfBirth: formData.dateOfBirth,
           gender: formData.gender,
           classId: formData.classId || undefined,
           bloodType: formData.bloodType || undefined,
           medicalNotes: formData.medicalNotes || undefined,
           specialInstructions: formData.specialInstructions || undefined,
+          noPhoto: formData.noPhoto,
           parentRegistrationMode: parentMode,
           parentIds: parentMode === 'select' ? formData.parentIds : [],
           parent1: parentMode === 'create' ? {
             phoneNumber: parent1Data.phoneNumber,
             name: parent1Data.name,
             email: parent1Data.email || undefined,
-            address: parent1Data.address || undefined,
           } : undefined,
           parent2: parentMode === 'create' && enableParent2 ? {
             phoneNumber: parent2Data.phoneNumber,
             name: parent2Data.name,
             email: parent2Data.email || undefined,
-            address: parent2Data.address || undefined,
           } : undefined,
         };
         await masterService.createChild(createRequest);
@@ -441,41 +473,74 @@ export function ChildFormPage() {
             <div>
               <h2 className="text-xl font-semibold text-gray-800 mb-4">基本情報</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 氏名 */}
+                {/* 姓 */}
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    氏名 <span className="text-red-600">*</span>
+                  <label htmlFor="familyName" className="block text-sm font-medium text-gray-700 mb-2">
+                    姓 <span className="text-red-600">*</span>
                   </label>
                   <input
                     type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
+                    id="familyName"
+                    name="familyName"
+                    value={formData.familyName}
                     onChange={handleChange}
                     className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
-                      errors.name ? 'border-red-500' : 'border-gray-200'
+                      errors.familyName ? 'border-red-500' : 'border-gray-200'
                     }`}
-                    placeholder="例: 山田 太郎"
+                    placeholder="例: 山田"
                   />
-                  {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                  {errors.familyName && <p className="mt-1 text-sm text-red-600">{errors.familyName}</p>}
                 </div>
 
-                {/* ふりがな */}
+                {/* 名 */}
                 <div>
-                  <label htmlFor="furigana" className="block text-sm font-medium text-gray-700 mb-2">
-                    ふりがな
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                    名 <span className="text-red-600">*</span>
                   </label>
                   <input
                     type="text"
-                    id="furigana"
-                    name="furigana"
-                    value={formData.furigana}
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
                     onChange={handleChange}
-                    maxLength={100}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
-                    placeholder="例: やまだ たろう"
+                    className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200 ${
+                      errors.firstName ? 'border-red-500' : 'border-gray-200'
+                    }`}
+                    placeholder="例: 太郎"
                   />
-                  <p className="mt-1 text-xs text-gray-500">最大100文字まで入力できます</p>
+                  {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
+                </div>
+
+                {/* 姓（ふりがな） */}
+                <div>
+                  <label htmlFor="familyFurigana" className="block text-sm font-medium text-gray-700 mb-2">
+                    姓（ふりがな）
+                  </label>
+                  <input
+                    type="text"
+                    id="familyFurigana"
+                    name="familyFurigana"
+                    value={formData.familyFurigana}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="例: やまだ"
+                  />
+                </div>
+
+                {/* 名（ふりがな） */}
+                <div>
+                  <label htmlFor="firstFurigana" className="block text-sm font-medium text-gray-700 mb-2">
+                    名（ふりがな）
+                  </label>
+                  <input
+                    type="text"
+                    id="firstFurigana"
+                    name="firstFurigana"
+                    value={formData.firstFurigana}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    placeholder="例: たろう"
+                  />
                 </div>
 
                 {/* 生年月日 */}
@@ -594,6 +659,44 @@ export function ChildFormPage() {
             <div>
               <h2 className="text-xl font-semibold text-gray-800 mb-4">医療・特記事項</h2>
               <div className="space-y-4">
+                {/* 食物アレルギー */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    食物アレルギー
+                  </label>
+                  <div className="grid grid-cols-4 gap-3 p-4 border border-gray-200 rounded-md bg-gray-50">
+                    {allergens.map((allergenItem) => {
+                      const currentAllergies = formData.allergy || '';
+                      const allergyIdList = currentAllergies.split(',').filter(a => a);
+                      const isChecked = allergyIdList.includes(String(allergenItem.id));
+
+                      return (
+                        <label key={allergenItem.id} className="flex items-center cursor-pointer hover:bg-white px-2 py-1 rounded transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              let newAllergyIds: string[];
+                              if (e.target.checked) {
+                                newAllergyIds = [...allergyIdList, String(allergenItem.id)];
+                              } else {
+                                newAllergyIds = allergyIdList.filter(id => id !== String(allergenItem.id));
+                              }
+                              setFormData({
+                                ...formData,
+                                allergy: newAllergyIds.join(','),
+                              });
+                            }}
+                            className="mr-2 h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-700">{allergenItem.allergenName}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">該当する食物アレルギーをすべて選択してください</p>
+                </div>
+
                 {/* 医療メモ */}
                 <div>
                   <label htmlFor="medicalNotes" className="block text-sm font-medium text-gray-700 mb-2">
@@ -808,19 +911,6 @@ export function ChildFormPage() {
                             placeholder="例: example@example.com"
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            住所
-                          </label>
-                          <input
-                            type="text"
-                            name="address"
-                            value={parent1Data.address}
-                            onChange={handleParent1Change}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                            placeholder="例: 東京都渋谷区..."
-                          />
-                        </div>
                       </div>
                     </div>
 
@@ -844,7 +934,7 @@ export function ChildFormPage() {
                             type="button"
                             onClick={() => {
                               setEnableParent2(false);
-                              setParent2Data({ phoneNumber: '', name: '', email: '', address: '' });
+                              setParent2Data({ phoneNumber: '', name: '', email: '' });
                             }}
                             className="px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition border border-red-200"
                           >
@@ -899,19 +989,6 @@ export function ChildFormPage() {
                               onChange={handleParent2Change}
                               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
                               placeholder="例: example@example.com"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              住所
-                            </label>
-                            <input
-                              type="text"
-                              name="address"
-                              value={parent2Data.address}
-                              onChange={handleParent2Change}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                              placeholder="例: 東京都渋谷区..."
                             />
                           </div>
                         </div>

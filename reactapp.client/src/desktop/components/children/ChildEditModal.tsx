@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { masterService } from '../../services/masterService';
 import { useDesktopAuth } from '../../contexts/DesktopAuthContext';
+import { fetchAllergens, type Allergen } from '../../../services/allergenService';
 import type {
   ChildDto,
   UpdateChildRequestDto,
@@ -24,6 +25,7 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
 
   const [child, setChild] = useState<ChildDto | null>(null);
   const [classes, setClasses] = useState<ClassDto[]>([]);
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,13 +62,15 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
       setIsLoading(true);
       setErrors({});
 
-      // クラス一覧と園児データを並列取得
-      const [classesData, childData] = await Promise.all([
+      // クラス一覧、アレルゲン一覧、園児データを並列取得
+      const [classesData, allergensData, childData] = await Promise.all([
         masterService.getClasses({ isActive: true }),
+        fetchAllergens(),
         masterService.getChild(childId),
       ]);
 
       setClasses(classesData);
+      setAllergens(allergensData);
       setChild(childData);
       setFormData({
         familyName: childData.familyName,
@@ -433,20 +437,40 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
                     <div className="space-y-4">
                       {/* 食物アレルギー */}
                       <div>
-                        <label htmlFor="allergy" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           食物アレルギー
                         </label>
-                        <input
-                          type="text"
-                          id="allergy"
-                          name="allergy"
-                          value={formData.allergy}
-                          onChange={handleChange}
-                          maxLength={200}
-                          className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-                          placeholder="例: 卵、牛乳・乳製品、小麦"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">最大200文字まで入力できます</p>
+                        <div className="grid grid-cols-4 gap-3 p-4 border border-gray-200 rounded-md bg-gray-50">
+                          {allergens.map((allergenItem) => {
+                            const currentAllergies = formData.allergy || '';
+                            const allergyIdList = currentAllergies.split(',').filter(a => a);
+                            const isChecked = allergyIdList.includes(String(allergenItem.id));
+
+                            return (
+                              <label key={allergenItem.id} className="flex items-center cursor-pointer hover:bg-white px-2 py-1 rounded transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    let newAllergyIds: string[];
+                                    if (e.target.checked) {
+                                      newAllergyIds = [...allergyIdList, String(allergenItem.id)];
+                                    } else {
+                                      newAllergyIds = allergyIdList.filter(id => id !== String(allergenItem.id));
+                                    }
+                                    setFormData({
+                                      ...formData,
+                                      allergy: newAllergyIds.join(','),
+                                    });
+                                  }}
+                                  className="mr-2 h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                                />
+                                <span className="text-sm text-gray-700">{allergenItem.allergenName}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">該当する食物アレルギーをすべて選択してください</p>
                       </div>
 
                       <div>

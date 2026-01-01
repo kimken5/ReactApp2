@@ -1,0 +1,48 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace ReactApp.Server.Models;
+
+/// <summary>
+/// 献立マスター食材
+/// </summary>
+[Table("MenuMasterIngredients")]
+public class MenuMasterIngredient
+{
+    /// <summary>
+    /// 食材ID
+    /// </summary>
+    [Key]
+    public int Id { get; set; }
+
+    /// <summary>
+    /// 献立マスターID
+    /// </summary>
+    [Required]
+    public int MenuMasterId { get; set; }
+
+    /// <summary>
+    /// 食材名（例：豚肉、じゃがいも、カレールウ）
+    /// </summary>
+    [Required]
+    [MaxLength(100)]
+    public string IngredientName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// アレルゲン（カンマ区切り：例：卵、牛乳・乳製品、小麦）
+    /// </summary>
+    [MaxLength(200)]
+    public string? Allergens { get; set; }
+
+    /// <summary>
+    /// 主要食材フラグ
+    /// </summary>
+    [Required]
+    public bool IsMainIngredient { get; set; } = false;
+
+    /// <summary>
+    /// 表示順
+    /// </summary>
+    [Required]
+    public int SortOrder { get; set; }
+}

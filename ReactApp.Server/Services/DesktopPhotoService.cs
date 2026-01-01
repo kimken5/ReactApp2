@@ -349,7 +349,7 @@ namespace ReactApp.Server.Services
                     childInfos.Add(new PhotoChildInfoDto
                     {
                         ChildId = child.ChildId,
-                        ChildName = child.Name,
+                        ChildName = $"{child.FamilyName} {child.FirstName}",
                         ClassName = className,
                         IsPrimarySubject = pc.IsPrimarySubject
                     });
@@ -428,7 +428,7 @@ namespace ReactApp.Server.Services
                 .Select(c => new
                 {
                     c.ChildId,
-                    c.Name,
+                    Name = $"{c.FamilyName} {c.FirstName}",
                     c.ClassId
                 })
                 .ToListAsync();

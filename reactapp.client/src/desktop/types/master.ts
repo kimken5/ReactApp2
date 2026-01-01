@@ -94,8 +94,13 @@ export interface UpdateClassCompositionRequestDto {
 export interface ChildDto {
   nurseryId: number;
   childId: number;
-  name: string;
-  furigana?: string;
+  familyName: string;
+  firstName: string;
+  name: string; // Computed: familyName + " " + firstName
+  familyFurigana?: string;
+  firstFurigana?: string;
+  furigana?: string; // Computed: familyFurigana + " " + firstFurigana
+  allergy?: string;
   dateOfBirth: string;
   gender: string;
   classId?: string;
@@ -116,8 +121,11 @@ export interface ChildDto {
 }
 
 export interface CreateChildRequestDto {
-  name: string;
-  furigana?: string;
+  familyName: string;
+  firstName: string;
+  familyFurigana?: string;
+  firstFurigana?: string;
+  allergy?: string;
   dateOfBirth: string;
   gender: string;
   classId?: string;
@@ -145,8 +153,11 @@ export interface CreateParentWithChildDto {
 }
 
 export interface UpdateChildRequestDto {
-  name: string;
-  furigana?: string;
+  familyName: string;
+  firstName: string;
+  familyFurigana?: string;
+  firstFurigana?: string;
+  allergy?: string;
   dateOfBirth: string;
   gender: string;
   classId?: string;

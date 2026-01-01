@@ -856,7 +856,7 @@ namespace ReactApp.Server.Services
                 var children = await _context.Children
                     .Where(c => childKeys.Select(ck => ck.NurseryId).Contains(c.NurseryId) &&
                                 childKeys.Select(ck => ck.ChildId).Contains(c.ChildId))
-                    .Select(c => new { c.NurseryId, c.ChildId, c.Name })
+                    .Select(c => new { c.NurseryId, c.ChildId, Name = $"{c.FamilyName} {c.FirstName}" })
                     .ToListAsync();
 
                 var childDictionary = children.ToDictionary(c => new { c.NurseryId, c.ChildId }, c => c.Name);

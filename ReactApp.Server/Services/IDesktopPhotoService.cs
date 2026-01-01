@@ -64,5 +64,13 @@ namespace ReactApp.Server.Services
         /// <param name="classId">クラスID</param>
         /// <returns>写真一覧</returns>
         Task<List<PhotoDto>> GetPhotosByClassAsync(int nurseryId, string classId);
+
+        /// <summary>
+        /// 園児の撮影禁止チェック
+        /// </summary>
+        /// <param name="nurseryId">保育園ID</param>
+        /// <param name="childIds">チェック対象の園児IDリスト</param>
+        /// <returns>撮影禁止の園児情報</returns>
+        Task<ValidateChildrenForPhotoResponseDto> ValidateChildrenForPhotoAsync(int nurseryId, List<int> childIds);
     }
 }

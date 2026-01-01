@@ -7,6 +7,7 @@ import {
   getApplicationDetail,
   importApplication,
 } from '../../../services/desktopApplicationService';
+import { fetchAllergens, type Allergen } from '../../../services/allergenService';
 import { useDesktopAuth } from '../../contexts/DesktopAuthContext';
 import type { ApplicationWorkDto } from '../../../types/desktopApplication';
 
@@ -54,11 +55,26 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
   const photoFunctionEnabled = state.nursery?.photoFunction ?? true; // 写真機能の利用可否
 
   const [application, setApplication] = useState<ApplicationWorkDto | null>(null);
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [useExistingParent, setUseExistingParent] = useState(false);
+
+  // アレルゲンマスター取得
+  useEffect(() => {
+    const loadAllergens = async () => {
+      try {
+        const data = await fetchAllergens();
+        setAllergens(data);
+      } catch (error) {
+        console.error('アレルゲンマスターの取得に失敗しました:', error);
+      }
+    };
+
+    loadAllergens();
+  }, []);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -292,12 +308,23 @@ export function ImportApplicationModal({ applicationId, onClose, onSuccess }: Pr
               <dl className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <dt className="text-gray-600">氏名:</dt>
-                  <dd className="font-medium">{application.childName}</dd>
+                  <dd className="font-medium">{application.childFamilyName} {application.childFirstName}</dd>
                 </div>
                 <div>
                   <dt className="text-gray-600">ふりがな:</dt>
-                  <dd className="font-medium">{application.childNameKana}</dd>
+                  <dd className="font-medium">{application.childFamilyNameKana} {application.childFirstNameKana}</dd>
                 </div>
+                {application.childAllergy && (
+                  <div className="col-span-2">
+                    <dt className="text-gray-600">アレルギー情報:</dt>
+                    <dd className="font-medium">
+                      {application.childAllergy.split(',').filter(id => id.trim()).map((allergenId) => {
+                        const allergen = allergens.find(a => a.id === parseInt(allergenId));
+                        return allergen ? allergen.allergenName : null;
+                      }).filter(Boolean).join('、')}
+                    </dd>
+                  </div>
+                )}
                 <div>
                   <dt className="text-gray-600">生年月日:</dt>
                   <dd className="font-medium">

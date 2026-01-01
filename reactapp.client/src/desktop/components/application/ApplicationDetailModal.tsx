@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getApplicationDetail } from '../../../services/desktopApplicationService';
+import { fetchAllergens, type Allergen } from '../../../services/allergenService';
 import { useDesktopAuth } from '../../contexts/DesktopAuthContext';
 import type { ApplicationWorkDto } from '../../../types/desktopApplication';
 import {
@@ -57,8 +58,23 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
   const photoFunctionEnabled = state.nursery?.photoFunction ?? true; // 写真機能の利用可否
 
   const [application, setApplication] = useState<ApplicationWorkDto | null>(null);
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // アレルゲンマスター取得
+  useEffect(() => {
+    const loadAllergens = async () => {
+      try {
+        const data = await fetchAllergens();
+        setAllergens(data);
+      } catch (error) {
+        console.error('アレルゲンマスターの取得に失敗しました:', error);
+      }
+    };
+
+    loadAllergens();
+  }, []);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -221,60 +237,60 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <div>
                   <dt className="text-sm font-medium text-gray-500">お名前</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{application.applicantName}</dd>
+                  <dd className="mt-1 text-base text-black">{application.applicantName}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">ふりがな</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{application.applicantNameKana}</dd>
+                  <dd className="mt-1 text-base text-black">{application.applicantNameKana}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">生年月日</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
+                  <dd className="mt-1 text-base text-black">
                     {new Date(application.dateOfBirth).toLocaleDateString('ja-JP')}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">続柄</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{formatRelationship(application.relationshipToChild)}</dd>
+                  <dd className="mt-1 text-base text-black">{formatRelationship(application.relationshipToChild)}</dd>
                 </div>
                 {application.postalCode && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">郵便番号</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{application.postalCode}</dd>
+                    <dd className="mt-1 text-base text-black">{application.postalCode}</dd>
                   </div>
                 )}
                 {application.prefecture && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">都道府県</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{application.prefecture}</dd>
+                    <dd className="mt-1 text-base text-black">{application.prefecture}</dd>
                   </div>
                 )}
                 {application.city && (
                   <div className="col-span-2">
                     <dt className="text-sm font-medium text-gray-500">市区町村</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{application.city}</dd>
+                    <dd className="mt-1 text-base text-black">{application.city}</dd>
                   </div>
                 )}
                 {application.addressLine && (
                   <div className="col-span-2">
                     <dt className="text-sm font-medium text-gray-500">番地・建物名</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{application.addressLine}</dd>
+                    <dd className="mt-1 text-base text-black">{application.addressLine}</dd>
                   </div>
                 )}
                 <div>
                   <dt className="text-sm font-medium text-gray-500">携帯電話</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{application.mobilePhone}</dd>
+                  <dd className="mt-1 text-base text-black">{application.mobilePhone}</dd>
                 </div>
                 {application.homePhone && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">固定電話</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{application.homePhone}</dd>
+                    <dd className="mt-1 text-base text-black">{application.homePhone}</dd>
                   </div>
                 )}
                 {application.email && (
                   <div className="col-span-2">
                     <dt className="text-sm font-medium text-gray-500">メールアドレス</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{application.email}</dd>
+                    <dd className="mt-1 text-base text-black">{application.email}</dd>
                   </div>
                 )}
               </dl>
@@ -290,32 +306,52 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <div>
                   <dt className="text-sm font-medium text-gray-500">お名前</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{application.childName}</dd>
+                  <dd className="mt-1 text-base text-black">{application.childFamilyName} {application.childFirstName}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">ふりがな</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{application.childNameKana}</dd>
+                  <dd className="mt-1 text-base text-black">{application.childFamilyNameKana} {application.childFirstNameKana}</dd>
                 </div>
+                {application.childAllergy && (
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">食物アレルギー</dt>
+                    <dd className="mt-1">
+                      <div className="flex flex-wrap gap-2">
+                        {application.childAllergy.split(',').filter(id => id.trim()).map((allergenId) => {
+                          const allergen = allergens.find(a => a.id === parseInt(allergenId));
+                          return allergen ? (
+                            <span
+                              key={allergenId}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-800"
+                            >
+                              {allergen.allergenName}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    </dd>
+                  </div>
+                )}
                 <div>
                   <dt className="text-sm font-medium text-gray-500">生年月日</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
+                  <dd className="mt-1 text-base text-black">
                     {new Date(application.childDateOfBirth).toLocaleDateString('ja-JP')}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">性別</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{formatGender(application.childGender)}</dd>
+                  <dd className="mt-1 text-base text-black">{formatGender(application.childGender)}</dd>
                 </div>
                 {application.childBloodType && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">血液型</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{application.childBloodType}</dd>
+                    <dd className="mt-1 text-base text-black">{application.childBloodType}</dd>
                   </div>
                 )}
                 {application.childMedicalNotes && (
                   <div className="col-span-2">
                     <dt className="text-sm font-medium text-gray-500">健康に関する特記事項</dt>
-                    <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                    <dd className="mt-1 text-base text-black whitespace-pre-wrap">
                       {application.childMedicalNotes}
                     </dd>
                   </div>
@@ -323,7 +359,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
                 {application.childSpecialInstructions && (
                   <div className="col-span-2">
                     <dt className="text-sm font-medium text-gray-500">その他の特記事項</dt>
-                    <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                    <dd className="mt-1 text-base text-black whitespace-pre-wrap">
                       {application.childSpecialInstructions}
                     </dd>
                   </div>

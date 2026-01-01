@@ -15,19 +15,46 @@ namespace ReactApp.Server.DTOs
         public int Id { get; set; }
 
         /// <summary>
-        /// 園児名（必須）
-        /// 最大100文字の園児氏名
+        /// 苗字（必須）
+        /// 最大20文字の園児の苗字
         /// </summary>
         [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
+        [StringLength(20)]
+        public string FamilyName { get; set; } = string.Empty;
 
         /// <summary>
-        /// ふりがな（任意）
-        /// 最大100文字の園児名のふりがな
+        /// 名前（必須）
+        /// 最大20文字の園児の名前
         /// </summary>
-        [StringLength(100)]
-        public string? Furigana { get; set; }
+        [Required]
+        [StringLength(20)]
+        public string FirstName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// ふりがな（苗字）（任意）
+        /// 最大20文字の苗字のふりがな
+        /// </summary>
+        [StringLength(20)]
+        public string? FamilyFurigana { get; set; }
+
+        /// <summary>
+        /// ふりがな（名前）（任意）
+        /// 最大20文字の名前のふりがな
+        /// </summary>
+        [StringLength(20)]
+        public string? FirstFurigana { get; set; }
+
+        /// <summary>
+        /// フルネーム（表示用: 苗字 + 半角スペース + 名前）
+        /// </summary>
+        public string Name => $"{FamilyName} {FirstName}";
+
+        /// <summary>
+        /// ふりがなフルネーム（表示用: 苗字ふりがな + 半角スペース + 名前ふりがな）
+        /// </summary>
+        public string? Furigana => !string.IsNullOrEmpty(FamilyFurigana) && !string.IsNullOrEmpty(FirstFurigana)
+            ? $"{FamilyFurigana} {FirstFurigana}"
+            : null;
 
         /// <summary>
         /// 生年月日（必須）
@@ -59,8 +86,15 @@ namespace ReactApp.Server.DTOs
         public string? ClassId { get; set; }
 
         /// <summary>
+        /// アレルギー情報（任意）
+        /// 最大200文字でアレルギー情報
+        /// </summary>
+        [StringLength(200)]
+        public string? Allergy { get; set; }
+
+        /// <summary>
         /// 医療情報メモ（任意）
-        /// 最大500文字でアレルギーや病歴などの医療関連情報
+        /// 最大500文字で既往症などの医療関連情報
         /// </summary>
         [StringLength(500)]
         public string? MedicalNotes { get; set; }

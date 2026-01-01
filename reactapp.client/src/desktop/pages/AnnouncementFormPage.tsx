@@ -10,8 +10,7 @@ import type {
   AnnouncementCategoryType,
   TargetAudienceType,
 } from '../types/announcement';
-import type { ChildDto } from '../types/child';
-import type { ClassDto } from '../types/master';
+import type { ChildDto, ClassDto } from '../types/master';
 import { announcementCategoriesDesktop } from '../types/announcement';
 
 /**
@@ -51,18 +50,13 @@ export function AnnouncementFormPage() {
 
   // 編集モードの場合、既存データを読み込む
   useEffect(() => {
-    if (isDemoMode) {
-      loadDemoChildren();
-      loadDemoClasses();
-    } else {
-      loadChildren();
-      loadClasses();
-    }
+    loadChildren();
+    loadClasses();
 
     if (isEditMode && announcementId) {
       loadAnnouncementData(parseInt(announcementId));
     }
-  }, [isEditMode, announcementId, isDemoMode]);
+  }, [isEditMode, announcementId]);
 
   // ドロップダウン外クリックで閉じる
   useEffect(() => {
@@ -100,21 +94,6 @@ export function AnnouncementFormPage() {
     }
   };
 
-  const loadDemoChildren = () => {
-    setChildren([
-      { childId: 1, childName: '田中 太郎', classId: 'C001', className: 'ひよこ組', birthDate: '2024-01-15', parents: [] },
-      { childId: 2, childName: '佐藤 花子', classId: 'C001', className: 'ひよこ組', birthDate: '2024-02-20', parents: [] },
-      { childId: 3, childName: '鈴木 次郎', classId: 'C002', className: 'うさぎ組', birthDate: '2023-03-10', parents: [] },
-    ]);
-  };
-
-  const loadDemoClasses = () => {
-    setClasses([
-      { classId: 'C001', className: 'ひよこ組', gradeId: 'G001', gradeName: '0歳児' },
-      { classId: 'C002', className: 'うさぎ組', gradeId: 'G002', gradeName: '1歳児' },
-      { classId: 'C003', className: 'きりん組', gradeId: 'G003', gradeName: '2歳児' },
-    ]);
-  };
 
   const loadAnnouncementData = async (id: number) => {
     try {
@@ -215,7 +194,7 @@ export function AnnouncementFormPage() {
 
     // 名前で絞り込み（部分一致）
     const filtered = children.filter(child =>
-      child.childName.toLowerCase().includes(searchValue.toLowerCase())
+      child.name.toLowerCase().includes(searchValue.toLowerCase())
     );
     setFilteredChildren(filtered);
     setShowChildDropdown(filtered.length > 0);
@@ -224,7 +203,7 @@ export function AnnouncementFormPage() {
   // 園児選択ハンドラー
   const handleChildSelect = (child: ChildDto) => {
     setFormData(prev => ({ ...prev, targetChildId: child.childId }));
-    setChildSearchText(`${child.childName} (${child.className})`);
+    setChildSearchText(`${child.name} (${child.className})`);
     setShowChildDropdown(false);
 
     // エラークリア
@@ -497,7 +476,7 @@ export function AnnouncementFormPage() {
                     <option value="">クラスを選択してください</option>
                     {classes.map((classItem) => (
                       <option key={classItem.classId} value={classItem.classId}>
-                        {classItem.className}
+                        {classItem.name}
                       </option>
                     ))}
                   </select>
@@ -539,7 +518,7 @@ export function AnnouncementFormPage() {
                           onClick={() => handleChildSelect(child)}
                           className="w-full px-4 py-2 text-left hover:bg-orange-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
                         >
-                          <span className="font-medium text-gray-800">{child.childName}</span>
+                          <span className="font-medium text-gray-800">{child.name}</span>
                           <span className="text-gray-500 ml-2">({child.className})</span>
                         </button>
                       ))}

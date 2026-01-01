@@ -99,7 +99,7 @@ namespace ReactApp.Server.Services
 
                 var children = await _context.Children
                     .Where(c => childIds.Select(x => x.ChildId).Contains(c.ChildId))
-                    .ToDictionaryAsync(c => new { c.NurseryId, c.ChildId }, c => new { c.Name, c.ClassId });
+                    .ToDictionaryAsync(c => new { c.NurseryId, c.ChildId }, c => new { Name = $"{c.FamilyName} {c.FirstName}", c.ClassId });
 
                 var classes = await _context.Classes
                     .GroupBy(c => c.ClassId)
@@ -307,7 +307,7 @@ namespace ReactApp.Server.Services
                     ParentName = parent?.Name ?? "不明",
                     NurseryId = notification.NurseryId,
                     ChildId = notification.ChildId,
-                    ChildName = child?.Name ?? "不明",
+                    ChildName = child != null ? $"{child.FamilyName} {child.FirstName}" : "不明",
                     ClassName = className,
                     NotificationType = notification.NotificationType,
                     Ymd = notification.Ymd,

@@ -185,10 +185,6 @@ export function DailyReportDetailPage() {
                 <dd className="text-base text-gray-900">{report.staffName}</dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500 mb-1">カテゴリ</dt>
-                <dd className="text-base text-gray-900">{report.category}</dd>
-              </div>
-              <div>
                 <dt className="text-sm font-medium text-gray-500 mb-1">作成者</dt>
                 <dd className="text-base text-gray-900">
                   {report.createdByAdminUser ? '管理者' : '職員'}
@@ -216,25 +212,6 @@ export function DailyReportDetailPage() {
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">メディア</h2>
             <dl className="space-y-4">
-              <div>
-                <dt className="text-sm font-medium text-gray-500 mb-2">タグ</dt>
-                <dd>
-                  {report.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {report.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-base text-gray-500">なし</span>
-                  )}
-                </dd>
-              </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500 mb-2">写真</dt>
                 <dd>

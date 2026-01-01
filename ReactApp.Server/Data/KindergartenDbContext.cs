@@ -57,6 +57,13 @@ namespace ReactApp.Server.Data
         public DbSet<DailyAttendance> DailyAttendances { get; set; }
         public DbSet<ApplicationWork> ApplicationWorks { get; set; }
 
+        // 献立管理用エンティティ
+        public DbSet<AllergenMaster> AllergenMasters { get; set; }
+        public DbSet<MenuMaster> MenuMasters { get; set; }
+        // public DbSet<MenuMasterIngredient> MenuMasterIngredients { get; set; } // テーブル削除済み（モデルファイルも .bak にリネーム）
+        public DbSet<DailyMenu> DailyMenus { get; set; }
+        // public DbSet<DailyMenuIngredient> DailyMenuIngredients { get; set; } // テーブル削除済み（2026-01-01）
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -238,8 +245,8 @@ namespace ReactApp.Server.Data
                 // 複合主キー設定: (NurseryId, ChildId)
                 entity.HasKey(e => new { e.NurseryId, e.ChildId });
 
-                // 園児検索最適化
-                entity.HasIndex(e => new { e.NurseryId, e.IsActive, e.Name })
+                // 園児検索最適化（苗字・名前別々に検索）
+                entity.HasIndex(e => new { e.NurseryId, e.IsActive, e.FamilyName, e.FirstName })
                     .HasDatabaseName("IX_Children_Nursery_Active_Name")
                     .HasFilter("[IsActive] = 1");
 
@@ -250,9 +257,13 @@ namespace ReactApp.Server.Data
                 entity.HasIndex(e => e.DateOfBirth)
                     .HasDatabaseName("IX_Children_BirthDate");
 
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.FamilyName).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.FirstName).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.FamilyFurigana).HasMaxLength(20);
+                entity.Property(e => e.FirstFurigana).HasMaxLength(20);
                 entity.Property(e => e.Gender).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.ClassId).HasMaxLength(50);
+                entity.Property(e => e.Allergy).HasMaxLength(200);
                 entity.Property(e => e.MedicalNotes).HasMaxLength(500);
                 entity.Property(e => e.SpecialInstructions).HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
@@ -1058,19 +1069,26 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.Email).HasMaxLength(255);
                 entity.Property(e => e.RelationshipToChild).IsRequired().HasMaxLength(20);
 
-                entity.Property(e => e.ChildName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.ChildNameKana).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.ChildFamilyName).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ChildFirstName).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ChildFamilyNameKana).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ChildFirstNameKana).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.ChildDateOfBirth).IsRequired();
                 entity.Property(e => e.ChildGender).IsRequired().HasMaxLength(2);
                 entity.Property(e => e.ChildBloodType).HasMaxLength(10);
-                entity.Property(e => e.ChildMedicalNotes).HasMaxLength(1000);
-                entity.Property(e => e.ChildSpecialInstructions).HasMaxLength(1000);
+                entity.Property(e => e.ChildAllergy).HasMaxLength(200);
+                entity.Property(e => e.ChildMedicalNotes).HasMaxLength(500);
+                entity.Property(e => e.ChildSpecialInstructions).HasMaxLength(500);
 
                 entity.Property(e => e.ApplicationStatus).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
                 entity.Property(e => e.IsImported).IsRequired().HasDefaultValue(false);
                 entity.Property(e => e.RejectionReason).HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
+
+            // 献立管理エンティティの設定
+            // MenuMaster, DailyMenu にはナビゲーションプロパティがないため、
+            // Ignoreの設定は不要（外部キー制約を作成しない方針を維持）
         }
     }
 }

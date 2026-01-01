@@ -104,11 +104,14 @@ namespace ReactApp.Server.Services
                         RelationshipToChild = request.RelationshipToChild,
 
                         // 園児情報（各レコード異なる）
-                        ChildName = child.ChildName,
-                        ChildNameKana = child.ChildNameKana,
+                        ChildFamilyName = child.ChildFamilyName,
+                        ChildFirstName = child.ChildFirstName,
+                        ChildFamilyNameKana = child.ChildFamilyNameKana,
+                        ChildFirstNameKana = child.ChildFirstNameKana,
                         ChildDateOfBirth = child.ChildDateOfBirth,
                         ChildGender = child.ChildGender,
                         ChildBloodType = child.ChildBloodType,
+                        ChildAllergy = child.ChildAllergy,
                         ChildMedicalNotes = child.ChildMedicalNotes,
                         ChildSpecialInstructions = child.ChildSpecialInstructions,
                         ChildNoPhoto = child.ChildNoPhoto, // 撮影禁止フラグ（デフォルト: false）
@@ -209,14 +212,16 @@ namespace ReactApp.Server.Services
                 {
                     Id = a.Id,
                     ApplicantName = a.ApplicantName,
-                    ChildName = a.ChildName,
+                    ChildFamilyName = a.ChildFamilyName,
+                    ChildFirstName = a.ChildFirstName,
                     ChildDateOfBirth = a.ChildDateOfBirth,
                     RelationshipToChild = a.RelationshipToChild,
                     MobilePhone = a.MobilePhone,
                     ApplicationStatus = a.ApplicationStatus,
                     CreatedAt = a.CreatedAt,
                     ImportedAt = a.ImportedAt,
-                    HasDuplicateParent = duplicatePhones.Contains(a.MobilePhone)
+                    HasDuplicateParent = duplicatePhones.Contains(a.MobilePhone),
+                    ChildNoPhoto = a.ChildNoPhoto
                 }).ToList();
 
                 return new PaginatedResult<ApplicationListItemDto>
@@ -268,13 +273,17 @@ namespace ReactApp.Server.Services
                     HomePhone = application.HomePhone,
                     Email = application.Email,
                     RelationshipToChild = application.RelationshipToChild,
-                    ChildName = application.ChildName,
-                    ChildNameKana = application.ChildNameKana,
+                    ChildFamilyName = application.ChildFamilyName,
+                    ChildFirstName = application.ChildFirstName,
+                    ChildFamilyNameKana = application.ChildFamilyNameKana,
+                    ChildFirstNameKana = application.ChildFirstNameKana,
                     ChildDateOfBirth = application.ChildDateOfBirth,
                     ChildGender = application.ChildGender,
                     ChildBloodType = application.ChildBloodType,
+                    ChildAllergy = application.ChildAllergy,
                     ChildMedicalNotes = application.ChildMedicalNotes,
                     ChildSpecialInstructions = application.ChildSpecialInstructions,
+                    ChildNoPhoto = application.ChildNoPhoto,
                     ApplicationStatus = application.ApplicationStatus,
                     IsImported = application.IsImported,
                     ImportedAt = application.ImportedAt,
@@ -390,11 +399,14 @@ namespace ReactApp.Server.Services
                 {
                     NurseryId = nurseryId,
                     ChildId = childId,
-                    Name = application.ChildName,
-                    Furigana = application.ChildNameKana,
+                    FamilyName = application.ChildFamilyName,
+                    FirstName = application.ChildFirstName,
+                    FamilyFurigana = application.ChildFamilyNameKana,
+                    FirstFurigana = application.ChildFirstNameKana,
                     DateOfBirth = application.ChildDateOfBirth,
                     Gender = application.ChildGender == "男" ? "Male" : "Female",
                     BloodType = application.ChildBloodType,
+                    Allergy = application.ChildAllergy,
                     MedicalNotes = application.ChildMedicalNotes,
                     SpecialInstructions = application.ChildSpecialInstructions,
                     NoPhoto = application.ChildNoPhoto, // 撮影禁止フラグを引き継ぐ
@@ -442,7 +454,7 @@ namespace ReactApp.Server.Services
                     IsNewChild = true,
                     Message = "入園申込を取り込みました。",
                     ParentName = application.ApplicantName,
-                    ChildName = application.ChildName,
+                    ChildName = $"{application.ChildFamilyName} {application.ChildFirstName}",
                     WasParentCreated = isNewParent,
                     WasParentUpdated = !isNewParent && request.OverwriteParent,
                     NoPhotoSet = application.ChildNoPhoto // 撮影禁止設定

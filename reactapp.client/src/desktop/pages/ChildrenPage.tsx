@@ -37,28 +37,42 @@ const generateDemoData = (): ChildDto[] => {
     const birthDay = Math.floor(Math.random() * 28) + 1;
     const selectedClass = classes[index % classes.length];
     const gender = index % 2 === 0 ? 'Female' : 'Male';
-    const parentName = gender === 'Female' ? name.split(' ')[0] + ' 母' : name.split(' ')[0] + ' 父';
+
+    const [familyName, firstName] = name.split(' ');
+    const [familyFurigana, firstFurigana] = furiganas[index].split(' ');
+    const parentName = `${familyName} ${gender === 'Female' ? '母' : '父'}`;
 
     return {
+      nurseryId: 1,
       childId: index + 1,
-      name,
-      furigana: furiganas[index],
+      familyName,
+      firstName,
+      name: `${familyName} ${firstName}`,
+      familyFurigana,
+      firstFurigana,
+      furigana: `${familyFurigana} ${firstFurigana}`,
+      allergy: index % 3 === 0 ? '卵' : undefined,
       dateOfBirth: `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`,
       gender,
-      classId: selectedClass.id,
+      classId: selectedClass.id.toString(),
       className: selectedClass.name,
       bloodType: bloodTypes[Math.floor(Math.random() * bloodTypes.length)],
-      isActive: true,
+      medicalNotes: '',
+      specialInstructions: '',
+      graduationDate: undefined,
       graduationStatus: 'Active',
+      withdrawalReason: '',
+      isActive: true,
+      noPhoto: false,
+      age,
+      createdAt: new Date().toISOString(),
       parents: [
         {
-          parentId: index + 1,
+          id: index + 1,
           name: parentName,
           phoneNumber: `090-1234-${String(5678 + index).padStart(4, '0')}`,
           email: `parent${index + 1}@example.com`,
-          relationship: gender === 'Female' ? 'Mother' : 'Father',
-          isEmergencyContact: true,
-          isPrimaryContact: true
+          relationship: gender === 'Female' ? 'Mother' : 'Father'
         }
       ]
     };
@@ -113,12 +127,12 @@ export function ChildrenPage() {
       // デモモード: デモデータを使用
       setChildren(demoChildren);
       setClasses([
-        { classId: 1, name: 'さくら組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
-        { classId: 2, name: 'ひまわり組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
-        { classId: 3, name: 'すみれ組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
-        { classId: 4, name: 'ばら組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
-        { classId: 5, name: 'もも組', gradeLevel: 'Nursery', capacity: 20, isActive: true },
-        { classId: 6, name: 'たんぽぽ組', gradeLevel: 'Nursery', capacity: 20, isActive: true }
+        { nurseryId: 1, classId: '1', name: 'さくら組', ageGroupMin: 0, ageGroupMax: 6, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+        { nurseryId: 1, classId: '2', name: 'ひまわり組', ageGroupMin: 0, ageGroupMax: 6, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+        { nurseryId: 1, classId: '3', name: 'すみれ組', ageGroupMin: 0, ageGroupMax: 6, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+        { nurseryId: 1, classId: '4', name: 'ばら組', ageGroupMin: 0, ageGroupMax: 6, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+        { nurseryId: 1, classId: '5', name: 'もも組', ageGroupMin: 0, ageGroupMax: 6, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+        { nurseryId: 1, classId: '6', name: 'たんぽぽ組', ageGroupMin: 0, ageGroupMax: 6, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] }
       ]);
       setIsLoading(false);
     } else {
@@ -181,7 +195,7 @@ export function ChildrenPage() {
     setFilters(prev => ({ ...prev, [fieldName]: '' }));
     // クリア後、対応する入力フィールドにフォーカスをセット
     setTimeout(() => {
-      const refMap: { [key: string]: React.RefObject<HTMLInputElement> } = {
+      const refMap: { [key: string]: React.RefObject<HTMLInputElement | null> } = {
         graduationDateFrom: graduationDateFromRef,
         graduationDateTo: graduationDateToRef,
         dateOfBirthFrom: dateOfBirthFromRef,
@@ -633,7 +647,9 @@ export function ChildrenPage() {
                     .sort((a, b) => {
                       // まずクラス名で年齢の小さい方から昇順（実際のクラスIDで）
                       if (a.classId !== b.classId) {
-                        return a.classId - b.classId;
+                        const aId = a.classId ? parseInt(a.classId) : 0;
+                        const bId = b.classId ? parseInt(b.classId) : 0;
+                        return aId - bId;
                       }
                       // 次に生年月日の降順（新しい方が先）
                       return new Date(b.dateOfBirth).getTime() - new Date(a.dateOfBirth).getTime();

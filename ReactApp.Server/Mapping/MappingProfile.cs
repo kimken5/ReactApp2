@@ -43,7 +43,7 @@ namespace ReactApp.Server.Mapping
 
             // Daily Report DTOs
             CreateMap<DailyReport, DailyReportDto>()
-                .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => src.Child.Name))
+                .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => $"{src.Child.FamilyName} {src.Child.FirstName}"))
                 .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.Staff.Name))
                 .ForMember(dest => dest.Photos, opt => opt.MapFrom(src => ParsePhotos(src.Photos)));
 
@@ -67,7 +67,7 @@ namespace ReactApp.Server.Mapping
 
             // Family Member DTOs
             CreateMap<FamilyMember, FamilyMemberDto>()
-                .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => src.Child.Name))
+                .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => $"{src.Child.FamilyName} {src.Child.FirstName}"))
                 .ForMember(dest => dest.ParentName, opt => opt.MapFrom(src => src.Parent.Name))
                 .ForMember(dest => dest.ParentPhoneNumber, opt => opt.MapFrom(src => src.Parent.PhoneNumber));
 
@@ -93,7 +93,7 @@ namespace ReactApp.Server.Mapping
             // Photo Consent DTOs
             CreateMap<PhotoConsent, PhotoConsentDto>()
                 .ForMember(dest => dest.PhotoFileName, opt => opt.MapFrom(src => src.Photo.FileName))
-                .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => src.Child.Name))
+                .ForMember(dest => dest.ChildName, opt => opt.MapFrom(src => $"{src.Child.FamilyName} {src.Child.FirstName}"))
                 .ForMember(dest => dest.ParentName, opt => opt.MapFrom(src => src.Parent.Name));
 
             CreateMap<UpdatePhotoConsentDto, PhotoConsent>()

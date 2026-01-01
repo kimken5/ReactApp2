@@ -31,6 +31,10 @@ import YearSlideExecution from '../components/staff/YearSlideExecution';
 import ChildClassAssignment from '../components/staff/ChildClassAssignment';
 import StaffClassAssignment from '../components/staff/StaffClassAssignment';
 import { ApplicationsPage } from './pages/ApplicationsPage';
+import { MenuMastersPage } from './pages/MenuMastersPage';
+import { MenuMasterFormPage } from './pages/MenuMasterFormPage';
+import { DailyMenusPage } from './pages/DailyMenusPage';
+import { DailyMenuFormPage } from './pages/DailyMenuFormPage';
 
 /**
  * デスクトップアプリ用ルーター
@@ -387,6 +391,58 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <ApplicationsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 献立マスター管理 */}
+      <Route
+        path="/menu-masters"
+        element={
+          <ProtectedRoute>
+            <MenuMastersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/menu-masters/create"
+        element={
+          <ProtectedRoute>
+            <MenuMasterFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/menu-masters/edit/:id"
+        element={
+          <ProtectedRoute>
+            <MenuMasterFormPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 日別献立管理 */}
+      <Route
+        path="/daily-menus"
+        element={
+          <ProtectedRoute>
+            <DailyMenusPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/daily-menus/create"
+        element={
+          <ProtectedRoute>
+            <DailyMenuFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/daily-menus/edit/:id"
+        element={
+          <ProtectedRoute>
+            <DailyMenuFormPage />
           </ProtectedRoute>
         }
       />

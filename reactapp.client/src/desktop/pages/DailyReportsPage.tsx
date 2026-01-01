@@ -182,23 +182,23 @@ const DEMO_REPORTS: DailyReportDto[] = [
 ];
 
 const DEMO_CHILDREN: ChildDto[] = [
-  { childId: 1, name: '山田太郎', classId: 'C1', className: 'ひまわり組', grade: 'Pre-K', dateOfBirth: '2020-04-15', gender: 'Male', allergies: [] },
-  { childId: 2, name: '鈴木花子', classId: 'C2', className: 'さくら組', grade: 'K1', dateOfBirth: '2021-05-20', gender: 'Female', allergies: [] },
-  { childId: 3, name: '佐々木次郎', classId: 'C1', className: 'ひまわり組', grade: 'Pre-K', dateOfBirth: '2020-06-10', gender: 'Male', allergies: [] },
-  { childId: 4, name: '中村春子', classId: 'C3', className: 'たんぽぽ組', grade: 'K2', dateOfBirth: '2019-08-25', gender: 'Female', allergies: [] },
-  { childId: 5, name: '小林優斗', classId: 'C1', className: 'ひまわり組', grade: 'Pre-K', dateOfBirth: '2020-09-12', gender: 'Male', allergies: [] },
+  { nurseryId: 1, childId: 1, familyName: '山田', firstName: '太郎', name: '山田 太郎', classId: 'C1', className: 'ひまわり組', dateOfBirth: '2020-04-15', gender: 'Male', isActive: true, noPhoto: false, age: 4, createdAt: new Date().toISOString(), parents: [] },
+  { nurseryId: 1, childId: 2, familyName: '鈴木', firstName: '花子', name: '鈴木 花子', classId: 'C2', className: 'さくら組', dateOfBirth: '2021-05-20', gender: 'Female', isActive: true, noPhoto: false, age: 3, createdAt: new Date().toISOString(), parents: [] },
+  { nurseryId: 1, childId: 3, familyName: '佐々木', firstName: '次郎', name: '佐々木 次郎', classId: 'C1', className: 'ひまわり組', dateOfBirth: '2020-06-10', gender: 'Male', isActive: true, noPhoto: false, age: 4, createdAt: new Date().toISOString(), parents: [] },
+  { nurseryId: 1, childId: 4, familyName: '中村', firstName: '春子', name: '中村 春子', classId: 'C3', className: 'たんぽぽ組', dateOfBirth: '2019-08-25', gender: 'Female', isActive: true, noPhoto: false, age: 5, createdAt: new Date().toISOString(), parents: [] },
+  { nurseryId: 1, childId: 5, familyName: '小林', firstName: '優斗', name: '小林 優斗', classId: 'C1', className: 'ひまわり組', dateOfBirth: '2020-09-12', gender: 'Male', isActive: true, noPhoto: false, age: 4, createdAt: new Date().toISOString(), parents: [] },
 ];
 
 const DEMO_CLASSES: ClassDto[] = [
-  { classId: 'C1', name: 'ひまわり組', grade: 'Pre-K', academicYear: '2025' },
-  { classId: 'C2', name: 'さくら組', grade: 'K1', academicYear: '2025' },
-  { classId: 'C3', name: 'たんぽぽ組', grade: 'K2', academicYear: '2025' },
+  { nurseryId: 1, classId: 'C1', name: 'ひまわり組', ageGroupMin: 0, ageGroupMax: 2, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+  { nurseryId: 1, classId: 'C2', name: 'さくら組', ageGroupMin: 3, ageGroupMax: 4, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+  { nurseryId: 1, classId: 'C3', name: 'たんぽぽ組', ageGroupMin: 5, ageGroupMax: 6, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
 ];
 
 const DEMO_STAFF: StaffDto[] = [
-  { staffId: 1, name: '佐藤花子', role: 'Teacher', assignedClasses: ['C1'] },
-  { staffId: 2, name: '田中一郎', role: 'Teacher', assignedClasses: ['C2', 'C3'] },
-  { staffId: 3, name: '高橋美咲', role: 'Assistant', assignedClasses: ['C1'] },
+  { nurseryId: 1, staffId: 1, name: '佐藤花子', phoneNumber: '090-1111-1111', role: 'Teacher', isActive: true, createdAt: new Date().toISOString(), classAssignments: [{ classId: 'C1', academicYear: 2025, isPrimary: true }] },
+  { nurseryId: 1, staffId: 2, name: '田中一郎', phoneNumber: '090-2222-2222', role: 'Teacher', isActive: true, createdAt: new Date().toISOString(), classAssignments: [{ classId: 'C2', academicYear: 2025, isPrimary: true }, { classId: 'C3', academicYear: 2025, isPrimary: false }] },
+  { nurseryId: 1, staffId: 3, name: '高橋美咲', phoneNumber: '090-3333-3333', role: 'Assistant', isActive: true, createdAt: new Date().toISOString(), classAssignments: [{ classId: 'C1', academicYear: 2025, isPrimary: false }] },
 ];
 
 /**
@@ -236,7 +236,6 @@ export function DailyReportsPage() {
     staffId: undefined,
     startDate: undefined,
     endDate: undefined,
-    category: undefined,
     status: undefined,
     parentAcknowledged: undefined,
     searchKeyword: '',
@@ -447,6 +446,12 @@ export function DailyReportsPage() {
       'health': '健康',
       'incident': '事故',
       'behavior': '行動',
+      'fight': '喧嘩',
+      'injury': 'ケガ',
+      'accident': '事故',
+      'kenka': '喧嘩',
+      'kega': 'ケガ',
+      'jiko': '事故',
     };
 
     // カンマ区切りの場合は分割して変換

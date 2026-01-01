@@ -17,14 +17,18 @@ export interface ApplicationFormData {
   email?: string;
   relationshipToChild: string;
 
-  // 園児情報 (7フィールド)
-  childName: string;
-  childNameKana: string;
+  // 園児情報 (10フィールド)
+  childFamilyName: string;
+  childFirstName: string;
+  childFamilyNameKana: string;
+  childFirstNameKana: string;
+  childAllergy?: string;
   childDateOfBirth: string;
   childGender: string;
   childBloodType?: string;
   childMedicalNotes?: string;
   childSpecialInstructions?: string;
+  childNoPhoto?: boolean;
 }
 
 /**

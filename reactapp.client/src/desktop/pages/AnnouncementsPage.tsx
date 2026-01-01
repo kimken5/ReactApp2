@@ -153,7 +153,6 @@ export function AnnouncementsPage() {
       filtered = filtered.filter(
         (a) =>
           a.title.toLowerCase().includes(keyword) ||
-          a.summary.toLowerCase().includes(keyword) ||
           a.content.toLowerCase().includes(keyword)
       );
     }
@@ -239,14 +238,18 @@ export function AnnouncementsPage() {
         // 本番モード: APIから取得
         const unreadParents = await announcementService.getUnreadParents(announcement.announcementId);
 
-        // ここでは仮のデータを設定（APIが実装されたら適切に修正）
+        // 未読数から既読率を計算（実際の配信数は未読数と同じと仮定）
+        const totalRecipients = unreadParents.length; // 実際の総配信数（未読のみ取得しているため）
+        const readCount = 0; // 既読保護者は別途APIで取得する必要がある
+        const readRate = totalRecipients > 0 ? (readCount / totalRecipients) * 100 : 0;
+
         setReadStatusData({
-          readStatus: announcement.readStatus || {
-            totalRecipients: 0,
-            readCount: 0,
-            readRate: 0,
+          readStatus: {
+            totalRecipients: totalRecipients,
+            readCount: readCount,
+            readRate: readRate,
           },
-          readParents: [], // APIから取得した既読保護者リスト
+          readParents: [], // APIから取得した既読保護者リスト（未実装）
           unreadParents: unreadParents,
         });
       }
@@ -450,7 +453,7 @@ export function AnnouncementsPage() {
                       <td className="px-6 py-4">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{announcement.title}</div>
-                          <div className="text-sm text-gray-500 line-clamp-1">{announcement.summary}</div>
+                          <div className="text-sm text-gray-500 line-clamp-2">{announcement.content}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

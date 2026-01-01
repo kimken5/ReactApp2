@@ -28,19 +28,34 @@ public class Child
     public int ChildId { get; set; }
 
     /// <summary>
-    /// 園児名（必須）
-    /// 最大100文字、園児の氏名
+    /// 苗字（必須）
+    /// 最大20文字、園児の苗字
     /// </summary>
     [Required]
-    [StringLength(100)]
-    public string Name { get; set; } = string.Empty;
+    [StringLength(20)]
+    public string FamilyName { get; set; } = string.Empty;
 
     /// <summary>
-    /// ふりがな（任意）
-    /// 最大100文字、園児名のふりがな
+    /// 名前（必須）
+    /// 最大20文字、園児の名前
     /// </summary>
-    [StringLength(100)]
-    public string? Furigana { get; set; }
+    [Required]
+    [StringLength(20)]
+    public string FirstName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// ふりがな（苗字）（任意）
+    /// 最大20文字、苗字のふりがな
+    /// </summary>
+    [StringLength(20)]
+    public string? FamilyFurigana { get; set; }
+
+    /// <summary>
+    /// ふりがな（名前）（任意）
+    /// 最大20文字、名前のふりがな
+    /// </summary>
+    [StringLength(20)]
+    public string? FirstFurigana { get; set; }
 
     /// <summary>
     /// 生年月日（必須）
@@ -73,8 +88,15 @@ public class Child
     public Class? Class { get; set; }
 
     /// <summary>
+    /// アレルギー情報（任意）
+    /// 最大200文字、アレルギー情報
+    /// </summary>
+    [StringLength(200)]
+    public string? Allergy { get; set; }
+
+    /// <summary>
     /// 医療メモ（任意）
-    /// 最大500文字、アレルギーや医療情報
+    /// 最大500文字、既往症等の医療情報
     /// </summary>
     [StringLength(500)]
     public string? MedicalNotes { get; set; }

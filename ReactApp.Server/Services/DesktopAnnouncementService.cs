@@ -341,14 +341,14 @@ namespace ReactApp.Server.Services
                         .Join(_context.Children, pcr => pcr.ChildId, c => c.ChildId, (pcr, c) => c)
                         .FirstOrDefaultAsync();
 
-                    var className = child != null ? (await _context.Classes.FindAsync(child.ClassId))?.Name ?? "不明" : "不明";
+                    var className = child != null ? (await _context.Classes.FindAsync(nurseryId, child.ClassId))?.Name ?? "不明" : "不明";
 
                     unreadParentDtos.Add(new UnreadParentDto
                     {
                         ParentId = parent.Id,
                         ParentName = parent.Name,
                         PhoneNumber = parent.PhoneNumber,
-                        ChildName = child?.Name ?? "不明",
+                        ChildName = child != null ? $"{child.FamilyName} {child.FirstName}" : "不明",
                         ClassName = className
                     });
                 }
@@ -386,14 +386,14 @@ namespace ReactApp.Server.Services
                         .Join(_context.Children, pcr => pcr.ChildId, c => c.ChildId, (pcr, c) => c)
                         .FirstOrDefaultAsync();
 
-                    var className = child != null ? (await _context.Classes.FindAsync(child.ClassId))?.Name ?? "不明" : "不明";
+                    var className = child != null ? (await _context.Classes.FindAsync(nurseryId, child.ClassId))?.Name ?? "不明" : "不明";
 
                     readParentDtos.Add(new ReadParentDto
                     {
                         ParentId = parent.Id,
                         ParentName = parent.Name,
                         PhoneNumber = parent.PhoneNumber,
-                        ChildName = child?.Name ?? "不明",
+                        ChildName = child != null ? $"{child.FamilyName} {child.FirstName}" : "不明",
                         ClassName = className,
                         ReadAt = readLog.ReadAt ?? DateTimeHelper.GetJstNow()
                     });

@@ -7,6 +7,8 @@ using PhotoDto = ReactApp.Server.DTOs.Desktop.PhotoDto;
 using PhotoFilterDto = ReactApp.Server.DTOs.Desktop.PhotoFilterDto;
 using UploadPhotoRequestDto = ReactApp.Server.DTOs.Desktop.UploadPhotoRequestDto;
 using UpdatePhotoRequestDto = ReactApp.Server.DTOs.Desktop.UpdatePhotoRequestDto;
+using ValidateChildrenForPhotoRequestDto = ReactApp.Server.DTOs.Desktop.ValidateChildrenForPhotoRequestDto;
+using ValidateChildrenForPhotoResponseDto = ReactApp.Server.DTOs.Desktop.ValidateChildrenForPhotoResponseDto;
 
 namespace ReactApp.Server.Controllers
 {
@@ -279,6 +281,37 @@ namespace ReactApp.Server.Controllers
                 {
                     Success = false,
                     Message = "クラス別写真一覧取得に失敗しました"
+                });
+            }
+        }
+
+        /// <summary>
+        /// 園児の撮影禁止チェック
+        /// </summary>
+        /// <param name="request">チェック対象の園児IDリスト</param>
+        /// <returns>撮影禁止の園児情報</returns>
+        [HttpPost("validate-children")]
+        public async Task<ActionResult<ApiResponse<ValidateChildrenForPhotoResponseDto>>> ValidateChildrenForPhoto([FromBody] ValidateChildrenForPhotoRequestDto request)
+        {
+            try
+            {
+                var nurseryId = GetNurseryId();
+                var result = await _photoService.ValidateChildrenForPhotoAsync(nurseryId, request.ChildIds);
+
+                return Ok(new ApiResponse<ValidateChildrenForPhotoResponseDto>
+                {
+                    Success = true,
+                    Data = result,
+                    Message = "園児の撮影禁止チェック成功"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "園児の撮影禁止チェックエラー");
+                return StatusCode(500, new ApiResponse<ValidateChildrenForPhotoResponseDto>
+                {
+                    Success = false,
+                    Message = "園児の撮影禁止チェックに失敗しました"
                 });
             }
         }

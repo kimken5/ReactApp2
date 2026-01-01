@@ -65,19 +65,25 @@ export function ContactNotificationDetailPage() {
 
     const demoStaff: StaffDto[] = [
       {
+        nurseryId: 1,
         staffId: 1,
         name: '山田 先生',
+        phoneNumber: '090-1111-1111',
         email: 'yamada@example.com',
-        phone: '090-1111-1111',
+        role: '担任',
         isActive: true,
+        createdAt: new Date().toISOString(),
         classAssignments: [],
       },
       {
+        nurseryId: 1,
         staffId: 2,
         name: '佐々木 先生',
+        phoneNumber: '090-2222-2222',
         email: 'sasaki@example.com',
-        phone: '090-2222-2222',
+        role: '副担任',
         isActive: true,
+        createdAt: new Date().toISOString(),
         classAssignments: [],
       },
     ];

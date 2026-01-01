@@ -9,12 +9,28 @@ namespace ReactApp.Server.DTOs.Desktop
     {
         public int NurseryId { get; set; }
         public int ChildId { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string? Furigana { get; set; }
+        public string FamilyName { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string? FamilyFurigana { get; set; }
+        public string? FirstFurigana { get; set; }
+
+        /// <summary>
+        /// フルネーム（表示用: 苗字 + 半角スペース + 名前）
+        /// </summary>
+        public string Name => $"{FamilyName} {FirstName}";
+
+        /// <summary>
+        /// ふりがなフルネーム（表示用: 苗字ふりがな + 半角スペース + 名前ふりがな）
+        /// </summary>
+        public string? Furigana => !string.IsNullOrEmpty(FamilyFurigana) && !string.IsNullOrEmpty(FirstFurigana)
+            ? $"{FamilyFurigana} {FirstFurigana}"
+            : null;
+
         public DateTime DateOfBirth { get; set; }
         public string Gender { get; set; } = string.Empty;
         public string? ClassId { get; set; }
         public string? ClassName { get; set; }
+        public string? Allergy { get; set; }
         public string? MedicalNotes { get; set; }
         public string? SpecialInstructions { get; set; }
         public bool IsActive { get; set; }
@@ -37,12 +53,19 @@ namespace ReactApp.Server.DTOs.Desktop
     /// </summary>
     public class CreateChildRequestDto
     {
-        [Required(ErrorMessage = "氏名は必須です")]
-        [StringLength(100, ErrorMessage = "氏名は100文字以内で入力してください")]
-        public string Name { get; set; } = string.Empty;
+        [Required(ErrorMessage = "苗字は必須です")]
+        [StringLength(20, ErrorMessage = "苗字は20文字以内で入力してください")]
+        public string FamilyName { get; set; } = string.Empty;
 
-        [StringLength(100, ErrorMessage = "ふりがなは100文字以内で入力してください")]
-        public string? Furigana { get; set; }
+        [Required(ErrorMessage = "名前は必須です")]
+        [StringLength(20, ErrorMessage = "名前は20文字以内で入力してください")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [StringLength(20, ErrorMessage = "ふりがな（苗字）は20文字以内で入力してください")]
+        public string? FamilyFurigana { get; set; }
+
+        [StringLength(20, ErrorMessage = "ふりがな（名前）は20文字以内で入力してください")]
+        public string? FirstFurigana { get; set; }
 
         [Required(ErrorMessage = "生年月日は必須です")]
         public DateTime DateOfBirth { get; set; }
@@ -56,6 +79,9 @@ namespace ReactApp.Server.DTOs.Desktop
 
         [StringLength(5, ErrorMessage = "血液型は5文字以内で入力してください")]
         public string? BloodType { get; set; }
+
+        [StringLength(200, ErrorMessage = "アレルギー情報は200文字以内で入力してください")]
+        public string? Allergy { get; set; }
 
         [StringLength(500, ErrorMessage = "医療メモは500文字以内で入力してください")]
         public string? MedicalNotes { get; set; }
@@ -116,12 +142,19 @@ namespace ReactApp.Server.DTOs.Desktop
     /// </summary>
     public class UpdateChildRequestDto
     {
-        [Required(ErrorMessage = "氏名は必須です")]
-        [StringLength(100, ErrorMessage = "氏名は100文字以内で入力してください")]
-        public string Name { get; set; } = string.Empty;
+        [Required(ErrorMessage = "苗字は必須です")]
+        [StringLength(20, ErrorMessage = "苗字は20文字以内で入力してください")]
+        public string FamilyName { get; set; } = string.Empty;
 
-        [StringLength(100, ErrorMessage = "ふりがなは100文字以内で入力してください")]
-        public string? Furigana { get; set; }
+        [Required(ErrorMessage = "名前は必須です")]
+        [StringLength(20, ErrorMessage = "名前は20文字以内で入力してください")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [StringLength(20, ErrorMessage = "ふりがな（苗字）は20文字以内で入力してください")]
+        public string? FamilyFurigana { get; set; }
+
+        [StringLength(20, ErrorMessage = "ふりがな（名前）は20文字以内で入力してください")]
+        public string? FirstFurigana { get; set; }
 
         [Required(ErrorMessage = "生年月日は必須です")]
         public DateTime DateOfBirth { get; set; }
@@ -135,6 +168,9 @@ namespace ReactApp.Server.DTOs.Desktop
 
         [StringLength(5, ErrorMessage = "血液型は5文字以内で入力してください")]
         public string? BloodType { get; set; }
+
+        [StringLength(200, ErrorMessage = "アレルギー情報は200文字以内で入力してください")]
+        public string? Allergy { get; set; }
 
         [StringLength(500, ErrorMessage = "医療メモは500文字以内で入力してください")]
         public string? MedicalNotes { get; set; }

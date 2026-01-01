@@ -207,14 +207,14 @@ namespace ReactApp.Server.Services
         {
             var children = new List<Child>
             {
-                new Child { Name = "田中太郎", DateOfBirth = new DateTime(2019, 4, 15), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
-                new Child { Name = "田中花音", DateOfBirth = new DateTime(2019, 6, 22), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
-                new Child { Name = "佐藤次郎", DateOfBirth = new DateTime(2020, 3, 10), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
-                new Child { Name = "山田美琴", DateOfBirth = new DateTime(2020, 7, 18), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
-                new Child { Name = "鈴木和也", DateOfBirth = new DateTime(2019, 11, 5), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
-                new Child { Name = "高橋結愛", DateOfBirth = new DateTime(2020, 1, 20), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
-                new Child { Name = "伊藤大輝", DateOfBirth = new DateTime(2019, 9, 12), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
-                new Child { Name = "中村咲良", DateOfBirth = new DateTime(2020, 5, 30), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() }
+                new Child { FamilyName = "田中", FirstName = "太郎", FamilyFurigana = "たなか", FirstFurigana = "たろう", DateOfBirth = new DateTime(2019, 4, 15), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { FamilyName = "田中", FirstName = "花音", FamilyFurigana = "たなか", FirstFurigana = "かのん", DateOfBirth = new DateTime(2019, 6, 22), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { FamilyName = "佐藤", FirstName = "次郎", FamilyFurigana = "さとう", FirstFurigana = "じろう", DateOfBirth = new DateTime(2020, 3, 10), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { FamilyName = "山田", FirstName = "美琴", FamilyFurigana = "やまだ", FirstFurigana = "みこと", DateOfBirth = new DateTime(2020, 7, 18), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { FamilyName = "鈴木", FirstName = "和也", FamilyFurigana = "すずき", FirstFurigana = "かずや", DateOfBirth = new DateTime(2019, 11, 5), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { FamilyName = "高橋", FirstName = "結愛", FamilyFurigana = "たかはし", FirstFurigana = "ゆあ", DateOfBirth = new DateTime(2020, 1, 20), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { FamilyName = "伊藤", FirstName = "大輝", FamilyFurigana = "いとう", FirstFurigana = "だいき", DateOfBirth = new DateTime(2019, 9, 12), Gender = "Male", CreatedAt = DateTimeHelper.GetJstNow() },
+                new Child { FamilyName = "中村", FirstName = "咲良", FamilyFurigana = "なかむら", FirstFurigana = "さくら", DateOfBirth = new DateTime(2020, 5, 30), Gender = "Female", CreatedAt = DateTimeHelper.GetJstNow() }
             };
 
             _context.Children.AddRange(children);

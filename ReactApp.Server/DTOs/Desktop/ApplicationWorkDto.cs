@@ -24,11 +24,14 @@ namespace ReactApp.Server.DTOs.Desktop
         public string RelationshipToChild { get; set; } = string.Empty;
 
         // 園児情報
-        public string ChildName { get; set; } = string.Empty;
-        public string ChildNameKana { get; set; } = string.Empty;
+        public string ChildFamilyName { get; set; } = string.Empty;
+        public string ChildFirstName { get; set; } = string.Empty;
+        public string ChildFamilyNameKana { get; set; } = string.Empty;
+        public string ChildFirstNameKana { get; set; } = string.Empty;
         public DateTime ChildDateOfBirth { get; set; }
         public string ChildGender { get; set; } = string.Empty;
         public string? ChildBloodType { get; set; }
+        public string? ChildAllergy { get; set; }
         public string? ChildMedicalNotes { get; set; }
         public string? ChildSpecialInstructions { get; set; }
         public bool ChildNoPhoto { get; set; }
@@ -80,7 +83,14 @@ namespace ReactApp.Server.DTOs.Desktop
     {
         public int Id { get; set; }
         public string ApplicantName { get; set; } = string.Empty;
-        public string ChildName { get; set; } = string.Empty;
+        public string ChildFamilyName { get; set; } = string.Empty;
+        public string ChildFirstName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 園児フルネーム（表示用: 苗字 + 半角スペース + 名前）
+        /// </summary>
+        public string ChildName => $"{ChildFamilyName} {ChildFirstName}";
+
         public DateTime ChildDateOfBirth { get; set; }
         public string RelationshipToChild { get; set; } = string.Empty;
         public string MobilePhone { get; set; } = string.Empty;
@@ -96,13 +106,21 @@ namespace ReactApp.Server.DTOs.Desktop
     /// </summary>
     public class ChildInfoDto
     {
-        [Required(ErrorMessage = "園児氏名は必須です")]
-        [StringLength(100, ErrorMessage = "園児氏名は100文字以内で入力してください")]
-        public string ChildName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "園児苗字は必須です")]
+        [StringLength(20, ErrorMessage = "園児苗字は20文字以内で入力してください")]
+        public string ChildFamilyName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "園児フリガナは必須です")]
-        [StringLength(100, ErrorMessage = "園児フリガナは100文字以内で入力してください")]
-        public string ChildNameKana { get; set; } = string.Empty;
+        [Required(ErrorMessage = "園児名前は必須です")]
+        [StringLength(20, ErrorMessage = "園児名前は20文字以内で入力してください")]
+        public string ChildFirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "園児ふりがな（苗字）は必須です")]
+        [StringLength(20, ErrorMessage = "園児ふりがな（苗字）は20文字以内で入力してください")]
+        public string ChildFamilyNameKana { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "園児ふりがな（名前）は必須です")]
+        [StringLength(20, ErrorMessage = "園児ふりがな（名前）は20文字以内で入力してください")]
+        public string ChildFirstNameKana { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "園児生年月日は必須です")]
         public DateTime ChildDateOfBirth { get; set; }
@@ -114,10 +132,13 @@ namespace ReactApp.Server.DTOs.Desktop
         [StringLength(10, ErrorMessage = "園児血液型は10文字以内で入力してください")]
         public string? ChildBloodType { get; set; }
 
-        [StringLength(1000, ErrorMessage = "園児医療メモは1000文字以内で入力してください")]
+        [StringLength(200, ErrorMessage = "園児アレルギー情報は200文字以内で入力してください")]
+        public string? ChildAllergy { get; set; }
+
+        [StringLength(500, ErrorMessage = "園児医療メモは500文字以内で入力してください")]
         public string? ChildMedicalNotes { get; set; }
 
-        [StringLength(1000, ErrorMessage = "園児特別指示は1000文字以内で入力してください")]
+        [StringLength(500, ErrorMessage = "園児特別指示は500文字以内で入力してください")]
         public string? ChildSpecialInstructions { get; set; }
 
         /// <summary>

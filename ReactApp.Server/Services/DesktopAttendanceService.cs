@@ -30,7 +30,7 @@ public class DesktopAttendanceService : IDesktopAttendanceService
             var children = await _context.Children
                 .Where(c => c.NurseryId == nurseryId && c.ClassId == classId && c.IsActive)
                 .OrderBy(c => c.ChildId)
-                .Select(c => new { c.ChildId, c.Name })
+                .Select(c => new { c.ChildId, Name = $"{c.FamilyName} {c.FirstName}" })
                 .ToListAsync();
 
             if (!children.Any())
@@ -165,7 +165,7 @@ public class DesktopAttendanceService : IDesktopAttendanceService
             var attendanceChildIds = attendances.Select(a => a.ChildId).Distinct().ToList();
             var childNames = await _context.Children
                 .Where(c => c.NurseryId == nurseryId && attendanceChildIds.Contains(c.ChildId))
-                .Select(c => new { c.ChildId, c.Name })
+                .Select(c => new { c.ChildId, Name = $"{c.FamilyName} {c.FirstName}" })
                 .ToListAsync();
 
             var childNameDict = childNames.ToDictionary(c => c.ChildId, c => c.Name);
@@ -289,7 +289,7 @@ public class DesktopAttendanceService : IDesktopAttendanceService
             // 園児名とスタッフ名を取得
             var child = await _context.Children
                 .Where(c => c.NurseryId == nurseryId && c.ChildId == childId)
-                .Select(c => c.Name)
+                .Select(c => $"{c.FamilyName} {c.FirstName}")
                 .FirstOrDefaultAsync();
 
             var staffName = await _context.Staff
@@ -363,7 +363,7 @@ public class DesktopAttendanceService : IDesktopAttendanceService
 
             var child = await _context.Children
                 .Where(c => c.NurseryId == nurseryId && c.ChildId == childId)
-                .Select(c => c.Name)
+                .Select(c => $"{c.FamilyName} {c.FirstName}")
                 .FirstOrDefaultAsync();
 
             var staffName = await _context.Staff
@@ -399,7 +399,7 @@ public class DesktopAttendanceService : IDesktopAttendanceService
             // クラスの全園児を取得
             var children = await _context.Children
                 .Where(c => c.NurseryId == request.NurseryId && c.ClassId == request.ClassId && c.IsActive)
-                .Select(c => new { c.ChildId, c.Name })
+                .Select(c => new { c.ChildId, Name = $"{c.FamilyName} {c.FirstName}" })
                 .ToListAsync();
 
             if (!children.Any())

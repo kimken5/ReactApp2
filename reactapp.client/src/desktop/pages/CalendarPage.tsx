@@ -83,18 +83,9 @@ export function CalendarPage() {
 
   // イベントデータの読み込み
   useEffect(() => {
-    if (isDemoMode) {
-      console.log('CalendarPage - Demo mode, loading demo data');
-      setEvents(getDemoEvents());
-      setClasses([
-        { classId: 'C001', className: 'ひよこ組', nurseryId: 0, gradeLevel: '0歳児' },
-        { classId: 'C002', className: 'うさぎ組', nurseryId: 0, gradeLevel: '1歳児' },
-      ]);
-    } else {
-      loadEvents();
-      loadMasterData();
-    }
-  }, [currentDate, viewMode, isDemoMode]);
+    loadEvents();
+    loadMasterData();
+  }, [currentDate, viewMode]);
 
   const loadMasterData = async () => {
     try {

@@ -104,7 +104,8 @@ namespace ReactApp.Server.Services
             // クラスに所属する園児を取得
             var children = await _context.Children
                 .Where(c => c.NurseryId == nurseryId && c.ClassId == classId && c.IsActive)
-                .OrderBy(c => c.Name)
+                .OrderBy(c => c.FamilyName)
+                .ThenBy(c => c.FirstName)
                 .ToListAsync();
 
             var childrenStatistics = new List<ChildStatisticsDto>();
@@ -128,7 +129,7 @@ namespace ReactApp.Server.Services
                 var childStats = new ChildStatisticsDto
                 {
                     ChildId = child.ChildId,
-                    ChildName = child.Name,
+                    ChildName = $"{child.FamilyName} {child.FirstName}",
                     PresentDays = presentDays,
                     AbsentDays = absentDays,
                     LateDays = lateDays,

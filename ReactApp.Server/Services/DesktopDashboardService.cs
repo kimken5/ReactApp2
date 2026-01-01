@@ -128,7 +128,7 @@ namespace ReactApp.Server.Services
                     {
                         ReportId = report.Id,
                         ClassName = className,
-                        ChildName = child?.Name ?? "不明",
+                        ChildName = child != null ? $"{child.FamilyName} {child.FirstName}" : "不明",
                         Status = report.Status,
                         StatusDisplay = statusDisplay,
                         CreatedAt = report.CreatedAt,

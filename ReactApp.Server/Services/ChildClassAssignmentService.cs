@@ -74,7 +74,7 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
                     childrenInfo.Add(new ChildAssignmentInfo
                     {
                         ChildId = child.ChildId,
-                        ChildName = child.Name,
+                        ChildName = $"{child.FamilyName} {child.FirstName}",
                         Age = DateTime.Now.Year - child.DateOfBirth.Year,
                         CurrentClassId = currentAssignment?.ClassId ?? "",
                         CurrentClassName = currentClass?.Name ?? "",
@@ -106,7 +106,8 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
         // アクティブな園児を取得
         var children = await _context.Children
             .Where(c => c.NurseryId == nurseryId && c.IsActive)
-            .OrderBy(c => c.Name)
+            .OrderBy(c => c.FamilyName)
+            .ThenBy(c => c.FirstName)
             .ToListAsync();
 
         var result = new List<AvailableChildDto>();
@@ -146,7 +147,7 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
             result.Add(new AvailableChildDto
             {
                 ChildId = child.ChildId,
-                ChildName = child.Name,
+                ChildName = $"{child.FamilyName} {child.FirstName}",
                 Age = DateTime.Now.Year - child.DateOfBirth.Year,
                 CurrentClassId = currentClassId ?? "",
                 CurrentClassName = currentClass?.Name ?? "未割り当て",
@@ -216,7 +217,7 @@ public class ChildClassAssignmentService : IChildClassAssignmentService
             AcademicYear = existing.AcademicYear,
             NurseryId = existing.NurseryId,
             ChildId = existing.ChildId,
-            ChildName = child?.Name ?? "",
+            ChildName = child != null ? $"{child.FamilyName} {child.FirstName}" : "",
             ClassId = existing.ClassId,
             ClassName = classInfo?.Name ?? "",
             IsCurrent = existing.IsCurrent,

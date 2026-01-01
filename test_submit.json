@@ -1,0 +1,21 @@
+{
+  "applicantName": "山田 太郎",
+  "applicantNameKana": "ヤマダ タロウ",
+  "dateOfBirth": "1985-01-01",
+  "postalCode": "100-0001",
+  "prefecture": "東京都",
+  "city": "千代田区",
+  "addressLine": "千代田1-1-1",
+  "mobilePhone": "090-1234-5678",
+  "homePhone": "",
+  "emergencyContact": "",
+  "email": "test@example.com",
+  "relationshipToChild": "Father",
+  "childName": "山田 花子",
+  "childNameKana": "ヤマダ ハナコ",
+  "childDateOfBirth": "2020-04-01",
+  "childGender": "F",
+  "childBloodType": "A",
+  "childMedicalNotes": "",
+  "childSpecialInstructions": ""
+}

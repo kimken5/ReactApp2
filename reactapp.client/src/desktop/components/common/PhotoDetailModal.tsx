@@ -24,7 +24,6 @@ export function PhotoDetailModal({ photo, isOpen, onClose, onUpdated }: PhotoDet
   const [targetClassId, setTargetClassId] = useState<string | undefined>(undefined);
   const [targetGrade, setTargetGrade] = useState<number | undefined>(undefined);
   const [status, setStatus] = useState('draft');
-  const [requiresConsent, setRequiresConsent] = useState(false);
   const [selectedChildIds, setSelectedChildIds] = useState<number[]>([]);
   const [primaryChildId, setPrimaryChildId] = useState<number | undefined>(undefined);
 
@@ -41,7 +40,6 @@ export function PhotoDetailModal({ photo, isOpen, onClose, onUpdated }: PhotoDet
       setTargetClassId(photo.targetClassId);
       setTargetGrade(photo.targetGrade);
       setStatus(photo.status);
-      setRequiresConsent(photo.requiresConsent);
       setSelectedChildIds(photo.children.map(c => c.childId));
       setPrimaryChildId(photo.children.find(c => c.isPrimarySubject)?.childId);
 
@@ -77,7 +75,6 @@ export function PhotoDetailModal({ photo, isOpen, onClose, onUpdated }: PhotoDet
         targetClassId: visibilityLevel === 'class' ? targetClassId : undefined,
         targetGrade: visibilityLevel === 'grade' ? targetGrade : undefined,
         status,
-        requiresConsent,
         childIds: selectedChildIds,
         primaryChildId,
       };
@@ -287,11 +284,6 @@ export function PhotoDetailModal({ photo, isOpen, onClose, onUpdated }: PhotoDet
                     )}
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">掲載許可</label>
-                      <p className="text-gray-900">{photo.requiresConsent ? '必要' : '不要'}</p>
-                    </div>
-
-                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">アップロード職員</label>
                       <p className="text-gray-900">{photo.uploadedByStaffName}</p>
                     </div>
@@ -421,18 +413,6 @@ export function PhotoDetailModal({ photo, isOpen, onClose, onUpdated }: PhotoDet
                         </select>
                       </div>
                     )}
-
-                    <div>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={requiresConsent}
-                          onChange={e => setRequiresConsent(e.target.checked)}
-                          className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-400"
-                        />
-                        <span className="text-sm font-medium text-gray-700">掲載許可が必要</span>
-                      </label>
-                    </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">写っている園児</label>

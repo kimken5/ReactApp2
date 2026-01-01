@@ -74,34 +74,52 @@ EXEC sp_addextendedproperty 'MS_Description', '有効フラグ', 'SCHEMA', 'dbo'
 
 ### 1.3 Children テーブル拡張
 
-**追加理由**: 卒園管理、血液型管理、出席記録に必要
+**追加理由**: 卒園管理、血液型管理、出席記録、名前フィールド分割、アレルギー管理に必要
 
+**変更履歴**:
+- 2025-12-31: 名前フィールド分割（Name → FamilyName + FirstName、Furigana → FamilyFurigana + FirstFurigana）
+- 2025-12-31: Allergyフィールド追加
+- 2025-12-31: MedicalNotes, SpecialInstructions を nvarchar(500) に変更
+
+**現在のChildrenテーブル構造**:
 ```sql
--- 既存テーブルに以下のカラムを追加
-ALTER TABLE Children ADD
-    GraduationDate DATE NULL,  -- 卒園日
-    GraduationStatus NVARCHAR(20) NULL,  -- 卒園ステータス（Graduated/Withdrawn）
-    WithdrawalReason NVARCHAR(200) NULL,  -- 退園理由
-    BloodType NVARCHAR(5) NULL,  -- 血液型（A/B/O/AB）
-    LastAttendanceDate DATE NULL;  -- 最終登園日
+CREATE TABLE [dbo].[Children] (
+    [NurseryId] INT NOT NULL,
+    [ChildId] INT NOT NULL,
+    [FamilyName] NVARCHAR(20) NOT NULL,  -- 苗字
+    [FirstName] NVARCHAR(20) NOT NULL,  -- 名前
+    [FamilyFurigana] NVARCHAR(20),  -- ふりがな（苗字）
+    [FirstFurigana] NVARCHAR(20),  -- ふりがな（名前）
+    [DateOfBirth] DATETIME2 NOT NULL,
+    [Gender] NVARCHAR(10) NOT NULL,
+    [ClassId] NVARCHAR(50),
+    [Allergy] NVARCHAR(200),  -- アレルギー情報
+    [MedicalNotes] NVARCHAR(500),  -- 医療メモ
+    [SpecialInstructions] NVARCHAR(500),  -- 特別指示
+    [NoPhoto] BIT DEFAULT 0 NOT NULL,
+    [IsActive] BIT DEFAULT 1 NOT NULL,
+    [GraduationDate] DATE,
+    [GraduationStatus] NVARCHAR(20),
+    [WithdrawalReason] NVARCHAR(200),
+    [BloodType] NVARCHAR(5),
+    [LastAttendanceDate] DATE,
+    [CreatedAt] DATETIME2 DEFAULT [dbo].[GetJstDateTime]() NOT NULL,
+    [UpdatedAt] DATETIME2,
+    CONSTRAINT [PK_Children] PRIMARY KEY ([NurseryId], [ChildId])
+);
 
--- インデックス追加
+-- インデックス
+CREATE INDEX IX_Children_BirthDate ON Children (DateOfBirth);
+CREATE INDEX IX_Children_Class_Active ON Children (ClassId, IsActive);
 CREATE INDEX IX_Children_GraduationDate ON Children (NurseryId, GraduationDate) WHERE GraduationDate IS NOT NULL;
-CREATE INDEX IX_Children_IsActive_Class ON Children (NurseryId, IsActive, ClassId);
 CREATE INDEX IX_Children_LastAttendanceDate ON Children (NurseryId, LastAttendanceDate) WHERE LastAttendanceDate IS NOT NULL;
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '卒園日', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'GraduationDate';
-EXEC sp_addextendedproperty 'MS_Description', '卒園ステータス', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'GraduationStatus';
-EXEC sp_addextendedproperty 'MS_Description', '退園理由', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'WithdrawalReason';
-EXEC sp_addextendedproperty 'MS_Description', '血液型', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'BloodType';
-EXEC sp_addextendedproperty 'MS_Description', '最終登園日', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'LastAttendanceDate';
 ```
 
 **ビジネスルール**
 - IsActive=0かつGraduationStatusがNULLの場合は「在籍中だが休園中」
 - GraduationStatus='Graduated'の場合は卒園
 - GraduationStatus='Withdrawn'の場合は途中退園
+- **画面表示時の名前**: `FamilyName + " " + FirstName` で結合（例: "山田 太郎"）
 
 ### 1.4 Staff テーブル拡張
 
@@ -762,8 +780,15 @@ public class DailyAttendance
 **追加日**: 2025-12-08
 **目的**: 入園申込ワークテーブル（保護者Web申込からデスクトップアプリ取込までの一時保管）
 
+**変更履歴**:
+- 2025-12-31: 園児名フィールド分割（ChildName → ChildFamilyName + ChildFirstName、ChildNameKana → ChildFamilyNameKana + ChildFirstNameKana）
+- 2025-12-31: ChildAllergyフィールド追加
+- 2025-12-31: ChildMedicalNotes, ChildSpecialInstructions を nvarchar(500) に変更
+- 2025-12-31: ChildNoPhotoフィールド追加
+
+**現在のApplicationWorksテーブル構造**:
 ```sql
-CREATE TABLE [dbo].[ApplicationWork] (
+CREATE TABLE [dbo].[ApplicationWorks] (
     [Id] INT IDENTITY(1,1) NOT NULL,
     [NurseryId] INT NOT NULL,
 
@@ -777,37 +802,40 @@ CREATE TABLE [dbo].[ApplicationWork] (
     [AddressLine] NVARCHAR(200),
     [MobilePhone] NVARCHAR(20) NOT NULL,
     [HomePhone] NVARCHAR(20),
-    [EmergencyContact] NVARCHAR(20),
     [Email] NVARCHAR(255),
     [RelationshipToChild] NVARCHAR(20) NOT NULL,
 
     -- 園児情報
-    [ChildName] NVARCHAR(100) NOT NULL,
-    [ChildNameKana] NVARCHAR(100) NOT NULL,
+    [ChildFamilyName] NVARCHAR(20) NOT NULL,  -- 園児苗字
+    [ChildFirstName] NVARCHAR(20) NOT NULL,  -- 園児名前
+    [ChildFamilyNameKana] NVARCHAR(20) NOT NULL,  -- 園児ふりがな（苗字）
+    [ChildFirstNameKana] NVARCHAR(20) NOT NULL,  -- 園児ふりがな（名前）
     [ChildDateOfBirth] DATE NOT NULL,
     [ChildGender] NVARCHAR(2) NOT NULL,
     [ChildBloodType] NVARCHAR(10),
-    [ChildMedicalNotes] NVARCHAR(1000),
-    [ChildSpecialInstructions] NVARCHAR(1000),
+    [ChildAllergy] NVARCHAR(200),  -- 園児アレルギー
+    [ChildMedicalNotes] NVARCHAR(500),  -- 園児医療メモ
+    [ChildSpecialInstructions] NVARCHAR(500),  -- 園児特別指示
+    [ChildNoPhoto] BIT DEFAULT 1,  -- 撮影禁止
 
     -- 申込管理情報
     [ApplicationStatus] NVARCHAR(20) DEFAULT 'Pending' NOT NULL,
     [IsImported] BIT DEFAULT 0 NOT NULL,
     [ImportedAt] DATETIME2,
     [ImportedByUserId] INT,
-    [CreatedAt] DATETIME2 DEFAULT GETUTCDATE() NOT NULL,
+    [CreatedAt] DATETIME2 DEFAULT [dbo].[GetJstDateTime]() NOT NULL,
     [UpdatedAt] DATETIME2,
     [RejectionReason] NVARCHAR(500),
 
-    CONSTRAINT [PK_ApplicationWork] PRIMARY KEY ([Id])
+    CONSTRAINT [PK__ApplicationWorks] PRIMARY KEY ([Id])
 )
 GO
 
 -- インデックス
-CREATE INDEX [IX_ApplicationWork_NurseryId] ON [dbo].[ApplicationWork]([NurseryId])
-CREATE INDEX [IX_ApplicationWork_MobilePhone] ON [dbo].[ApplicationWork]([MobilePhone])
-CREATE INDEX [IX_ApplicationWork_ApplicationStatus] ON [dbo].[ApplicationWork]([ApplicationStatus])
-CREATE INDEX [IX_ApplicationWork_IsImported] ON [dbo].[ApplicationWork]([IsImported])
+CREATE INDEX [IX_ApplicationWork_NurseryId] ON [dbo].[ApplicationWorks]([NurseryId])
+CREATE INDEX [IX_ApplicationWork_MobilePhone] ON [dbo].[ApplicationWorks]([MobilePhone])
+CREATE INDEX [IX_ApplicationWork_ApplicationStatus] ON [dbo].[ApplicationWorks]([ApplicationStatus])
+CREATE INDEX [IX_ApplicationWork_IsImported] ON [dbo].[ApplicationWorks]([IsImported])
 CREATE INDEX [IX_ApplicationWork_CreatedAt] ON [dbo].[ApplicationWork]([CreatedAt])
 ```
 
@@ -828,18 +856,21 @@ public class ApplicationWork
     public string? AddressLine { get; set; }
     public string MobilePhone { get; set; } = string.Empty;
     public string? HomePhone { get; set; }
-    public string? EmergencyContact { get; set; }
     public string? Email { get; set; }
     public string RelationshipToChild { get; set; } = string.Empty;
 
     // 園児情報
-    public string ChildName { get; set; } = string.Empty;
-    public string ChildNameKana { get; set; } = string.Empty;
+    public string ChildFamilyName { get; set; } = string.Empty;  // 園児苗字
+    public string ChildFirstName { get; set; } = string.Empty;  // 園児名前
+    public string ChildFamilyNameKana { get; set; } = string.Empty;  // 園児ふりがな（苗字）
+    public string ChildFirstNameKana { get; set; } = string.Empty;  // 園児ふりがな（名前）
     public DateTime ChildDateOfBirth { get; set; }
     public string ChildGender { get; set; } = string.Empty;
     public string? ChildBloodType { get; set; }
+    public string? ChildAllergy { get; set; }  // 園児アレルギー
     public string? ChildMedicalNotes { get; set; }
     public string? ChildSpecialInstructions { get; set; }
+    public bool ChildNoPhoto { get; set; } = true;  // 撮影禁止
 
     // 申込管理情報
     public string ApplicationStatus { get; set; } = "Pending";  // Pending/Imported/Rejected
@@ -924,3 +955,300 @@ public class ApplicationWork
 3. **Entity Framework Core のDbContext更新**
 
 どれから進めますか？
+
+---
+
+## 9. 献立管理機能のテーブル設計 *(2026-01-01追加)*
+
+### 9.1 概要
+
+給食・おやつ（午前・午後）の献立を登録し、保護者が閲覧できる機能を実装します。アレルギー対応として、食材ごとにアレルゲン情報を管理し、保護者の子供のアレルギーに該当する食材を自動的にハイライト表示します。
+
+### 9.2 テーブル構成
+
+#### 9.2.1 AllergenMaster（アレルゲンマスター）
+
+28項目の特定原材料・特定原材料に準ずるものを一元管理
+
+```sql
+create table [dbo].[AllergenMaster] (
+  [Id] int identity not null
+  , [AllergenName] nvarchar(50) not null
+  , [SortOrder] int not null
+  , [CreatedAt] datetime2 default [dbo].[GetJstDateTime]() not null
+)
+
+-- インデックス
+create index IX_AllergenMaster_SortOrder on [dbo].[AllergenMaster]([SortOrder])
+
+-- 主キー
+alter table [dbo].[AllergenMaster] add constraint [PK__AllergenMaster] primary key ([Id])
+```
+
+**カラム説明**:
+- `Id`: アレルゲンID（主キー）
+- `AllergenName`: アレルゲン名（例：卵、牛乳・乳製品、小麦）
+- `SortOrder`: 表示順
+- `CreatedAt`: 作成日時
+
+**初期データ（28項目）**:
+```
+卵、牛乳・乳製品、小麦、そば、落花生（ピーナッツ）、えび、かに、アーモンド、
+あわび、いか、いくら、オレンジ、カシューナッツ、キウイフルーツ、牛肉、くるみ、
+ごま、さけ、さば、大豆、鶏肉、バナナ、豚肉、まつたけ、もも、やまいも、りんご、ゼラチン
+```
+
+#### 9.2.2 MenuMaster（献立マスター）
+
+よく使う献立の再利用可能なテンプレート
+
+**設計方針**:
+- MenuTypeカラムは削除（献立は種類に関係なく使い回し可能）
+- 例：「みかん」はおやつでも給食のデザートでも使用可能
+
+```sql
+create table [dbo].[MenuMaster] (
+  [Id] int identity not null
+  , [NurseryId] int not null
+  , [MenuName] nvarchar(200) not null
+  , [IngredientName] nvarchar(200)
+  , [Allergens] nvarchar(200)
+  , [Description] nvarchar(500)
+  , [CreatedAt] datetime2 default [dbo].[GetJstDateTime]() not null
+  , [UpdatedAt] datetime2 default [dbo].[GetJstDateTime]() not null
+)
+
+-- インデックス
+create index IX_MenuMaster_NurseryId on [dbo].[MenuMaster]([NurseryId])
+create index IX_MenuMaster_MenuName on [dbo].[MenuMaster]([MenuName])
+
+-- 主キー
+alter table [dbo].[MenuMaster] add constraint [PK__MenuMaster] primary key ([Id])
+```
+
+**カラム説明**:
+- `Id`: 献立ID（主キー）
+- `NurseryId`: 保育園ID
+- `MenuName`: 献立名（例：カレーライス、白身魚のフライ、みかん）
+- `IngredientName`: 食材名（例：豚肉、じゃがいも、カレールウ）
+- `Allergens`: アレルゲン（カンマ区切りID：例：3,28 → 小麦,ゼラチン）
+- `Description`: 説明・備考
+- `CreatedAt`: 作成日時
+- `UpdatedAt`: 更新日時
+
+**設計変更の経緯**:
+- 2025-12-31以前: MenuMasterIngredientsテーブルを削除し、食材とアレルゲン情報はMenuMasterテーブルに直接格納
+- 2026-01-01: MenuTypeカラムを削除（献立は種類を問わず使い回し可能に）
+
+#### 9.2.3 DailyMenus（日別献立）
+
+実際に提供する日別の献立
+
+**設計方針**:
+- 1日に複数献立を登録可能（例：給食でカレーライス、サラダ、スープ、みかんの4品）
+- 献立の詳細情報（食材、アレルゲン）はMenuMasterから参照
+- SortOrderで同じ日・同じ種類内での表示順を管理
+
+```sql
+create table [dbo].[DailyMenus] (
+  [Id] int identity not null
+  , [NurseryId] int not null
+  , [MenuDate] date not null
+  , [MenuType] nvarchar(50) not null
+  , [MenuMasterId] int not null
+  , [SortOrder] int not null default 0
+  , [Notes] nvarchar(500)
+  , [CreatedAt] datetime2 default [dbo].[GetJstDateTime]() not null
+  , [UpdatedAt] datetime2 default [dbo].[GetJstDateTime]() not null
+  , constraint FK_DailyMenus_MenuMaster foreign key ([MenuMasterId]) references [dbo].[MenuMaster]([Id])
+)
+
+-- インデックス
+create index IX_DailyMenus_NurseryId on [dbo].[DailyMenus]([NurseryId])
+create index IX_DailyMenus_MenuDate on [dbo].[DailyMenus]([MenuDate])
+create index IX_DailyMenus_MenuType on [dbo].[DailyMenus]([MenuType])
+create index IX_DailyMenus_NurseryDate on [dbo].[DailyMenus]([NurseryId], [MenuDate])
+create index IX_DailyMenus_MenuMasterId on [dbo].[DailyMenus]([MenuMasterId])
+create index IX_DailyMenus_SortOrder on [dbo].[DailyMenus]([SortOrder])
+
+-- 主キー
+alter table [dbo].[DailyMenus] add constraint [PK__DailyMenus] primary key ([Id])
+
+-- ユニーク制約: 同じ日・同じタイプで同じ献立マスターは重複不可
+alter table [dbo].[DailyMenus] add constraint UQ_DailyMenus_Date_Type_Master unique ([NurseryId], [MenuDate], [MenuType], [MenuMasterId])
+```
+
+**カラム説明**:
+- `Id`: 日別献立ID（主キー）
+- `NurseryId`: 保育園ID
+- `MenuDate`: 提供日
+- `MenuType`: 種類（`Lunch`/`MorningSnack`/`AfternoonSnack`）
+- `MenuMasterId`: 献立マスターID（必須、MenuMasterを参照）
+- `SortOrder`: 表示順（同じ日・種類内での並び順、0から始まる連番）
+- `Notes`: 当日の特記事項（任意）
+- `CreatedAt`: 作成日時
+- `UpdatedAt`: 更新日時
+
+**ビジネスルール**:
+- 1日1タイプに複数献立を登録可能（例：給食で4品、午前おやつで2品）
+- MenuMasterIdは必須（カスタム献立を登録する場合、まずMenuMasterに登録してから使用）
+- 同じ日・同じタイプで同じMenuMasterIdは重複不可（ユニーク制約で保証）
+- 献立の詳細（食材、アレルゲン）はMenuMasterから取得（DailyMenusには保持しない）
+
+**設計変更の経緯**:
+- 2025-12-31以前: CustomMenuName, IngredientName, Allergens, Descriptionカラムを保持
+- 2026-01-01:
+  - CustomMenuNameを削除、MenuMasterIdを必須化（常に献立マスター経由）
+  - IngredientName, Allergens, Descriptionを削除（MenuMasterから参照）
+  - SortOrderを追加（1日複数献立対応）
+  - ユニーク制約追加（同じ日・タイプで同じ献立の重複防止）
+
+### 9.3 データ整合性とビジネスルール
+
+#### 9.3.1 アレルゲン管理
+- `AllergenMaster`に登録された28項目のアレルゲンを基準とする
+- `ChildAllergy`フィールド（Children/ApplicationWorksテーブル）とアレルゲン形式を統一
+  - 両方ともカンマ区切り文字列（例：`卵、牛乳・乳製品、小麦`）
+- フロントエンドでは`AllergenMaster`を参照してチェックボックスUI生成
+
+#### 9.3.2 献立マスターと日別献立の関係
+- **献立マスター**: 再利用可能な献立データ（例：カレーライス、サラダ、みかん）
+- **日別献立**: 実際の提供予定（MenuMasterへの参照のみ）
+- 日別献立を登録する際、新しい献立名を入力した場合は自動的にMenuMasterに登録
+- 既存の献立名はオートコンプリートで選択可能
+- 献立の詳細（食材、アレルゲン）は常にMenuMasterから参照
+
+#### 9.3.3 複数献立登録と表示順
+- 1日の同じ種類（Lunch/MorningSnack/AfternoonSnack）に複数献立を登録可能
+- SortOrderで表示順を管理（0, 1, 2, ...）
+- 例：給食 = カレーライス(0) + サラダ(1) + スープ(2) + みかん(3)
+- ユニーク制約により、同じ日・同じタイプで同じMenuMasterIdの重複は不可
+
+#### 9.3.4 献立マスターの自動登録フロー
+1. ユーザーが日別献立画面で献立名をオートコンプリート入力
+2. 既存の献立名にマッチしない場合、「新しい献立『〇〇』を登録」を表示
+3. 選択すると献立登録モーダルを表示（献立名、食材、アレルゲン入力）
+4. MenuMasterに登録後、自動的に日別献立に追加
+
+### 9.4 保護者向けアレルギーハイライト機能
+
+#### 9.4.1 ハイライト表示の仕組み
+1. 子供の`ChildAllergy`フィールドを取得（例：`豚肉、牛乳・乳製品`）
+2. 日別献立の各食材の`Allergens`フィールドと照合
+3. 一致するアレルゲンがある食材を赤文字＋⚠️マークで表示
+4. 献立カード全体に警告バッジを表示
+
+#### 9.4.2 表示例（保護者アプリ）
+```
+🍽️ 給食: カレーライス
+  使用食材:
+  • 豚肉 ⚠️ (豚肉)          ← 赤文字＋警告マーク
+  • じゃがいも
+  • にんじん
+  • 玉ねぎ
+  • カレールウ ⚠️ (小麦、乳) ← 赤文字＋警告マーク
+
+  ┌────────────────────────────┐
+  │ ⚠️ お子様のアレルギーに      │
+  │    該当する食材が含まれています│
+  └────────────────────────────┘
+```
+
+### 9.5 テーブル一覧サマリー
+
+| テーブル名 | 説明 | 主要カラム |
+|-----------|------|-----------|
+| AllergenMaster | アレルゲンマスター（28項目） | Id, AllergenName, SortOrder |
+| MenuMaster | 献立マスター | Id, NurseryId, MenuName, IngredientName, Allergens |
+| DailyMenus | 日別献立 | Id, NurseryId, MenuDate, MenuType, MenuMasterId, SortOrder |
+
+**合計: 3テーブル(献立管理機能)**
+
+**削除されたテーブル**:
+- MenuMasterIngredients（MenuMasterに統合、2025-12-31削除）
+- DailyMenuIngredients（2026-01-01削除、MenuMaster参照方式に変更）
+
+### 9.6 実装フェーズ
+
+#### Phase 1: データベース基盤（1-2日）
+- [x] テーブル作成スクリプト作成（`create_menu_tables.sql`）
+- [ ] Azure SQL Databaseでスクリプト実行
+- [ ] AllergenMaster初期データ投入確認（28件）
+
+#### Phase 2: バックエンドAPI（3-4日）
+- [ ] Entity Frameworkモデル作成
+- [ ] AllergenMaster取得API
+- [ ] MenuMaster CRUD API
+- [ ] DailyMenu CRUD API
+
+#### Phase 3: デスクトップUI（4-5日）
+- [ ] 献立マスター管理画面
+- [ ] 日別献立編集画面
+- [ ] 食材追加UI（アレルゲンチェックボックス）
+
+#### Phase 4: 保護者閲覧機能（3-4日）
+- [ ] 献立カレンダー画面（スマホ）
+- [ ] 献立詳細画面（アレルギーハイライト）
+
+#### Phase 5: 既存機能の統合（2-3日）
+- [ ] 申込フォームの食物アレルギーをAllergenMasterから動的生成
+- [ ] デスクトップ申込詳細画面のアレルギー表示をAllergenMasterから取得
+
+---
+
+## 10. 献立管理機能とアレルギー管理の統合
+
+### 10.1 ChildAllergyフィールドの統一
+
+既存の`Children`テーブルおよび`ApplicationWorks`テーブルの`ChildAllergy`フィールドは、現在28項目のチェックボックスから生成されるカンマ区切り文字列です。献立管理機能でも同じ形式を採用することで、システム全体でアレルギー管理を統一します。
+
+#### 現在の実装（ハードコード）
+```typescript
+// ApplicationFormPage.tsx
+const allergyItems = [
+  '卵', '牛乳・乳製品', '小麦', 'そば', '落花生（ピーナッツ）',
+  'えび', 'かに', 'アーモンド', // ... 28項目
+];
+```
+
+#### 新しい実装（AllergenMasterから動的取得）
+```typescript
+// AllergenMasterから取得
+const allergyItems = await fetchAllergens(); // API呼び出し
+// → ['卵', '牛乳・乳製品', '小麦', ...] （28項目）
+```
+
+### 10.2 影響範囲
+
+#### 変更が必要な画面・コンポーネント
+1. **申込フォーム**（`ApplicationFormPage.tsx`）
+   - 食物アレルギーチェックボックスを動的生成
+   - AllergenMaster APIから取得したデータで生成
+
+2. **デスクトップ申込詳細画面**（`ApplicationDetailModal.tsx`）
+   - アレルギー情報表示部分
+   - カンマ区切り文字列をそのまま表示（変更不要の可能性）
+
+3. **園児編集画面**（`ChildEditModal.tsx`）
+   - 食物アレルギーチェックボックス（現在は未実装？）
+   - 今後AllergenMasterから動的生成する
+
+### 10.3 データフロー
+
+```
+[AllergenMaster DB]
+       ↓ (GET /api/allergens)
+[フロントエンド]
+       ↓ (チェックボックス生成)
+[ユーザー選択: 卵、牛乳・乳製品、小麦]
+       ↓ (カンマ区切り文字列化)
+[ApplicationWorks.ChildAllergy = "卵、牛乳・乳製品、小麦"]
+       ↓ (保存)
+[Azure SQL Database]
+```
+
+### 10.4 実装優先順位
+
+1. **高優先度**: 申込フォームのAllergenMaster連携（保護者が直接使用）
+2. **中優先度**: デスクトップ申込詳細のAllergenMaster参照
+3. **低優先度**: 園児編集画面のAllergenMaster連携（将来対応）

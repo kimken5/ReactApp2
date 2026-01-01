@@ -106,8 +106,8 @@ export const academicYearService = {
       if (existingIndex >= 0) {
         mockAcademicYears[existingIndex] = {
           ...mockAcademicYears[existingIndex],
-          startDate: request.startDate,
-          endDate: request.endDate,
+          startDate: request.startDate || mockAcademicYears[existingIndex].startDate,
+          endDate: request.endDate || mockAcademicYears[existingIndex].endDate,
           notes: request.notes,
         };
         return Promise.resolve(mockAcademicYears[existingIndex]);

@@ -69,7 +69,7 @@ export function PhotoUploadPage() {
   const [showNoPhotoWarning, setShowNoPhotoWarning] = useState(false);
   const [noPhotoValidationResult, setNoPhotoValidationResult] =
     useState<ValidateChildrenForPhotoResponseDto | null>(null);
-  const [pendingAction, setPendingAction] = useState<'draft' | 'publish' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'draft' | 'published' | null>(null);
 
   // Load master data
   useEffect(() => {
@@ -412,7 +412,7 @@ export function PhotoUploadPage() {
     // Validate NoPhoto setting
     const isValidated = await validateChildrenForNoPhoto();
     if (!isValidated) {
-      setPendingAction('publish');
+      setPendingAction('published');
       return; // Wait for user confirmation in dialog
     }
 
@@ -607,7 +607,7 @@ export function PhotoUploadPage() {
                 >
                   <option value="">クラスを選択してください</option>
                   {classes.map((classItem) => (
-                    <option key={classItem.id} value={classItem.id}>
+                    <option key={classItem.classId} value={classItem.classId}>
                       {classItem.name}
                     </option>
                   ))}

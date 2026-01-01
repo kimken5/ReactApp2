@@ -50,7 +50,6 @@ const generateDemoPhotos = (): PhotoDto[] => {
     publishedAt: new Date(2025, 0, 15 - i).toISOString(),
     status: statuses[i % 2],
     visibilityLevel: visibilityLevels[i % 3],
-    requiresConsent: i % 3 === 0,
     viewCount: Math.floor(Math.random() * 100),
     downloadCount: Math.floor(Math.random() * 20),
     isActive: true,
@@ -65,29 +64,42 @@ const generateDemoPhotos = (): PhotoDto[] => {
 
 const generateDemoChildren = (): ChildDto[] => {
   return Array.from({ length: 8 }, (_, i) => ({
+    nurseryId: 1,
     childId: i + 1,
-    name: `園児${i + 1}`,
+    familyName: `園児${i + 1}`,
+    firstName: `太郎`,
+    name: `園児${i + 1} 太郎`,
     classId: `class${Math.floor(i / 3) + 1}`,
-    gradeId: `grade${Math.floor(i / 4) + 1}`,
-    birthDate: new Date(2020, i % 12, (i + 1) * 3).toISOString(),
-    enrollmentDate: new Date(2024, 3, 1).toISOString()
+    className: ['さくら組', 'ひまわり組', 'つき組'][Math.floor(i / 3)],
+    dateOfBirth: new Date(2020, i % 12, (i + 1) * 3).toISOString(),
+    gender: i % 2 === 0 ? '男' : '女',
+    isActive: true,
+    noPhoto: false,
+    age: 4,
+    createdAt: new Date(2024, 3, 1).toISOString(),
+    parents: []
   }));
 };
 
 const generateDemoClasses = (): ClassDto[] => {
   return [
-    { classId: 'class1', name: 'さくら組', gradeId: 'grade1' },
-    { classId: 'class2', name: 'ひまわり組', gradeId: 'grade1' },
-    { classId: 'class3', name: 'つき組', gradeId: 'grade2' }
+    { nurseryId: 1, classId: 'class1', name: 'さくら組', ageGroupMin: 4, ageGroupMax: 5, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+    { nurseryId: 1, classId: 'class2', name: 'ひまわり組', ageGroupMin: 3, ageGroupMax: 4, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] },
+    { nurseryId: 1, classId: 'class3', name: 'つき組', ageGroupMin: 5, ageGroupMax: 6, maxCapacity: 20, isActive: true, createdAt: new Date().toISOString(), currentEnrollment: 0, assignedStaffNames: [] }
   ];
 };
 
 const generateDemoStaff = (): StaffDto[] => {
   return Array.from({ length: 5 }, (_, i) => ({
+    nurseryId: 1,
     staffId: i + 1,
     name: `田中 ${['花子', '太郎', '次郎', '三郎', '四郎'][i]}`,
+    phoneNumber: `090-1234-${(5678 + i).toString().padStart(4, '0')}`,
     email: `staff${i + 1}@example.com`,
-    phone: `090-1234-${(5678 + i).toString().padStart(4, '0')}`
+    role: '担任',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    classAssignments: []
   }));
 };
 
@@ -146,7 +158,6 @@ export function PhotosPage() {
     endDate: undefined,
     visibilityLevel: undefined,
     status: undefined,
-    requiresConsent: undefined,
     searchKeyword: '',
   });
 
@@ -232,8 +243,7 @@ export function PhotosPage() {
         filter.startDate ||
         filter.endDate ||
         filter.visibilityLevel ||
-        filter.status ||
-        filter.requiresConsent !== undefined;
+        filter.status;
 
       if (hasApiFilter) {
         const filtered = await photoService.getPhotos(filter);

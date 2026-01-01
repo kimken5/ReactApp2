@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ReactApp.Server.Data;
+using ReactApp.Server.Helpers;
 
 namespace ReactApp.Server;
 
@@ -38,7 +39,7 @@ public class TestPasswordHash
         // Update database
         nursery.LoginId = "demo";
         nursery.Password = newHash;
-        nursery.UpdatedAt = DateTime.UtcNow;
+        nursery.UpdatedAt = DateTimeHelper.GetJstNow();
 
         await context.SaveChangesAsync();
 

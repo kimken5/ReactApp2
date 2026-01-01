@@ -468,7 +468,15 @@ namespace ReactApp.Server.Services
                 // フィルタ適用
                 if (!string.IsNullOrWhiteSpace(filter.ClassId))
                 {
-                    query = query.Where(c => c.ClassId == filter.ClassId);
+                    // "unassigned"は無所属（ClassId = null）を意味する
+                    if (filter.ClassId == "unassigned")
+                    {
+                        query = query.Where(c => c.ClassId == null);
+                    }
+                    else
+                    {
+                        query = query.Where(c => c.ClassId == filter.ClassId);
+                    }
                 }
 
                 if (!string.IsNullOrWhiteSpace(filter.GraduationStatus))
@@ -484,7 +492,7 @@ namespace ReactApp.Server.Services
                 if (!string.IsNullOrWhiteSpace(filter.SearchKeyword))
                 {
                     var keyword = filter.SearchKeyword.ToLower();
-                    query = query.Where(c => c.Name.ToLower().Contains(keyword));
+                    query = query.Where(c => (c.FamilyName + " " + c.FirstName).ToLower().Contains(keyword));
                 }
 
                 // 卒園日フィルター (文字列からDateTimeに変換)
@@ -511,10 +519,22 @@ namespace ReactApp.Server.Services
 
                 var children = await query
                     .OrderBy(c => c.ClassId)
-                    .ThenBy(c => c.Name)
+                    .ThenBy(c => c.FamilyName)
+                    .ThenBy(c => c.FirstName)
                     .ToListAsync();
 
                 _logger.LogInformation("=== GetChildrenAsync: Query result count = {Count}", children.Count);
+
+                // DEBUG: 鳥居くんのGraduationStatus値を確認
+                var toriiChildren = children.Where(c => (c.FamilyName + " " + c.FirstName).Contains("鳥居")).ToList();
+                if (toriiChildren.Any())
+                {
+                    foreach (var child in toriiChildren)
+                    {
+                        _logger.LogInformation("DEBUG: Child Name={FamilyName} {FirstName}, ChildId={ChildId}, GraduationStatus=[{GraduationStatus}]",
+                            child.FamilyName, child.FirstName, child.ChildId, child.GraduationStatus);
+                    }
+                }
 
                 // クラス名を取得
                 var classIds = children.Where(c => !string.IsNullOrEmpty(c.ClassId)).Select(c => c.ClassId).Distinct().ToList();
@@ -549,12 +569,15 @@ namespace ReactApp.Server.Services
                 {
                     NurseryId = c.NurseryId,
                     ChildId = c.ChildId,
-                    Name = c.Name,
-                    Furigana = c.Furigana,
+                    FamilyName = c.FamilyName,
+                    FirstName = c.FirstName,
+                    FamilyFurigana = c.FamilyFurigana,
+                    FirstFurigana = c.FirstFurigana,
                     DateOfBirth = c.DateOfBirth,
                     Gender = c.Gender,
                     ClassId = c.ClassId,
                     ClassName = !string.IsNullOrEmpty(c.ClassId) && classNames.ContainsKey(c.ClassId) ? classNames[c.ClassId] : null,
+                    Allergy = c.Allergy,
                     MedicalNotes = c.MedicalNotes,
                     SpecialInstructions = c.SpecialInstructions,
                     IsActive = c.IsActive,
@@ -565,6 +588,7 @@ namespace ReactApp.Server.Services
                     LastAttendanceDate = c.LastAttendanceDate,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt,
+                    NoPhoto = c.NoPhoto,
                     Age = CalculateAge(c.DateOfBirth),
                     Parents = parentRelationships.ContainsKey(c.ChildId) ? parentRelationships[c.ChildId] : new List<ParentBasicInfoDto>()
                 }).ToList();
@@ -623,12 +647,15 @@ namespace ReactApp.Server.Services
                 {
                     NurseryId = child.NurseryId,
                     ChildId = child.ChildId,
-                    Name = child.Name,
-                    Furigana = child.Furigana,
+                    FamilyName = child.FamilyName,
+                    FirstName = child.FirstName,
+                    FamilyFurigana = child.FamilyFurigana,
+                    FirstFurigana = child.FirstFurigana,
                     DateOfBirth = child.DateOfBirth,
                     Gender = child.Gender,
                     ClassId = child.ClassId,
                     ClassName = className,
+                    Allergy = child.Allergy,
                     MedicalNotes = child.MedicalNotes,
                     SpecialInstructions = child.SpecialInstructions,
                     IsActive = child.IsActive,
@@ -639,6 +666,7 @@ namespace ReactApp.Server.Services
                     LastAttendanceDate = child.LastAttendanceDate,
                     CreatedAt = child.CreatedAt,
                     UpdatedAt = child.UpdatedAt,
+                    NoPhoto = child.NoPhoto,
                     Age = CalculateAge(child.DateOfBirth),
                     Parents = parents
                 };
@@ -669,14 +697,18 @@ namespace ReactApp.Server.Services
                 {
                     NurseryId = nurseryId,
                     ChildId = newChildId,
-                    Name = request.Name,
-                    Furigana = request.Furigana,
+                    FamilyName = request.FamilyName,
+                    FirstName = request.FirstName,
+                    FamilyFurigana = request.FamilyFurigana,
+                    FirstFurigana = request.FirstFurigana,
                     DateOfBirth = request.DateOfBirth,
                     Gender = request.Gender,
                     ClassId = request.ClassId,
                     BloodType = request.BloodType,
+                    Allergy = request.Allergy,
                     MedicalNotes = request.MedicalNotes,
                     SpecialInstructions = request.SpecialInstructions,
+                    NoPhoto = request.NoPhoto,
                     GraduationStatus = "Active", // 新規作成時はActiveに設定
                     IsActive = true,
                     CreatedAt = now
@@ -832,11 +864,15 @@ namespace ReactApp.Server.Services
                     throw new InvalidOperationException($"園児が見つかりません。ChildId: {childId}");
                 }
 
-                child.Name = request.Name;
+                child.FamilyName = request.FamilyName;
+                child.FirstName = request.FirstName;
+                child.FamilyFurigana = request.FamilyFurigana;
+                child.FirstFurigana = request.FirstFurigana;
                 child.DateOfBirth = request.DateOfBirth;
                 child.Gender = request.Gender;
                 child.ClassId = request.ClassId;
                 child.BloodType = request.BloodType;
+                child.Allergy = request.Allergy;
                 child.MedicalNotes = request.MedicalNotes;
                 child.SpecialInstructions = request.SpecialInstructions;
                 child.GraduationDate = request.GraduationDate;
@@ -844,6 +880,7 @@ namespace ReactApp.Server.Services
                 child.WithdrawalReason = request.WithdrawalReason;
                 child.LastAttendanceDate = request.LastAttendanceDate;
                 child.IsActive = request.IsActive;
+                child.NoPhoto = request.NoPhoto;
                 child.UpdatedAt = DateTimeHelper.GetJstNow();
 
                 await _context.SaveChangesAsync();
@@ -1024,7 +1061,7 @@ namespace ReactApp.Server.Services
                         {
                             NurseryId = x.Child.NurseryId,
                             ChildId = x.Child.ChildId,
-                            Name = x.Child.Name,
+                            Name = $"{x.Child.FamilyName} {x.Child.FirstName}",
                             ClassId = x.Child.ClassId,
                             ClassName = !string.IsNullOrEmpty(x.Child.ClassId) && classNames.ContainsKey(x.Child.ClassId)
                                 ? classNames[x.Child.ClassId]
@@ -1038,7 +1075,14 @@ namespace ReactApp.Server.Services
                     Id = p.Id,
                     PhoneNumber = p.PhoneNumber,
                     Name = p.Name,
+                    NameKana = p.NameKana,
+                    DateOfBirth = p.DateOfBirth,
                     Email = p.Email,
+                    PostalCode = p.PostalCode,
+                    Prefecture = p.Prefecture,
+                    City = p.City,
+                    AddressLine = p.AddressLine,
+                    HomePhone = p.HomePhone,
                     NurseryId = p.NurseryId,
                     PushNotificationsEnabled = p.PushNotificationsEnabled,
                     AbsenceConfirmationEnabled = p.AbsenceConfirmationEnabled,
@@ -1103,7 +1147,14 @@ namespace ReactApp.Server.Services
                     Id = parent.Id,
                     PhoneNumber = parent.PhoneNumber,
                     Name = parent.Name,
+                    NameKana = parent.NameKana,
+                    DateOfBirth = parent.DateOfBirth,
                     Email = parent.Email,
+                    PostalCode = parent.PostalCode,
+                    Prefecture = parent.Prefecture,
+                    City = parent.City,
+                    AddressLine = parent.AddressLine,
+                    HomePhone = parent.HomePhone,
                     NurseryId = parent.NurseryId,
                     PushNotificationsEnabled = parent.PushNotificationsEnabled,
                     AbsenceConfirmationEnabled = parent.AbsenceConfirmationEnabled,
@@ -1121,7 +1172,7 @@ namespace ReactApp.Server.Services
                     {
                         NurseryId = c.NurseryId,
                         ChildId = c.ChildId,
-                        Name = c.Name,
+                        Name = $"{c.FamilyName} {c.FirstName}",
                         ClassId = c.ClassId,
                         ClassName = !string.IsNullOrEmpty(c.ClassId) && classNames.ContainsKey(c.ClassId)
                             ? classNames[c.ClassId]
@@ -1161,7 +1212,14 @@ namespace ReactApp.Server.Services
                 {
                     PhoneNumber = normalizedPhone,
                     Name = request.Name,
+                    NameKana = request.NameKana,
+                    DateOfBirth = request.DateOfBirth != null ? DateTime.Parse(request.DateOfBirth) : (DateTime?)null,
                     Email = request.Email,
+                    PostalCode = request.PostalCode,
+                    Prefecture = request.Prefecture,
+                    City = request.City,
+                    AddressLine = request.AddressLine,
+                    HomePhone = request.HomePhone,
                     NurseryId = nurseryId, // 保育園IDを設定
                     IsPrimary = true, // デスクトップアプリで登録する保護者は主保護者
                     IsActive = true,
@@ -1212,6 +1270,8 @@ namespace ReactApp.Server.Services
         {
             try
             {
+                _logger.LogInformation("UpdateParentAsync called: ParentId={ParentId}, Request={@Request}", parentId, request);
+
                 var parent = await _context.Parents
                     .Where(p => p.Id == parentId && p.NurseryId == nurseryId)
                     .FirstOrDefaultAsync();
@@ -1231,9 +1291,44 @@ namespace ReactApp.Server.Services
                     parent.Name = request.Name;
                 }
 
+                if (request.NameKana != null)
+                {
+                    parent.NameKana = request.NameKana;
+                }
+
+                if (request.DateOfBirth != null)
+                {
+                    parent.DateOfBirth = DateTime.Parse(request.DateOfBirth);
+                }
+
                 if (request.Email != null)
                 {
                     parent.Email = request.Email;
+                }
+
+                if (request.PostalCode != null)
+                {
+                    parent.PostalCode = request.PostalCode;
+                }
+
+                if (request.Prefecture != null)
+                {
+                    parent.Prefecture = request.Prefecture;
+                }
+
+                if (request.City != null)
+                {
+                    parent.City = request.City;
+                }
+
+                if (request.AddressLine != null)
+                {
+                    parent.AddressLine = request.AddressLine;
+                }
+
+                if (request.HomePhone != null)
+                {
+                    parent.HomePhone = request.HomePhone;
                 }
 
                 if (request.PushNotificationsEnabled.HasValue)
@@ -1825,8 +1920,10 @@ namespace ReactApp.Server.Services
                 .Select(c => new AssignedChildDto
                 {
                     ChildId = c.ChildId,
-                    Name = c.Name,
-                    Furigana = c.Furigana
+                    Name = $"{c.FamilyName} {c.FirstName}",
+                    Furigana = !string.IsNullOrEmpty(c.FamilyFurigana) && !string.IsNullOrEmpty(c.FirstFurigana)
+                        ? $"{c.FamilyFurigana} {c.FirstFurigana}"
+                        : null
                 })
                 .ToListAsync();
 

@@ -22,6 +22,156 @@ namespace ReactApp.Server.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("ReactApp.Server.ApplicationWork", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddressLine")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ApplicantName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ApplicantNameKana")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ApplicationStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<string>("ChildBloodType")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateOnly>("ChildDateOfBirth")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ChildGender")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("ChildMedicalNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ChildName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ChildNameKana")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ChildSpecialInstructions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateOnly>("DateOfBirth")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("HomePhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("ImportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ImportedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsImported")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MobilePhone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("NurseryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<string>("Prefecture")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RelationshipToChild")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationStatus")
+                        .HasDatabaseName("IX_ApplicationWork_ApplicationStatus");
+
+                    b.HasIndex("CreatedAt")
+                        .IsDescending()
+                        .HasDatabaseName("IX_ApplicationWork_CreatedAt");
+
+                    b.HasIndex("IsImported")
+                        .HasDatabaseName("IX_ApplicationWork_IsImported");
+
+                    b.HasIndex("MobilePhone")
+                        .HasDatabaseName("IX_ApplicationWork_MobilePhone");
+
+                    b.HasIndex("NurseryId")
+                        .HasDatabaseName("IX_ApplicationWork_NurseryId");
+
+                    b.HasIndex(new[] { "ApplicationStatus" }, "IX_ApplicationWork_ApplicationStatus");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "IX_ApplicationWork_CreatedAt")
+                        .HasDatabaseName("IX_ApplicationWork_CreatedAt1");
+
+                    b.HasIndex(new[] { "IsImported" }, "IX_ApplicationWork_IsImported");
+
+                    b.HasIndex(new[] { "MobilePhone" }, "IX_ApplicationWork_MobilePhone");
+
+                    b.HasIndex(new[] { "NurseryId" }, "IX_ApplicationWork_NurseryId");
+
+                    b.ToTable("ApplicationWorks", (string)null);
+                });
+
             modelBuilder.Entity("ReactApp.Server.Models.AbsenceNotification", b =>
                 {
                     b.Property<int>("Id")
@@ -158,8 +308,8 @@ namespace ReactApp.Server.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
 
                     b.Property<bool>("IsArchived")
                         .ValueGeneratedOnAdd()
@@ -180,8 +330,8 @@ namespace ReactApp.Server.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -564,10 +714,6 @@ namespace ReactApp.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1320,6 +1466,10 @@ namespace ReactApp.Server.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("ApplicationKey")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1405,12 +1555,16 @@ namespace ReactApp.Server.Migrations
                     b.Property<bool>("AbsenceConfirmationEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Address")
+                    b.Property<string>("AddressLine")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<bool>("AnnouncementEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -1419,6 +1573,9 @@ namespace ReactApp.Server.Migrations
 
                     b.Property<bool>("DailyReportEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .HasMaxLength(200)
@@ -1431,6 +1588,10 @@ namespace ReactApp.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("HomePhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -1450,6 +1611,10 @@ namespace ReactApp.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("NameKana")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<int>("NurseryId")
                         .HasColumnType("int");
 
@@ -1457,6 +1622,14 @@ namespace ReactApp.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<string>("Prefecture")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<bool>("PushNotificationsEnabled")
                         .HasColumnType("bit");
@@ -1468,6 +1641,10 @@ namespace ReactApp.Server.Migrations
 
                     b.HasIndex("Email")
                         .HasDatabaseName("IX_Parents_Email");
+
+                    b.HasIndex("PostalCode")
+                        .HasDatabaseName("IX_Parents_PostalCode")
+                        .HasFilter("[PostalCode] IS NOT NULL");
 
                     b.HasIndex("IsActive", "CreatedAt")
                         .HasDatabaseName("IX_Parents_Active_Created");

@@ -120,7 +120,7 @@ namespace ReactApp.Server.Services
                         className = classInfo?.Name;
                     }
 
-                    result.Add(MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount));
+                    result.Add(MapToDto(report, child != null ? $"{child.FamilyName} {child.FirstName}" : "不明", className, staff?.Name ?? "不明", responseCount));
                 }
 
                 // レポート種別フィルタリング（メモリ上で完全一致）
@@ -206,7 +206,7 @@ namespace ReactApp.Server.Services
                     "日報詳細取得成功: NurseryId={NurseryId}, ReportId={ReportId}",
                     nurseryId, reportId);
 
-                return MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount);
+                return MapToDto(report, child != null ? $"{child.FamilyName} {child.FirstName}" : "不明", className, staff?.Name ?? "不明", responseCount);
             }
             catch (Exception ex)
             {
@@ -285,7 +285,7 @@ namespace ReactApp.Server.Services
                     "日報作成成功: NurseryId={NurseryId}, ReportId={ReportId}, ChildId={ChildId}, StaffId={StaffId}",
                     nurseryId, report.Id, request.ChildId, request.StaffId);
 
-                return MapToDto(report, child.Name, className, staff.Name, 0);
+                return MapToDto(report, $"{child.FamilyName} {child.FirstName}", className, staff.Name, 0);
             }
             catch (Exception ex)
             {
@@ -381,7 +381,7 @@ namespace ReactApp.Server.Services
                     "日報更新成功: NurseryId={NurseryId}, ReportId={ReportId}",
                     nurseryId, reportId);
 
-                return MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount);
+                return MapToDto(report, child != null ? $"{child.FamilyName} {child.FirstName}" : "不明", className, staff?.Name ?? "不明", responseCount);
             }
             catch (Exception ex)
             {
@@ -462,7 +462,7 @@ namespace ReactApp.Server.Services
                     "日報公開成功: NurseryId={NurseryId}, ReportId={ReportId}",
                     nurseryId, reportId);
 
-                return MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount);
+                return MapToDto(report, child != null ? $"{child.FamilyName} {child.FirstName}" : "不明", className, staff?.Name ?? "不明", responseCount);
             }
             catch (Exception ex)
             {
@@ -505,7 +505,7 @@ namespace ReactApp.Server.Services
                         className = classInfo?.Name;
                     }
 
-                    result.Add(MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount));
+                    result.Add(MapToDto(report, child != null ? $"{child.FamilyName} {child.FirstName}" : "不明", className, staff?.Name ?? "不明", responseCount));
                 }
 
                 _logger.LogInformation(
@@ -555,7 +555,7 @@ namespace ReactApp.Server.Services
                         className = classInfo?.Name;
                     }
 
-                    result.Add(MapToDto(report, child?.Name ?? "不明", className, staff?.Name ?? "不明", responseCount));
+                    result.Add(MapToDto(report, child != null ? $"{child.FamilyName} {child.FirstName}" : "不明", className, staff?.Name ?? "不明", responseCount));
                 }
 
                 _logger.LogInformation(

@@ -6,8 +6,11 @@
  * 園児情報（単体）
  */
 export interface ChildInfo {
-  childName: string;
-  childNameKana: string;
+  childFamilyName: string;
+  childFirstName: string;
+  childFamilyNameKana: string;
+  childFirstNameKana: string;
+  childAllergy?: string;
   childDateOfBirth: string; // YYYY-MM-DD形式
   childGender: 'M' | 'F';
   childBloodType?: string;

@@ -366,7 +366,7 @@ export function ApplicationsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {app.childName}（{calculateAge(app.childDateOfBirth)}）
+                      {app.childFamilyName} {app.childFirstName}（{calculateAge(app.childDateOfBirth)}）
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatBirthDate(app.childDateOfBirth)}

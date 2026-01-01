@@ -55,7 +55,6 @@ export const photoService = {
       formData.append('targetClassId', request.targetClassId);
     }
     formData.append('status', request.status);
-    formData.append('requiresConsent', String(request.requiresConsent));
     formData.append('staffId', String(request.staffId));
 
     // 配列の送信（複数のchildIdを送信）

@@ -428,20 +428,18 @@ export function DailyReportFormPage() {
       const photoFileNames = await uploadPhotosToAzure(uploadedPhotos, childId, staffId);
       console.log('写真アップロード完了:', photoFileNames);
 
-      const draftData = isEditMode
-        ? { ...updateFormData, photos: photoFileNames, status: 'draft' }
-        : { ...createFormData, photos: photoFileNames, status: 'draft' };
-
       if (isEditMode && id) {
         // 更新：一覧に戻る
-        await dailyReportService.updateDailyReport(Number(id), draftData);
+        const updateDraftData = { ...updateFormData, photos: photoFileNames, status: 'draft' };
+        await dailyReportService.updateDailyReport(Number(id), updateDraftData);
         setSuccessMessage('下書きを保存しました');
         setTimeout(() => {
           navigate('/desktop/dailyreports');
         }, 2000);
       } else {
         // 作成：フォームをクリアして継続入力
-        await dailyReportService.createDailyReport(draftData);
+        const createDraftData = { ...createFormData, photos: photoFileNames, status: 'draft' };
+        await dailyReportService.createDailyReport(createDraftData);
         setSuccessMessage('下書きを保存しました');
 
         // フォームをクリア
@@ -499,20 +497,18 @@ export function DailyReportFormPage() {
       const photoFileNames = await uploadPhotosToAzure(uploadedPhotos, childId, staffId);
       console.log('写真アップロード完了:', photoFileNames);
 
-      const publishedData = isEditMode
-        ? { ...updateFormData, photos: photoFileNames, status: 'published' }
-        : { ...createFormData, photos: photoFileNames, status: 'published' };
-
       if (isEditMode && id) {
         // 更新：一覧に戻る
-        await dailyReportService.updateDailyReport(Number(id), publishedData);
+        const updatePublishedData = { ...updateFormData, photos: photoFileNames, status: 'published' };
+        await dailyReportService.updateDailyReport(Number(id), updatePublishedData);
         setSuccessMessage('レポートを送信しました');
         setTimeout(() => {
           navigate('/desktop/dailyreports');
         }, 2000);
       } else {
         // 作成：フォームをクリアして継続入力
-        await dailyReportService.createDailyReport(publishedData);
+        const createPublishedData = { ...createFormData, photos: photoFileNames, status: 'published' };
+        await dailyReportService.createDailyReport(createPublishedData);
         setSuccessMessage('レポートを送信しました');
 
         // フォームをクリア

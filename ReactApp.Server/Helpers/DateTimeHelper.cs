@@ -17,7 +17,7 @@ public static class DateTimeHelper
     /// <returns>日本時間（JST）</returns>
     public static DateTime GetJstNow()
     {
-        return DateTimeHelper.GetJstNow().AddHours(9);
+        return DateTime.UtcNow.AddHours(9);
     }
 
     /// <summary>

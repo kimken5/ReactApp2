@@ -37,14 +37,18 @@ export interface ApplicationWorkDto {
   email?: string;
   relationshipToChild: string;
 
-  // 園児情報 (7フィールド)
-  childName: string;
-  childNameKana: string;
+  // 園児情報 (9フィールド)
+  childFamilyName: string;
+  childFirstName: string;
+  childFamilyNameKana: string;
+  childFirstNameKana: string;
+  childAllergy?: string;
   childDateOfBirth: string;
   childGender: string;
   childBloodType?: string;
   childMedicalNotes?: string;
   childSpecialInstructions?: string;
+  childNoPhoto: boolean;
 
   // 申込管理情報 (7フィールド)
   applicationStatus: ApplicationStatus;
@@ -68,7 +72,8 @@ export interface ApplicationWorkDto {
 export interface ApplicationListItemDto {
   id: number;
   applicantName: string;
-  childName: string;
+  childFamilyName: string;
+  childFirstName: string;
   childDateOfBirth: string;
   relationshipToChild: string;
   mobilePhone: string;

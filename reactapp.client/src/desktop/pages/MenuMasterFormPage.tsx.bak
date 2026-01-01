@@ -1,0 +1,291 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { menuService } from '../services/menuService';
+import { fetchAllergens, type Allergen } from '../../services/allergenService';
+import type {
+  MenuMasterDto,
+  CreateMenuMasterDto,
+  UpdateMenuMasterDto,
+} from '../types/menu';
+import { MdSave, MdCancel } from 'react-icons/md';
+
+/**
+ * 献立マスター作成・編集ページ
+ */
+export function MenuMasterFormPage() {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = !!id;
+
+  const [menuMaster, setMenuMaster] = useState<MenuMasterDto | null>(null);
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [formData, setFormData] = useState({
+    menuName: '',
+    menuType: 'Lunch' as 'Lunch' | 'MorningSnack' | 'AfternoonSnack',
+    ingredients: '',
+    allergenIds: [] as number[],
+  });
+
+  // アレルゲンマスター取得
+  useEffect(() => {
+    const loadAllergens = async () => {
+      try {
+        const data = await fetchAllergens();
+        setAllergens(data);
+      } catch (error) {
+        console.error('アレルゲンマスターの取得に失敗しました:', error);
+      }
+    };
+
+    loadAllergens();
+  }, []);
+
+  // 初期データ読み込み
+  useEffect(() => {
+    loadData();
+  }, [id]);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+
+      if (isEditMode && id) {
+        const data = await menuService.getMenuMasterById(parseInt(id, 10));
+        setMenuMaster(data);
+
+        // 食材を改行区切りのテキストに変換
+        const ingredientsText = data.ingredients.map(ing => ing.ingredientName).join('\n');
+
+        // 全食材のアレルゲンIDを重複なしで抽出
+        const allergenSet = new Set<number>();
+        data.ingredients.forEach(ing => {
+          if (ing.allergens) {
+            ing.allergens.split(',').forEach(id => allergenSet.add(Number(id)));
+          }
+        });
+
+        setFormData({
+          menuName: data.menuName,
+          menuType: data.menuType,
+          ingredients: ingredientsText,
+          allergenIds: Array.from(allergenSet),
+        });
+      }
+    } catch (error) {
+      console.error('データの取得に失敗しました:', error);
+      setErrors({ general: 'データの取得に失敗しました' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // フォーム入力ハンドラ
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // アレルゲンチェックボックスのトグル
+  const toggleAllergen = (allergenId: number) => {
+    setFormData((prev) => {
+      const newAllergenIds = prev.allergenIds.includes(allergenId)
+        ? prev.allergenIds.filter((id) => id !== allergenId)
+        : [...prev.allergenIds, allergenId];
+
+      return { ...prev, allergenIds: newAllergenIds.sort((a, b) => a - b) };
+    });
+  };
+
+  // バリデーション
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.menuName.trim()) {
+      newErrors.menuName = '献立名を入力してください';
+    }
+
+    if (!formData.ingredients.trim()) {
+      newErrors.ingredients = '食材を入力してください';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // 保存
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validate()) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      // 食材を改行で分割して配列に変換
+      const ingredientLines = formData.ingredients
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+      // アレルゲンIDをカンマ区切り文字列に変換
+      const allergenString = formData.allergenIds.join(',');
+
+      const requestData = {
+        menuName: formData.menuName,
+        menuType: formData.menuType,
+        description: undefined,
+        ingredients: ingredientLines.map((ingredientName, index) => ({
+          ingredientName,
+          allergens: allergenString,
+          isMainIngredient: false,
+          sortOrder: index,
+        })),
+      };
+
+      if (isEditMode && id) {
+        await menuService.updateMenuMaster(parseInt(id, 10), requestData as UpdateMenuMasterDto);
+      } else {
+        await menuService.createMenuMaster(requestData as CreateMenuMasterDto);
+      }
+
+      navigate('/desktop/menu-masters');
+    } catch (error: any) {
+      console.error('献立マスター保存エラー:', error);
+      setErrors({
+        general: error.response?.data?.message || '献立マスターの保存に失敗しました',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title={isEditMode ? '献立マスター編集' : '献立マスター作成'}>
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">読み込み中...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout title={isEditMode ? '献立マスター編集' : '献立マスター作成'}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* エラーメッセージ */}
+        {errors.general && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+            {errors.general}
+          </div>
+        )}
+
+        {/* フォーム */}
+        <div className="bg-white shadow-sm rounded-lg p-6 space-y-6" style={{ border: '0.5px solid #d1d5db' }}>
+          {/* 献立名 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              献立名 <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              name="menuName"
+              value={formData.menuName}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 rounded-md border ${
+                errors.menuName ? 'border-red-500' : 'border-gray-300'
+              } shadow-sm focus:border-blue-500 focus:ring-blue-500`}
+              placeholder="例: カレーライス"
+            />
+            {errors.menuName && <p className="mt-1 text-sm text-red-600">{errors.menuName}</p>}
+          </div>
+
+          {/* 献立の種類 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              献立の種類 <span className="text-red-600">*</span>
+            </label>
+            <select
+              name="menuType"
+              value={formData.menuType}
+              onChange={handleChange}
+              className="w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="Lunch">給食</option>
+              <option value="MorningSnack">午前のお菓子</option>
+              <option value="AfternoonSnack">午後のお菓子</option>
+            </select>
+          </div>
+
+          {/* 食材 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              食材 <span className="text-red-600">*</span>
+            </label>
+            <textarea
+              name="ingredients"
+              value={formData.ingredients}
+              onChange={handleChange}
+              rows={6}
+              className={`w-full px-3 py-2 rounded-md border ${
+                errors.ingredients ? 'border-red-500' : 'border-gray-300'
+              } shadow-sm focus:border-blue-500 focus:ring-blue-500`}
+              placeholder="食材を1行ずつ入力してください&#10;例:&#10;米&#10;豚肉&#10;にんじん&#10;玉ねぎ&#10;じゃがいも"
+            />
+            {errors.ingredients && <p className="mt-1 text-sm text-red-600">{errors.ingredients}</p>}
+            <p className="mt-1 text-xs text-gray-500">※ 1行に1つの食材を入力してください</p>
+          </div>
+
+          {/* アレルゲン */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              アレルゲン
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {allergens.map((allergen) => (
+                <label key={allergen.id} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.allergenIds.includes(allergen.id)}
+                    onChange={() => toggleAllergen(allergen.id)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">{allergen.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* フォームアクション */}
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={() => navigate('/desktop/menu-masters')}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            <MdCancel className="text-xl" />
+            <span>キャンセル</span>
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            <MdSave className="text-xl" />
+            <span>{isSaving ? '保存中...' : '保存'}</span>
+          </button>
+        </div>
+      </form>
+    </DashboardLayout>
+  );
+}
