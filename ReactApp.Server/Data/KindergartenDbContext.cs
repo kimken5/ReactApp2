@@ -64,6 +64,14 @@ namespace ReactApp.Server.Data
         public DbSet<DailyMenu> DailyMenus { get; set; }
         // public DbSet<DailyMenuIngredient> DailyMenuIngredients { get; set; } // テーブル削除済み（2026-01-01）
 
+        // 乳児生活記録用エンティティ
+        public DbSet<InfantTemperature> InfantTemperatures { get; set; }
+        public DbSet<ParentMorningNote> ParentMorningNotes { get; set; }
+        public DbSet<InfantMeal> InfantMeals { get; set; }
+        public DbSet<InfantMood> InfantMoods { get; set; }
+        public DbSet<InfantSleep> InfantSleeps { get; set; }
+        public DbSet<InfantToileting> InfantToiletings { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -443,6 +451,14 @@ namespace ReactApp.Server.Data
             ConfigureAuditLog(modelBuilder);
             ConfigureDailyAttendance(modelBuilder);
             ConfigureApplicationWork(modelBuilder);
+
+            // 乳児生活記録用エンティティ設定
+            ConfigureInfantTemperature(modelBuilder);
+            ConfigureParentMorningNote(modelBuilder);
+            ConfigureInfantMeal(modelBuilder);
+            ConfigureInfantMood(modelBuilder);
+            ConfigureInfantSleep(modelBuilder);
+            ConfigureInfantToileting(modelBuilder);
         }
 
         private void ConfigureNursery(ModelBuilder modelBuilder)
@@ -1089,6 +1105,114 @@ namespace ReactApp.Server.Data
             // 献立管理エンティティの設定
             // MenuMaster, DailyMenu にはナビゲーションプロパティがないため、
             // Ignoreの設定は不要（外部キー制約を作成しない方針を維持）
+        }
+
+        // ===== 乳児生活記録用エンティティ設定 =====
+
+        private void ConfigureInfantTemperature(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<InfantTemperature>(entity =>
+            {
+                // 複合主キー: (NurseryId, ChildId, RecordDate, MeasurementType)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.MeasurementType });
+
+                // CreatedByTypeによる検索最適化
+                entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.CreatedByType })
+                    .HasDatabaseName("IX_InfantTemperatures_CreatedByType");
+
+                entity.Property(e => e.MeasurementType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Temperature).HasColumnType("decimal(3,1)").IsRequired();
+                entity.Property(e => e.CreatedByType).IsRequired().HasMaxLength(20).HasDefaultValue("Staff");
+                entity.Property(e => e.IsAbnormal).HasDefaultValue(false);
+                entity.Property(e => e.IsDraft).HasDefaultValue(false);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
+        }
+
+        private void ConfigureParentMorningNote(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ParentMorningNote>(entity =>
+            {
+                // 複合主キー: (NurseryId, ChildId, RecordDate)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate });
+
+                // 子供と日付による検索最適化
+                entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.RecordDate })
+                    .HasDatabaseName("IX_ParentMorningNote_Child_Date");
+
+                entity.Property(e => e.Note).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.IsDraft).HasDefaultValue(false);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
+        }
+
+        private void ConfigureInfantMeal(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<InfantMeal>(entity =>
+            {
+                // 複合主キー: (NurseryId, ChildId, RecordDate, MealType)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.MealType });
+
+                entity.Property(e => e.MealType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.OverallAmount).HasMaxLength(20);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
+        }
+
+        private void ConfigureInfantMood(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<InfantMood>(entity =>
+            {
+                // 複合主キー: (NurseryId, ChildId, RecordDate, MoodTime)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.MoodTime });
+
+                entity.Property(e => e.MoodTime).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.MoodState).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
+        }
+
+        private void ConfigureInfantSleep(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<InfantSleep>(entity =>
+            {
+                // 複合主キー: (NurseryId, ChildId, RecordDate, SleepSequence)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.SleepSequence });
+
+                entity.Property(e => e.SleepSequence).IsRequired().HasDefaultValue(1);
+                entity.Property(e => e.SleepQuality).HasMaxLength(20);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
+        }
+
+        private void ConfigureInfantToileting(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<InfantToileting>(entity =>
+            {
+                // 複合主キー: (NurseryId, ChildId, RecordDate)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate });
+
+                // 時刻による検索最適化
+                entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.ToiletingTime })
+                    .HasDatabaseName("IX_InfantToileting_Record");
+
+                entity.HasIndex(e => e.ToiletingTime)
+                    .HasDatabaseName("IX_InfantToileting_Time");
+
+                entity.Property(e => e.ToiletingType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.BowelCondition).HasMaxLength(20);
+                entity.Property(e => e.BowelColor).HasMaxLength(20);
+                entity.Property(e => e.UrineAmount).HasMaxLength(20);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
         }
     }
 }

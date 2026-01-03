@@ -101,6 +101,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { path: '/desktop/dailyreports', label: 'レポート管理', icon: 'document' },
     ...(photoFunctionEnabled ? [{ path: '/desktop/photos', label: '写真管理', icon: 'camera' }] : []),
     { path: '/desktop/daily-menus', label: '献立管理', icon: 'restaurant' },
+    { path: '/desktop/infant-records/weekly', label: '生活記録', icon: 'clipboard' },
     { path: '/desktop/classes', label: 'クラス管理', icon: 'users' },
     { path: '/desktop/children', label: '園児管理', icon: 'baby' },
   ];

@@ -284,6 +284,9 @@ builder.Services.AddScoped<IApplicationService, ApplicationService>();
 // Menu Management Service (献立管理サービス)
 builder.Services.AddScoped<IDesktopMenuService, DesktopMenuService>();
 
+// Infant Record Service (乳児生活記録サービス)
+builder.Services.AddScoped<IInfantRecordService, InfantRecordService>();
+
 // Database Seeding Service (Development only)
 builder.Services.AddScoped<DatabaseSeeder>();
 

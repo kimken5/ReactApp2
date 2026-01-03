@@ -35,6 +35,7 @@ import { MenuMastersPage } from './pages/MenuMastersPage';
 import { MenuMasterFormPage } from './pages/MenuMasterFormPage';
 import { DailyMenusPage } from './pages/DailyMenusPage';
 import { DailyMenuFormPage } from './pages/DailyMenuFormPage';
+import InfantRecordsWeeklyPage from '../components/desktop/InfantRecords/InfantRecordsWeeklyPage';
 
 /**
  * デスクトップアプリ用ルーター
@@ -443,6 +444,16 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <DailyMenuFormPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 生活記録 */}
+      <Route
+        path="/infant-records/weekly"
+        element={
+          <ProtectedRoute>
+            <InfantRecordsWeeklyPage />
           </ProtectedRoute>
         }
       />
