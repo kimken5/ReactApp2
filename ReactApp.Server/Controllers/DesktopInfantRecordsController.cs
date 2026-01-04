@@ -325,4 +325,30 @@ public class DesktopInfantRecordsController : ControllerBase
             return StatusCode(500, new { error = "Internal server error" });
         }
     }
+
+    /// <summary>
+    /// 睡眠記録を作成または更新
+    /// </summary>
+    [HttpPost("sleep")]
+    public async Task<IActionResult> UpsertSleep(
+        [FromBody] UpsertSleepDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var nurseryId = int.Parse(User.FindFirstValue("NurseryId")!);
+
+            var recordId = await _infantRecordService.UpsertSleepAsync(
+                nurseryId,
+                dto,
+                cancellationToken);
+
+            return Ok(new { success = true, message = "Sleep record saved successfully", recordId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error upserting sleep");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
 }

@@ -79,7 +79,7 @@ public class ToiletingRecordDto
 public class TemperatureRecordDto
 {
     public int? Id { get; set; }
-    public decimal? Value { get; set; }
+    public string? Value { get; set; } // "36.0" (小数点1桁の文字列)
     public string? Time { get; set; } // "08:30"
     public bool Readonly { get; set; } // CreatedByType = 'Parent' の場合 true
 }
@@ -123,5 +123,6 @@ public class SleepRecordDto
     public string? Start { get; set; } // "12:30"
     public string? End { get; set; } // "14:00"
     public int? Duration { get; set; } // 90 (分)
+    public string? SleepQuality { get; set; } // 'Deep', 'Normal', 'Light', 'Restless'
     public bool Readonly { get; set; } // 常にfalse (スタッフ入力)
 }

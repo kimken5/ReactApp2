@@ -47,7 +47,7 @@ export interface ToiletingRecord {
 
 export interface TemperatureRecord {
   id?: number;
-  value?: number;
+  value?: string; // "36.0" (小数点1桁の文字列)
   time?: string; // "08:30"
   readonly: boolean;
 }
@@ -75,6 +75,7 @@ export interface SleepRecord {
   start?: string; // "12:30"
   end?: string; // "14:00"
   duration?: number; // 90 (minutes)
+  sleepQuality?: string; // 'Deep', 'Normal', 'Light', 'Restless'
   readonly: boolean;
 }
 
@@ -95,6 +96,7 @@ export interface UpdateMoodDto {
 export interface UpdateSleepDto {
   startTime: string;
   endTime: string;
+  sleepQuality?: string;
 }
 
 export interface UpdateToiletingDto {

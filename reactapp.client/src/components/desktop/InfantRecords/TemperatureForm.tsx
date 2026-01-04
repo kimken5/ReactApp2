@@ -13,16 +13,16 @@ const TemperatureForm: React.FC<TemperatureFormProps> = ({
   onChange,
   measurementType
 }) => {
-  const [temp, setTemp] = useState<string>(value?.value?.toString() || '');
+  const [temp, setTemp] = useState<string>(value?.value || '');
   const [time, setTime] = useState<string>(value?.time || '');
 
   useEffect(() => {
-    setTemp(value?.value?.toString() || '');
+    setTemp(value?.value || '');
     setTime(value?.time || '');
   }, [value]);
 
-  const handleTempChange = (numVal: number) => {
-    setTemp(numVal.toString());
+  const handleTempChange = (strVal: string) => {
+    setTemp(strVal);
 
     // 現在時刻を自動設定
     const now = new Date();
@@ -30,7 +30,7 @@ const TemperatureForm: React.FC<TemperatureFormProps> = ({
 
     onChange({
       ...value,
-      value: numVal,
+      value: strVal, // 文字列として保存（例: "36.0"）
       time: currentTime
     });
   };
@@ -47,7 +47,7 @@ const TemperatureForm: React.FC<TemperatureFormProps> = ({
   return (
     <div>
       <TemperatureCalculator
-        initialValue={temp ? parseFloat(temp) : undefined}
+        initialValue={temp || undefined}
         onValueChange={handleTempChange}
         measurementLabel={getMeasurementLabel()}
       />

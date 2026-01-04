@@ -51,11 +51,26 @@ export function formatMoodState(mood?: MoodRecord): string {
 }
 
 /**
- * 睡眠表示フォーマット: "12:30-14:00\n(90分)"
+ * 睡眠表示フォーマット: "12:30-14:00\n(90分)\nぐっすり"
  */
 export function formatSleep(sleep?: SleepRecord): string {
   if (!sleep || !sleep.start || !sleep.end) return '';
-  return `${sleep.start}-${sleep.end}\n(${sleep.duration || 0}分)`;
+
+  const qualityMap: Record<string, string> = {
+    Deep: 'ぐっすり',
+    Normal: '普通',
+    Light: '浅い',
+    Restless: '寝ない'
+  };
+
+  let result = `${sleep.start}-${sleep.end}\n(${sleep.duration || 0}分)`;
+
+  if (sleep.sleepQuality) {
+    const qualityText = qualityMap[sleep.sleepQuality] || sleep.sleepQuality;
+    result += `\n${qualityText}`;
+  }
+
+  return result;
 }
 
 /**

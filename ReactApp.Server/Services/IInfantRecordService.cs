@@ -90,4 +90,12 @@ public interface IInfantRecordService
         int nurseryId,
         UpsertToiletingDto dto,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 睡眠記録を作成または更新（Upsert）
+    /// </summary>
+    Task<int> UpsertSleepAsync(
+        int nurseryId,
+        UpsertSleepDto dto,
+        CancellationToken cancellationToken = default);
 }

@@ -84,14 +84,14 @@ export const upsertTemperature = async (
   childId: number,
   recordDate: string,
   measurementType: string,
-  temperature: number,
+  temperature: string, // "36.0" (小数点1桁の文字列)
   measurementTime: string
 ): Promise<{ recordId: number }> => {
   const response = await apiClient.post('/api/desktop/infant-records/temperature', {
     childId,
     recordDate,
     measurementType,
-    temperature,
+    temperature: parseFloat(temperature), // バックエンドには数値として送信
     measurementTime
   });
   return response.data;
@@ -129,6 +129,26 @@ export const upsertMood = async (
     recordDate,
     moodTime,
     state
+  });
+  return response.data;
+};
+
+/**
+ * 昼寝記録を作成または更新（Upsert）
+ */
+export const upsertSleep = async (
+  childId: number,
+  recordDate: string,
+  startTime?: string,
+  endTime?: string,
+  sleepQuality?: string
+): Promise<{ recordId: number }> => {
+  const response = await apiClient.post('/api/desktop/infant-records/sleep', {
+    childId,
+    recordDate,
+    startTime: startTime || null,
+    endTime: endTime || null,
+    sleepQuality: sleepQuality || null
   });
   return response.data;
 };

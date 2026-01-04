@@ -46,3 +46,15 @@ public class UpsertToiletingDto
     public string? BowelColor { get; set; } // 'Normal', 'Green', 'White', 'Black', 'Bloody'
     public int? DiaperChangeCount { get; set; }
 }
+
+/// <summary>
+/// 睡眠記録の作成または更新リクエストDTO
+/// </summary>
+public class UpsertSleepDto
+{
+    public int ChildId { get; set; }
+    public DateTime RecordDate { get; set; }
+    public string? StartTime { get; set; } // "HH:mm" format
+    public string? EndTime { get; set; } // "HH:mm" format
+    public string? SleepQuality { get; set; } // 'Deep', 'Normal', 'Light', 'Restless'
+}

@@ -57,7 +57,7 @@ const getMenuIcon = (iconType: string) => {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const { state, logout } = useDesktopAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // 最初は閉じた状態
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // sessionStorageから鍵アクセス状態を復元
@@ -120,7 +120,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* ヘッダー */}
       <header className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-30">
         <div className="flex items-center justify-between h-16 px-4">
-          {/* 左側: ロゴ＋サイドバートグル */}
+          {/* 左側: ハンバーガーメニュー＋タイトル */}
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -131,13 +131,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </svg>
             </button>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-lg flex items-center justify-center text-white font-bold">
-                {state.nursery?.name?.charAt(0) || 'K'}
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold text-gray-800">{state.nursery?.name || '保育園管理'}</span>
-                <span className="text-sm text-gray-500">{state.nursery?.currentAcademicYear || 2025}年度</span>
-              </div>
+              <span className="text-xl font-bold text-gray-800">{state.nursery?.name || '保育園管理'}</span>
+              <span className="text-sm text-gray-500">{state.nursery?.currentAcademicYear || 2025}年度</span>
             </div>
           </div>
 
@@ -145,15 +140,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center space-x-3 px-3 py-2 rounded-md border border-gray-200 bg-white hover:shadow-md hover:border-gray-300 transition-all duration-200"
+              className="flex items-center space-x-3 px-4 py-2 rounded-md border border-gray-200 bg-white hover:shadow-md hover:border-gray-300 transition-all duration-200"
             >
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-700">{state.nursery?.name}</p>
-                <p className="text-xs text-gray-500">管理者</p>
-              </div>
-              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full flex items-center justify-center text-white font-bold">
-                {state.nursery?.name?.charAt(0)}
-              </div>
+              <p className="text-base font-semibold text-gray-700">管理者</p>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
 
             {/* ユーザーメニュー */}
@@ -236,6 +228,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => setIsSidebarOpen(false)}
               className="flex items-center space-x-3 px-4 py-3 rounded-md text-gray-700 hover:bg-gradient-to-r hover:from-orange-50 hover:to-yellow-50 hover:text-orange-600 transition-all duration-200"
             >
               {getMenuIcon(item.icon)}

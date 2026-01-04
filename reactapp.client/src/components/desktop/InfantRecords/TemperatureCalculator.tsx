@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 
 interface TemperatureCalculatorProps {
-  initialValue?: number;
-  onValueChange: (value: number) => void;
+  initialValue?: string; // "36.0" (小数点1桁の文字列)
+  onValueChange: (value: string) => void;
   measurementLabel?: string;
 }
 
@@ -16,11 +16,38 @@ const TemperatureCalculator: React.FC<TemperatureCalculatorProps> = ({
   measurementLabel
 }) => {
   const [display, setDisplay] = useState<string>(
-    initialValue && initialValue > 0 ? initialValue.toFixed(1) : '-'
+    initialValue || '-'
   );
+  const [isUserEditing, setIsUserEditing] = useState(false);
+
+  // initialValueが変更されたらdisplayを更新（ユーザーが編集中でない場合のみ）
+  React.useEffect(() => {
+    if (!isUserEditing) {
+      if (initialValue) {
+        // 既存の値（"36.0"）をそのまま表示
+        setDisplay(initialValue);
+      } else {
+        setDisplay('-');
+      }
+    }
+  }, [initialValue, isUserEditing]);
+
+  // initialValueが変更されたら編集フラグをリセット（新しいセルを開いた時）
+  React.useEffect(() => {
+    setIsUserEditing(false);
+  }, [initialValue]);
+
+  // 完全な温度値が入力されているかチェック（例: 36.0, 37.5など）
+  const isCompleteValue = (val: string): boolean => {
+    if (val === '-' || val === '0') return false;
+    const num = parseFloat(val);
+    return !isNaN(num) && val.includes('.') && val.split('.')[1]?.length > 0;
+  };
 
   const handleNumberClick = (num: string) => {
-    if (display === '0' || display === '36.5' || display === '-') {
+    setIsUserEditing(true);
+    // 完全な値が入力されている場合、または初期状態の場合は新しい入力を開始
+    if (display === '0' || display === '-' || isCompleteValue(display)) {
       setDisplay(num);
     } else if (display.length < 4) { // 最大4文字 (例: 37.5)
       setDisplay(display + num);
@@ -28,7 +55,9 @@ const TemperatureCalculator: React.FC<TemperatureCalculatorProps> = ({
   };
 
   const handleDotClick = () => {
-    if (display === '-') {
+    setIsUserEditing(true);
+    // 完全な値が入力されている場合は新しい入力を開始
+    if (display === '-' || isCompleteValue(display)) {
       setDisplay('0.');
     } else if (!display.includes('.')) {
       setDisplay(display + '.');
@@ -36,10 +65,12 @@ const TemperatureCalculator: React.FC<TemperatureCalculatorProps> = ({
   };
 
   const handleClear = () => {
+    setIsUserEditing(true);
     setDisplay('-');
   };
 
   const handleBackspace = () => {
+    setIsUserEditing(true);
     if (display === '-') {
       return;
     }
@@ -51,7 +82,8 @@ const TemperatureCalculator: React.FC<TemperatureCalculatorProps> = ({
   };
 
   const handleQuickInput = (temp: number) => {
-    // 整数部分のみ表示して、小数点を付ける (例: "36.")
+    setIsUserEditing(true);
+    // クイック入力は小数点付きで表示（例: 36.）
     setDisplay(`${temp}.`);
   };
 
@@ -61,9 +93,15 @@ const TemperatureCalculator: React.FC<TemperatureCalculatorProps> = ({
       // 未入力状態では何もしない
       return;
     }
+    // 小数点のみ（例: "36."）の場合は通知しない
+    if (display.endsWith('.') && !display.includes('.', display.indexOf('.') + 1)) {
+      // まだ入力中なので通知しない
+      return;
+    }
     const value = parseFloat(display);
     if (!isNaN(value) && value >= 35.0 && value <= 42.0) {
-      onValueChange(value);
+      // 小数点1桁の文字列として通知（例: "36.0"）
+      onValueChange(value.toFixed(1));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [display]);

@@ -21,7 +21,7 @@ public class InfantRecordService : IInfantRecordService
 
     /// <summary>
     /// 現在時刻をUTCで取得し、日本時間に変換してから再度UTCに戻ぁE
-    /// �E�データベ�EスにはUTCで保存するが、実質皁E��日本時間の値になる！E
+    /// �E�データベ�EスにはUTCで保存するが、実質皁E��日本時間の値になる！E
     /// </summary>
     private DateTime GetJapanDateTime()
     {
@@ -192,7 +192,7 @@ public class InfantRecordService : IInfantRecordService
                 {
                     Temperature = homeTemp != null ? new TemperatureRecordDto
                     {
-                        Value = homeTemp.Temperature,
+                        Value = homeTemp.Temperature.ToString("F1"), // 小数点1桁の文字列 (例: "36.0")
                         Time = homeTemp.MeasuredAt.ToString("HH:mm"),
                         Readonly = homeTemp.CreatedByType == "Parent"
                     } : null,
@@ -206,7 +206,7 @@ public class InfantRecordService : IInfantRecordService
                 {
                     Temperature = morningTemp != null ? new TemperatureRecordDto
                     {
-                        Value = morningTemp.Temperature,
+                        Value = morningTemp.Temperature.ToString("F1"), // 小数点1桁の文字列 (例: "36.0")
                         Time = morningTemp.MeasuredAt.ToString("HH:mm"),
                         Readonly = false
                     } : null,
@@ -225,7 +225,7 @@ public class InfantRecordService : IInfantRecordService
                 {
                     Temperature = afternoonTemp != null ? new TemperatureRecordDto
                     {
-                        Value = afternoonTemp.Temperature,
+                        Value = afternoonTemp.Temperature.ToString("F1"), // 小数点1桁の文字列 (例: "36.0")
                         Time = afternoonTemp.MeasuredAt.ToString("HH:mm"),
                         Readonly = false
                     } : null,
@@ -249,6 +249,7 @@ public class InfantRecordService : IInfantRecordService
                         Start = sleep.StartTime.ToString("HH:mm"),
                         End = sleep.EndTime?.ToString("HH:mm"),
                         Duration = sleep.DurationMinutes,
+                        SleepQuality = sleep.SleepQuality,
                         Readonly = false
                     } : null
                 },
@@ -511,14 +512,14 @@ public class InfantRecordService : IInfantRecordService
                 MeasurementType = dto.MeasurementType,
                 Temperature = dto.Temperature,
                 MeasuredAt = GetJapanDateTime(),
-                CreatedBy = 1, // チE��クトップユーザー
+                CreatedBy = 1, // チE��クトップユーザー
                 UpdatedBy = 1,
                 CreatedAt = GetJapanDateTime(),
                 UpdatedAt = GetJapanDateTime()
             };
             _context.InfantTemperatures.Add(newRecord);
             await _context.SaveChangesAsync(cancellationToken);
-            return newRecord.ChildId; // 主キーがなぁE�EでChildIdを返す
+            return newRecord.ChildId; // 主キーがなぁE�EでChildIdを返す
         }
         else
         {
@@ -553,7 +554,7 @@ public class InfantRecordService : IInfantRecordService
                 RecordDate = dto.RecordDate,
                 MealType = dto.MealType,
                 OverallAmount = dto.Amount,
-                CreatedBy = 1, // チE��クトップユーザー
+                CreatedBy = 1, // チE��クトップユーザー
                 UpdatedBy = 1,
                 CreatedAt = GetJapanDateTime(),
                 UpdatedAt = GetJapanDateTime()
@@ -594,7 +595,7 @@ public class InfantRecordService : IInfantRecordService
                 RecordDate = dto.RecordDate,
                 MoodTime = dto.MoodTime,
                 MoodState = dto.State,
-                CreatedBy = 1, // チE��クトップユーザー
+                CreatedBy = 1, // チE��クトップユーザー
                 UpdatedBy = 1,
                 CreatedAt = GetJapanDateTime(),
                 UpdatedAt = GetJapanDateTime()
@@ -638,7 +639,7 @@ public class InfantRecordService : IInfantRecordService
                 BowelCondition = dto.BowelCondition,
                 BowelColor = dto.BowelColor,
                 DiaperChangeCount = dto.DiaperChangeCount,
-                CreatedBy = 1, // チE��クトップユーザー
+                CreatedBy = 1, // チE��クトップユーザー
                 UpdatedBy = 1,
                 CreatedAt = GetJapanDateTime(),
                 UpdatedAt = GetJapanDateTime()
@@ -659,5 +660,82 @@ public class InfantRecordService : IInfantRecordService
             await _context.SaveChangesAsync(cancellationToken);
             return existing.ChildId;
         }
+    }
+
+    public async Task<int> UpsertSleepAsync(
+        int nurseryId,
+        UpsertSleepDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var existing = await _context.InfantSleeps
+            .FirstOrDefaultAsync(s =>
+                s.NurseryId == nurseryId
+                && s.ChildId == dto.ChildId
+                && s.RecordDate.Date == dto.RecordDate.Date,
+                cancellationToken);
+
+        if (existing == null)
+        {
+            // StartTimeとEndTimeをDateTime型に変換（RecordDateの日付に時刻を追加）
+            var startTime = !string.IsNullOrEmpty(dto.StartTime)
+                ? ParseTimeToDateTime(dto.RecordDate, dto.StartTime)
+                : GetJapanDateTime();
+
+            var endTime = !string.IsNullOrEmpty(dto.EndTime)
+                ? ParseTimeToDateTime(dto.RecordDate, dto.EndTime)
+                : (DateTime?)null;
+
+            var newRecord = new InfantSleep
+            {
+                NurseryId = nurseryId,
+                ChildId = dto.ChildId,
+                RecordDate = dto.RecordDate,
+                SleepSequence = 1,
+                StartTime = startTime,
+                EndTime = endTime,
+                SleepQuality = dto.SleepQuality,
+                CreatedBy = 1, // デスクトップユーザー
+                UpdatedBy = 1,
+                CreatedAt = GetJapanDateTime(),
+                UpdatedAt = GetJapanDateTime()
+            };
+            _context.InfantSleeps.Add(newRecord);
+            await _context.SaveChangesAsync(cancellationToken);
+            return newRecord.ChildId;
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(dto.StartTime))
+            {
+                existing.StartTime = ParseTimeToDateTime(dto.RecordDate, dto.StartTime);
+            }
+
+            if (!string.IsNullOrEmpty(dto.EndTime))
+            {
+                existing.EndTime = ParseTimeToDateTime(dto.RecordDate, dto.EndTime);
+            }
+            else
+            {
+                existing.EndTime = null;
+            }
+
+            existing.SleepQuality = dto.SleepQuality;
+            existing.UpdatedBy = 1;
+            existing.UpdatedAt = GetJapanDateTime();
+            await _context.SaveChangesAsync(cancellationToken);
+            return existing.ChildId;
+        }
+    }
+
+    /// <summary>
+    /// "HH:mm"形式の時刻文字列をDateTimeに変換
+    /// </summary>
+    private DateTime ParseTimeToDateTime(DateTime date, string timeString)
+    {
+        if (TimeSpan.TryParse(timeString, out var time))
+        {
+            return date.Date.Add(time);
+        }
+        return date.Date;
     }
 }

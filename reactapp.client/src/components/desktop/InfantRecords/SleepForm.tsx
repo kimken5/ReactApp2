@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { SleepRecord } from '../../../types/infantRecords';
 
 interface SleepFormProps {
@@ -24,6 +24,7 @@ const SleepForm: React.FC<SleepFormProps> = ({
   const [startMinute, setStartMinute] = useState<string>(startParsed.minute);
   const [endHour, setEndHour] = useState<string>(endParsed.hour);
   const [endMinute, setEndMinute] = useState<string>(endParsed.minute);
+  const [sleepQuality, setSleepQuality] = useState<string>(value?.sleepQuality || '');
 
   useEffect(() => {
     const startParsed = parseTime(value?.start);
@@ -32,6 +33,7 @@ const SleepForm: React.FC<SleepFormProps> = ({
     setStartMinute(startParsed.minute);
     setEndHour(endParsed.hour);
     setEndMinute(endParsed.minute);
+    setSleepQuality(value?.sleepQuality || '');
   }, [value]);
 
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
@@ -42,107 +44,142 @@ const SleepForm: React.FC<SleepFormProps> = ({
     return `${hour}:${minute}`;
   };
 
-  const duration = useMemo(() => {
-    const startTime = formatTime(startHour, startMinute);
-    const endTime = formatTime(endHour, endMinute);
-
-    if (!startTime || !endTime) return 0;
-
-    const start = new Date(`2000-01-01 ${startTime}`);
-    const end = new Date(`2000-01-01 ${endTime}`);
-    return Math.round((end.getTime() - start.getTime()) / 60000);
-  }, [startHour, startMinute, endHour, endMinute]);
-
   const handleChange = (type: 'start' | 'end', part: 'hour' | 'minute', val: string) => {
+    let newStartHour = startHour;
+    let newStartMinute = startMinute;
+    let newEndHour = endHour;
+    let newEndMinute = endMinute;
+
     if (type === 'start') {
-      if (part === 'hour') setStartHour(val);
-      else setStartMinute(val);
+      if (part === 'hour') {
+        newStartHour = val;
+        setStartHour(val);
+        // 時間を選択したら自動的に00分を設定
+        if (!startMinute && val) {
+          newStartMinute = '00';
+          setStartMinute('00');
+        }
+      } else {
+        newStartMinute = val;
+        setStartMinute(val);
+      }
     } else {
-      if (part === 'hour') setEndHour(val);
-      else setEndMinute(val);
+      if (part === 'hour') {
+        newEndHour = val;
+        setEndHour(val);
+        // 時間を選択したら自動的に00分を設定
+        if (!endMinute && val) {
+          newEndMinute = '00';
+          setEndMinute('00');
+        }
+      } else {
+        newEndMinute = val;
+        setEndMinute(val);
+      }
     }
 
     // 親コンポーネントに通知
-    const newStart = type === 'start'
-      ? formatTime(part === 'hour' ? val : startHour, part === 'minute' ? val : startMinute)
-      : formatTime(startHour, startMinute);
-    const newEnd = type === 'end'
-      ? formatTime(part === 'hour' ? val : endHour, part === 'minute' ? val : endMinute)
-      : formatTime(endHour, endMinute);
+    const newStart = formatTime(newStartHour, newStartMinute);
+    const newEnd = formatTime(newEndHour, newEndMinute);
 
     onChange({
       ...value,
       start: newStart,
       end: newEnd,
-      duration: duration
+      sleepQuality: sleepQuality
+    });
+  };
+
+  const handleSleepQualityChange = (quality: string) => {
+    setSleepQuality(quality);
+    onChange({
+      ...value,
+      sleepQuality: quality
     });
   };
 
   return (
     <div className="space-y-6">
-      {/* 開始時刻 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">開始時刻</label>
-        <div className="flex items-center gap-2">
-          <select
-            value={startHour}
-            onChange={(e) => handleChange('start', 'hour', e.target.value)}
-            className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-700 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-          >
-            <option value="">--</option>
-            {hours.map(h => (
-              <option key={h} value={h}>{h}</option>
-            ))}
-          </select>
-          <span className="text-2xl font-bold text-gray-400">:</span>
-          <select
-            value={startMinute}
-            onChange={(e) => handleChange('start', 'minute', e.target.value)}
-            className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-700 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-          >
-            <option value="">--</option>
-            {minutes.map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
+      {/* 時刻入力 - 横並び */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* 入眠時刻 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">入眠時刻</label>
+          <div className="flex items-center gap-2">
+            <select
+              value={startHour}
+              onChange={(e) => handleChange('start', 'hour', e.target.value)}
+              className="flex-1 px-3 py-2 text-center border border-gray-300 rounded-md bg-white text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+            >
+              <option value="">時</option>
+              {hours.map(h => (
+                <option key={h} value={h}>{h}時</option>
+              ))}
+            </select>
+            <select
+              value={startMinute}
+              onChange={(e) => handleChange('start', 'minute', e.target.value)}
+              className="flex-1 px-3 py-2 text-center border border-gray-300 rounded-md bg-white text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+            >
+              <option value="">分</option>
+              {minutes.map(m => (
+                <option key={m} value={m}>{m}分</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 起床時刻 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">起床時刻</label>
+          <div className="flex items-center gap-2">
+            <select
+              value={endHour}
+              onChange={(e) => handleChange('end', 'hour', e.target.value)}
+              className="flex-1 px-3 py-2 text-center border border-gray-300 rounded-md bg-white text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+            >
+              <option value="">時</option>
+              {hours.map(h => (
+                <option key={h} value={h}>{h}時</option>
+              ))}
+            </select>
+            <select
+              value={endMinute}
+              onChange={(e) => handleChange('end', 'minute', e.target.value)}
+              className="flex-1 px-3 py-2 text-center border border-gray-300 rounded-md bg-white text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+            >
+              <option value="">分</option>
+              {minutes.map(m => (
+                <option key={m} value={m}>{m}分</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* 終了時刻 */}
+      {/* 睡眠の質 */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">終了時刻</label>
-        <div className="flex items-center gap-2">
-          <select
-            value={endHour}
-            onChange={(e) => handleChange('end', 'hour', e.target.value)}
-            className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-700 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-          >
-            <option value="">--</option>
-            {hours.map(h => (
-              <option key={h} value={h}>{h}</option>
-            ))}
-          </select>
-          <span className="text-2xl font-bold text-gray-400">:</span>
-          <select
-            value={endMinute}
-            onChange={(e) => handleChange('end', 'minute', e.target.value)}
-            className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-700 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-          >
-            <option value="">--</option>
-            {minutes.map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* 睡眠時間表示 */}
-      <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-700">睡眠時間</span>
-          <strong className="text-lg text-green-900">
-            {duration > 0 ? `${duration}分` : '--'}
-          </strong>
+        <label className="block text-sm font-medium text-gray-700 mb-3">睡眠の質</label>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { value: 'Deep', label: 'ぐっすり', color: 'bg-green-100 border-green-300 text-green-800' },
+            { value: 'Normal', label: '普通', color: 'bg-blue-100 border-blue-300 text-blue-800' },
+            { value: 'Light', label: '浅い', color: 'bg-yellow-100 border-yellow-300 text-yellow-800' },
+            { value: 'Restless', label: '寝ない', color: 'bg-red-100 border-red-300 text-red-800' }
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleSleepQualityChange(option.value)}
+              className={`px-4 py-3 rounded-lg border-2 font-medium transition ${
+                sleepQuality === option.value
+                  ? option.color
+                  : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../../desktop/components/layout/DashboardLayout';
 import WeeklyMatrixTable from './WeeklyMatrixTable';
 import EditModal from './EditModal';
-import { getWeeklyRecords, updateTemperature, updateMeal, updateMood, updateSleep, updateToileting, upsertMeal, upsertMood, upsertToileting, upsertTemperature } from '../../../api/infantRecordsApi';
+import { getWeeklyRecords, updateTemperature, updateMeal, updateMood, updateSleep, updateToileting, upsertMeal, upsertMood, upsertToileting, upsertTemperature, upsertSleep } from '../../../api/infantRecordsApi';
 import { getWeekStart, formatWeekRange, formatDateKey } from '../../../utils/infantRecordFormatters';
 import { masterService } from '../../../desktop/services/masterService';
 import type { WeeklyRecordResponse, EditingCell, UpdateTemperatureDto, UpdateMealDto, UpdateMoodDto, UpdateSleepDto, UpdateToiletingDto } from '../../../types/infantRecords';
@@ -108,9 +108,15 @@ const InfantRecordsWeeklyPage: React.FC = () => {
               const record = { ...newChild.dailyRecords[editingCell.date] };
 
               if (editingCell.measurementType === 'morning') {
-                record.morning = { ...record.morning, temperature: { value: value.value, time: value.time, readonly: false } };
+                record.morning = { 
+                  ...record.morning, 
+                  temperature: { value: value.value, time: value.time, readonly: false } 
+                };
               } else if (editingCell.measurementType === 'afternoon') {
-                record.afternoon = { ...record.afternoon, temperature: { value: value.value, time: value.time, readonly: false } };
+                record.afternoon = { 
+                  ...record.afternoon, 
+                  temperature: { value: value.value, time: value.time, readonly: false } 
+                };
               }
 
               newChild.dailyRecords = { ...newChild.dailyRecords, [editingCell.date]: record };
@@ -139,28 +145,51 @@ const InfantRecordsWeeklyPage: React.FC = () => {
           break;
 
         case 'sleep':
-          if (editingCell.recordId) {
-            const dto: UpdateSleepDto = {
-              startTime: value.start,
-              endTime: value.end
-            };
-            await updateSleep(editingCell.recordId, dto);
-            
-            // 楽観的更新
-            setWeeklyData(prevData => {
-              if (!prevData) return prevData;
-              const newData = { ...prevData };
-              newData.children = prevData.children.map(child => {
-                if (child.childId !== editingCell.childId) return child;
-                const newChild = { ...child };
-                const record = { ...newChild.dailyRecords[editingCell.date] };
-                record.afternoon = { ...record.afternoon, nap: { id: editingCell.recordId!, startTime: value.start, endTime: value.end } };
-                newChild.dailyRecords = { ...newChild.dailyRecords, [editingCell.date]: record };
-                return newChild;
-              });
-              return newData;
+          // Upsert APIを使用(新規作成または更新)
+          await upsertSleep(
+            editingCell.childId,
+            editingCell.date,
+            value.start,
+            value.end,
+            value.sleepQuality
+          );
+
+          // 睡眠時間を計算（HH:mm形式から分数を計算）
+          const calculateDuration = (start?: string, end?: string): number => {
+            if (!start || !end) return 0;
+            const [startHour, startMin] = start.split(':').map(Number);
+            const [endHour, endMin] = end.split(':').map(Number);
+            const startMinutes = startHour * 60 + startMin;
+            const endMinutes = endHour * 60 + endMin;
+            return endMinutes >= startMinutes 
+              ? endMinutes - startMinutes 
+              : (24 * 60 - startMinutes) + endMinutes; // 日をまたぐ場合
+          };
+
+          // 楽観的更新 - プロパティ名をバックエンドのレスポンス形式に合わせる
+          setWeeklyData(prevData => {
+            if (!prevData) return prevData;
+            const newData = { ...prevData };
+            newData.children = prevData.children.map(child => {
+              if (child.childId !== editingCell.childId) return child;
+              const newChild = { ...child };
+              const record = { ...newChild.dailyRecords[editingCell.date] };
+              record.afternoon = {
+                ...record.afternoon,
+                nap: {
+                  id: editingCell.recordId,
+                  start: value.start,
+                  end: value.end,
+                  duration: calculateDuration(value.start, value.end), // 継続時間を計算
+                  sleepQuality: value.sleepQuality,
+                  readonly: false
+                }
+              };
+              newChild.dailyRecords = { ...newChild.dailyRecords, [editingCell.date]: record };
+              return newChild;
             });
-          }
+            return newData;
+          });
           break;
 
         case 'toileting':
@@ -450,6 +479,7 @@ const InfantRecordsWeeklyPage: React.FC = () => {
 
         {/* 編集モーダル */}
         <EditModal
+          key={editingCell ? `${editingCell.childId}-${editingCell.date}-${editingCell.recordType}-${editingCell.measurementType || ''}` : 'modal'}
           isOpen={isModalOpen}
           editingCell={editingCell}
           onSave={handleSave}

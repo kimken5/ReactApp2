@@ -19,16 +19,16 @@ const EditModal: React.FC<EditModalProps> = ({
   onSave,
   onClose
 }) => {
-  const [value, setValue] = useState<any>(editingCell?.currentValue || {});
+  const [value, setValue] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // editingCellが変更されたらvalueを更新
+  // モーダルが開いた時のみvalueを更新（isOpenとeditingCellの両方を監視）
   useEffect(() => {
-    if (editingCell?.currentValue) {
-      setValue(editingCell.currentValue);
+    if (isOpen && editingCell) {
+      setValue(editingCell.currentValue || {});
     }
-  }, [editingCell]);
+  }, [isOpen, editingCell]);
 
   if (!isOpen || !editingCell) return null;
 
