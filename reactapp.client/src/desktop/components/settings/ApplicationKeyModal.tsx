@@ -20,6 +20,10 @@ const ApplicationKeyModal: React.FC<ApplicationKeyModalProps> = ({ isOpen, onClo
   const [error, setError] = useState('');
   const qrRef = useRef<HTMLDivElement>(null);
 
+  // 確認ダイアログ状態
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       fetchKeyStatus();
@@ -49,13 +53,10 @@ const ApplicationKeyModal: React.FC<ApplicationKeyModalProps> = ({ isOpen, onClo
   };
 
   const handleGenerateKey = async () => {
-    if (!confirm('新しい入園申込キーを生成しますか？\n既存のキーがある場合は上書きされます。')) {
-      return;
-    }
-
     try {
       setIsLoading(true);
       setError('');
+      setShowRegenerateConfirm(false);
 
       // フロントエンドのベースURLを取得
       const baseUrl = `${window.location.protocol}//${window.location.host}`;
@@ -79,13 +80,10 @@ const ApplicationKeyModal: React.FC<ApplicationKeyModalProps> = ({ isOpen, onClo
   };
 
   const handleDeleteKey = async () => {
-    if (!confirm('入園申込キーを削除しますか？\nこの操作は取り消せません。')) {
-      return;
-    }
-
     try {
       setIsLoading(true);
       setError('');
+      setShowDeleteConfirm(false);
       const response = await apiClient.delete('/api/desktop/master/application-key');
 
       if (response.data.success) {
@@ -256,7 +254,7 @@ const ApplicationKeyModal: React.FC<ApplicationKeyModalProps> = ({ isOpen, onClo
               {/* アクション */}
               <div className="flex gap-2">
                 <button
-                  onClick={handleGenerateKey}
+                  onClick={() => setShowRegenerateConfirm(true)}
                   disabled={isLoading}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-medium transition-colors"
                 >
@@ -264,7 +262,7 @@ const ApplicationKeyModal: React.FC<ApplicationKeyModalProps> = ({ isOpen, onClo
                   キーを再生成
                 </button>
                 <button
-                  onClick={handleDeleteKey}
+                  onClick={() => setShowDeleteConfirm(true)}
                   disabled={isLoading}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-medium transition-colors"
                 >
@@ -304,6 +302,82 @@ const ApplicationKeyModal: React.FC<ApplicationKeyModalProps> = ({ isOpen, onClo
         </div>
         </div>
       </div>
+
+      {/* キー再生成確認モーダル */}
+      {showRegenerateConfirm && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-[60] transition-opacity"
+            onClick={() => setShowRegenerateConfirm(false)}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-[70] p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">キーを再生成</h3>
+              </div>
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  新しい入園申込キーを生成しますか？
+                  <br />
+                  既存のキーがある場合は上書きされます。
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowRegenerateConfirm(false)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handleGenerateKey}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    再生成する
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* キー削除確認モーダル */}
+      {showDeleteConfirm && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-[60] transition-opacity"
+            onClick={() => setShowDeleteConfirm(false)}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-[70] p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">キーを削除</h3>
+              </div>
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  入園申込キーを削除しますか？
+                  <br />
+                  この操作は取り消せません。
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handleDeleteKey}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    削除する
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 };

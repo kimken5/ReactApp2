@@ -218,7 +218,7 @@ export function ChildEditModal({ isOpen, onClose, onSuccess, childId }: ChildEdi
 
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] flex flex-col">
+        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
           {/* Header */}
           <div className="bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between rounded-t-lg">
             <h2 className="text-xl font-semibold text-gray-800">園児編集</h2>

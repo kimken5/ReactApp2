@@ -240,7 +240,7 @@ export default function ChildClassAssignment() {
         </div>
 
         {/* 年度選択 */}
-        <div className="mb-6 bg-white rounded-md shadow-md border border-gray-200 p-4">
+        <div className="mb-6 bg-white rounded-md shadow-md p-4">
           <label htmlFor="yearSelect" className="block text-sm font-medium text-gray-700 mb-2">
             対象年度
           </label>
@@ -273,7 +273,7 @@ export default function ChildClassAssignment() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* クラス一覧 */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-md shadow-md border border-gray-200 p-4">
+            <div className="bg-white rounded-md shadow-md p-4">
               <h2 className="text-base font-semibold text-gray-800 mb-4">クラス一覧</h2>
               <div className="space-y-2">
                 {classes.map((classItem) => (
@@ -298,7 +298,7 @@ export default function ChildClassAssignment() {
 
           {/* 割り当て済み園児 */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-md shadow-md border border-gray-200 p-4">
+            <div className="bg-white rounded-md shadow-md p-4">
               <h2 className="text-base font-semibold text-gray-800 mb-4">
                 {selectedClass?.className || 'クラスを選択'} - 割り当て済み ({selectedClass?.assignedCount || 0}名)
               </h2>
@@ -332,7 +332,7 @@ export default function ChildClassAssignment() {
 
           {/* 未割り当て園児 */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-md shadow-md border border-gray-200 p-4">
+            <div className="bg-white rounded-md shadow-md p-4">
               <h2 className="text-base font-semibold text-gray-800 mb-4">
                 未割り当て園児 ({unassignedChildren.length}名)
               </h2>

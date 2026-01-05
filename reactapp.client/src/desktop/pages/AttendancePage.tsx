@@ -350,10 +350,10 @@ export function AttendancePage() {
     }
   };
 
-  // 日付フォーマット（MM/DD）
+  // 日付フォーマット（〇月〇日）
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    return `${date.getMonth() + 1}月${date.getDate()}日`;
   };
 
   // 統計情報（最新日のみ）
@@ -390,7 +390,7 @@ export function AttendancePage() {
         )}
 
         {/* フィルター */}
-        <div className="bg-white p-6 rounded-md shadow-md border border-gray-200">
+        <div className="bg-white p-6 rounded-md shadow-md">
           <div className="flex items-start justify-between gap-6">
             {/* クラス選択 */}
             <div className="flex-1">
@@ -453,7 +453,7 @@ export function AttendancePage() {
 
         {/* 統計情報（最新日のみ） */}
         {latestDayStats && (
-          <div className="bg-white p-6 rounded-md shadow-md border border-gray-200">
+          <div className="bg-white p-6 rounded-md shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm text-gray-600">最新日（{formatDate(selectedDate)}）の統計</div>
               <button
@@ -503,20 +503,20 @@ export function AttendancePage() {
 
         {/* 出欠表（5日間グリッド） */}
         {loading ? (
-          <div className="bg-white p-8 rounded-md shadow-md border border-gray-200 text-center">
+          <div className="bg-white p-8 rounded-md shadow-md text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="mt-2 text-gray-600">読み込み中...</p>
           </div>
         ) : !selectedClassId ? (
-          <div className="bg-white p-8 rounded-md shadow-md border border-gray-200 text-center text-gray-500">
+          <div className="bg-white p-8 rounded-md shadow-md text-center text-gray-500">
             クラスを選択してください
           </div>
         ) : attendanceGrid.length === 0 ? (
-          <div className="bg-white p-8 rounded-md shadow-md border border-gray-200 text-center text-gray-500">
+          <div className="bg-white p-8 rounded-md shadow-md text-center text-gray-500">
             このクラスには園児がいません
           </div>
         ) : (
-          <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-x-auto">
+          <div className="bg-white rounded-md shadow-md overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -629,7 +629,7 @@ export function AttendancePage() {
             onClick={closeNotesModal}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white rounded-md shadow-xl border border-gray-200 p-6 max-w-md w-full mx-4">
+            <div className="bg-white rounded-md shadow-xl p-6 max-w-md w-full mx-4">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 備考入力（{formatDate(selectedDate)}）
               </h2>
@@ -650,7 +650,7 @@ export function AttendancePage() {
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={closeNotesModal}
-                  className="px-4 py-2 border border-gray-200 rounded-md text-gray-700 hover:shadow-md transition-all duration-200"
+                  className="px-4 py-2 bg-white rounded-md text-gray-700 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   キャンセル
                 </button>

@@ -168,7 +168,7 @@ export function DailyMenusPage() {
         )}
 
         {/* カレンダーヘッダー */}
-        <div className="bg-white rounded-lg p-4 shadow-sm" style={{ border: '0.5px solid #d1d5db' }}>
+        <div className="bg-white rounded-lg p-4 shadow-md">
           <div className="flex justify-between items-center">
             {/* 左：献立の種類 */}
             <div>

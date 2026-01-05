@@ -633,7 +633,7 @@ export function DailyReportFormPage() {
         )}
 
         {/* フォーム */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200">
+        <div className="bg-white rounded-md shadow-md">
           <div className="p-6 space-y-6">
             {/* 園児選択（作成時のみ - オートコンプリート） */}
             {!isEditMode && (

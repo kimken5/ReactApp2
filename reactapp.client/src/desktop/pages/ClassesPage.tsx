@@ -309,7 +309,7 @@ export function ClassesPage() {
         )}
 
         {/* フィルタ */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 mb-6 p-6">
+        <div className="bg-white rounded-md shadow-md mb-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             {/* 検索キーワード */}
             <div className="md:col-span-9">
@@ -340,7 +340,7 @@ export function ClassesPage() {
         </div>
 
         {/* テーブル */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-md shadow-md overflow-hidden">
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
@@ -550,7 +550,7 @@ export function ClassesPage() {
         <>
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setDeleteConfirmClass(null)} />
           <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white rounded-md shadow-xl border border-gray-200 p-6 max-w-md w-full mx-4">
+            <div className="bg-white rounded-md shadow-xl p-6 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">クラスを削除</h3>
               <p className="text-gray-600 mb-6">
                 本当にクラス「{deleteConfirmClass.name}」（{deleteConfirmClass.classId}）を削除しますか？

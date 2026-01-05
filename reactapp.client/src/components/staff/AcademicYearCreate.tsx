@@ -188,7 +188,7 @@ export default function AcademicYearCreate() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md p-6">
           {/* 年度 */}
           <div className="mb-6">
             <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">

@@ -41,6 +41,10 @@ export default function StaffClassAssignment() {
   const [editRole, setEditRole] = useState<string>('');
   const [editNotes, setEditNotes] = useState('');
 
+  // 削除確認モーダル用の状態
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingStaff, setDeletingStaff] = useState<{ classId: string; staffId: number; staffName: string } | null>(null);
+
   useEffect(() => {
     loadInitialData();
   }, []);
@@ -152,21 +156,22 @@ export default function StaffClassAssignment() {
     }
   };
 
-  const handleUnassignStaff = async (classId: string, staffId: number) => {
-    if (!selectedYear) return;
-    if (!confirm('この担任割り当てを解除しますか？')) return;
+  const handleUnassignStaff = async () => {
+    if (!deletingStaff || !selectedYear) return;
 
     try {
       setIsOperating(true);
       setError(null);
+      setShowDeleteConfirm(false);
 
       await staffClassAssignmentService.unassignStaffFromClass({
         nurseryId,
         academicYear: selectedYear,
-        staffId,
-        classId,
+        staffId: deletingStaff.staffId,
+        classId: deletingStaff.classId,
       });
 
+      setDeletingStaff(null);
       await loadAssignmentData(false);
     } catch (err: any) {
       if (err.response?.data?.error) {
@@ -262,7 +267,7 @@ export default function StaffClassAssignment() {
         )}
 
         {/* 年度選択 */}
-        <div className="mb-6 bg-white rounded-md shadow-md border border-gray-200 p-6">
+        <div className="mb-6 bg-white rounded-md shadow-md p-6">
           <label htmlFor="yearSelect" className="block text-sm font-medium text-gray-700 mb-2">
             対象年度
           </label>
@@ -283,7 +288,7 @@ export default function StaffClassAssignment() {
         {/* クラス一覧 */}
         <div className="space-y-4">
           {classAssignments.map((cls) => (
-            <div key={cls.classId} className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+            <div key={cls.classId} className="bg-white rounded-md shadow-md p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">{cls.className}</h2>
@@ -357,7 +362,10 @@ export default function StaffClassAssignment() {
                         </button>
                         {/* 削除ボタン */}
                         <button
-                          onClick={() => handleUnassignStaff(cls.classId, staff.staffId)}
+                          onClick={() => {
+                            setDeletingStaff({ classId: cls.classId, staffId: staff.staffId, staffName: staff.staffName });
+                            setShowDeleteConfirm(true);
+                          }}
                           disabled={isOperating}
                           className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           title="解除"
@@ -571,6 +579,45 @@ export default function StaffClassAssignment() {
                   >
                     {isOperating ? '更新中...' : '更新'}
                   </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 削除確認モーダル */}
+        {showDeleteConfirm && deletingStaff && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/50 z-[60] transition-opacity"
+              onClick={() => setShowDeleteConfirm(false)}
+            />
+            <div className="fixed inset-0 flex items-center justify-center z-[70] p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">担任割り当てを解除</h3>
+                </div>
+                <div className="px-6 py-6">
+                  <p className="text-gray-600 mb-6">
+                    「{deletingStaff.staffName}」の担任割り当てを解除しますか？
+                  </p>
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeletingStaff(null);
+                      }}
+                      className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={handleUnassignStaff}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                    >
+                      解除する
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

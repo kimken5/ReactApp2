@@ -62,12 +62,26 @@ namespace ReactApp.Server.Services
                 // クラスフィルタ（Childテーブルと結合してフィルタリング）
                 if (!string.IsNullOrEmpty(filter.ClassId))
                 {
+                    // 現在は単一保育園（NurseryId = 1）のみを想定
+                    const int nurseryId = 1;
+
                     var childIdsInClass = await _context.Children
-                        .Where(c => c.ClassId == filter.ClassId)
+                        .Where(c => c.NurseryId == nurseryId && c.ClassId == filter.ClassId && c.IsActive)
                         .Select(c => c.ChildId)
                         .ToListAsync();
 
-                    query = query.Where(n => childIdsInClass.Contains(n.ChildId));
+                    _logger.LogInformation("ClassId filter: {ClassId}, NurseryId: {NurseryId}, Found {Count} children in class",
+                        filter.ClassId, nurseryId, childIdsInClass.Count);
+
+                    if (childIdsInClass.Any())
+                    {
+                        query = query.Where(n => childIdsInClass.Contains(n.ChildId));
+                    }
+                    else
+                    {
+                        // クラスに園児がいない場合は空の結果を返す
+                        query = query.Where(n => false);
+                    }
                 }
 
                 // 確認状態フィルタ（AcknowledgedAtで判定）
@@ -86,6 +100,12 @@ namespace ReactApp.Server.Services
                 var notifications = await query
                     .OrderByDescending(n => n.SubmittedAt)
                     .ToListAsync();
+
+                _logger.LogInformation("Retrieved {Count} notifications from AbsenceNotifications table", notifications.Count);
+                if (notifications.Any())
+                {
+                    _logger.LogInformation("Notification ChildIds: {ChildIds}", string.Join(", ", notifications.Select(n => n.ChildId).Distinct()));
+                }
 
                 // 関連情報を手動で読み込み
                 var parentIds = notifications.Select(n => n.ParentId).Distinct().ToList();
@@ -193,6 +213,7 @@ namespace ReactApp.Server.Services
                         NurseryId = n.NurseryId,
                         ChildId = n.ChildId,
                         ChildName = childInfo?.Name ?? "不明",
+                        ClassId = childInfo?.ClassId,
                         ClassName = className,
                         NotificationType = n.NotificationType,
                         Ymd = n.Ymd,
@@ -223,11 +244,11 @@ namespace ReactApp.Server.Services
                     ).ToList();
                 }
 
-                // クラスフィルタ（メモリ上でフィルタ）
-                if (!string.IsNullOrEmpty(filter.ClassId))
-                {
-                    result = result.Where(n => n.ClassName == filter.ClassId).ToList();
-                }
+                // クラスフィルタ（メモリ上でフィルタ） - すでにデータベースでフィルタ済みなので不要
+                // if (!string.IsNullOrEmpty(filter.ClassId))
+                // {
+                //     result = result.Where(n => n.ClassId == filter.ClassId).ToList();
+                // }
 
                 return result;
             }

@@ -44,7 +44,7 @@ export function NoPhotoWarningDialog({
 
       {/* ダイアログコンテンツ */}
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-md w-full mx-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
         {/* Header */}
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-4 rounded-t-lg">
           <div className="flex items-center">

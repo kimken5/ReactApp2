@@ -13,6 +13,7 @@ namespace ReactApp.Server.DTOs.Desktop
         public int NurseryId { get; set; }
         public int ChildId { get; set; }
         public string ChildName { get; set; } = string.Empty;
+        public string? ClassId { get; set; }
         public string? ClassName { get; set; }
         public string NotificationType { get; set; } = string.Empty; // "absence", "lateness", "pickup"
         public DateTime Ymd { get; set; }

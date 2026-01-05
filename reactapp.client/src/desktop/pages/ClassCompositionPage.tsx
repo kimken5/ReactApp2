@@ -36,6 +36,10 @@ export function ClassCompositionPage() {
   const [staffRoles, setStaffRoles] = useState<Map<number, string>>(new Map());
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
+  // 削除確認用状態
+  const [deleteConfirmStaff, setDeleteConfirmStaff] = useState<StaffDto | null>(null);
+  const [deleteConfirmChild, setDeleteConfirmChild] = useState<ChildDto | null>(null);
+
   // 初期データ読み込み
   useEffect(() => {
     if (classId) {
@@ -145,9 +149,10 @@ export function ClassCompositionPage() {
     setShowStaffSuggestions(false);
   };
 
-  // 職員を削除
+  // 職員を削除（確認後）
   const handleRemoveStaff = (staffId: number) => {
     setAssignedStaff(prev => prev.filter(s => s.staffId !== staffId));
+    setDeleteConfirmStaff(null);
   };
 
   // 園児を追加
@@ -159,9 +164,10 @@ export function ClassCompositionPage() {
     setShowChildSuggestions(false);
   };
 
-  // 園児を削除
+  // 園児を削除（確認後）
   const handleRemoveChild = (childId: number) => {
     setAssignedChildren(prev => prev.filter(c => c.childId !== childId));
+    setDeleteConfirmChild(null);
   };
 
   // フィルタされた職員候補を取得
@@ -318,9 +324,11 @@ export function ClassCompositionPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 担任職員セクション */}
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 担任職員セクション */}
+              <div className="border border-gray-200 rounded-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
               <svg className="w-6 h-6 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -409,7 +417,7 @@ export function ClassCompositionPage() {
                           </select>
                           <button
                             type="button"
-                            onClick={() => handleRemoveStaff(staff.staffId)}
+                            onClick={() => setDeleteConfirmStaff(staff)}
                             className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
                             title="削除"
                           >
@@ -429,8 +437,8 @@ export function ClassCompositionPage() {
             </div>
           </div>
 
-          {/* クラス園児セクション */}
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+              {/* クラス園児セクション */}
+              <div className="border border-gray-200 rounded-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
               <svg className="w-6 h-6 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -495,7 +503,7 @@ export function ClassCompositionPage() {
                   園児が設定されていません
                 </div>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-md p-2">
                   {assignedChildren.map((child) => (
                     <div
                       key={child.childId}
@@ -512,62 +520,158 @@ export function ClassCompositionPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleRemoveChild(child.childId)}
-                        className="ml-4 px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition border border-red-200"
+                        onClick={() => setDeleteConfirmChild(child)}
+                        className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
+                        title="削除"
                       >
-                        削除
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          削除
+                        </span>
                       </button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+              </div>
+            </div>
+          </div>
+
+          {/* フッター */}
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => navigate('/desktop/classes')}
+              className="px-6 py-2 border border-gray-200 rounded-md text-gray-700 font-medium hover:shadow-md transition-all duration-200"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium transition-all duration-200 ${
+                isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
+              }`}
+            >
+              {isSaving ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  保存中...
+                </span>
+              ) : (
+                '保存する'
+              )}
+            </button>
           </div>
         </div>
 
-        {/* フッター（保存・キャンセルボタン） */}
-        <div className="mt-8 flex justify-end space-x-3 pb-8">
-          <button
-            type="button"
-            onClick={() => navigate('/desktop/classes')}
-            className="px-6 py-2 border border-gray-200 rounded-md text-gray-700 font-medium hover:shadow-md transition-all duration-200"
-          >
-            キャンセル
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium transition-all duration-200 ${
-              isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
-            }`}
-          >
-            {isSaving ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                保存中...
-              </span>
-            ) : (
-              '保存する'
-            )}
-          </button>
-        </div>
-
       </div>
+
+      {/* 職員削除確認モーダル */}
+      {deleteConfirmStaff && (
+        <>
+          {/* オーバーレイ */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            onClick={() => setDeleteConfirmStaff(null)}
+          />
+
+          {/* モーダル */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              {/* ヘッダー */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">担任職員を削除</h3>
+              </div>
+
+              {/* コンテンツ */}
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  本当に「{deleteConfirmStaff.name}」をこのクラスの担任から削除しますか？
+                </p>
+
+                {/* ボタン */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteConfirmStaff(null)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => handleRemoveStaff(deleteConfirmStaff.staffId)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    削除する
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 園児削除確認モーダル */}
+      {deleteConfirmChild && (
+        <>
+          {/* オーバーレイ */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            onClick={() => setDeleteConfirmChild(null)}
+          />
+
+          {/* モーダル */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              {/* ヘッダー */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">園児を削除</h3>
+              </div>
+
+              {/* コンテンツ */}
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  本当に「{deleteConfirmChild.name}」をこのクラスから削除しますか？
+                </p>
+
+                {/* ボタン */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteConfirmChild(null)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => handleRemoveChild(deleteConfirmChild.childId)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    削除する
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

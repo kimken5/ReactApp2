@@ -75,7 +75,7 @@ export default function AcademicYearManagement() {
       {/* 現在年度確認セクション */}
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4">現在年度確認</h2>
-        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
+        <div className="bg-white rounded-md shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
           {currentYear ? (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -111,30 +111,30 @@ export default function AcademicYearManagement() {
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4">翌年度クラス構成設定</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button
+          <div
             onClick={() => navigate('/desktop/class-assignment')}
-            className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200 text-left"
+            className="bg-white rounded-md shadow-md p-6 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
           >
             <h3 className="text-base font-semibold text-gray-800 mb-2">クラス別園児割り当て</h3>
             <p className="text-xs text-gray-600 mb-4">
               翌年度のクラスに園児を個別に割り当てます
             </p>
             <div className="text-xs text-blue-600 font-medium">設定画面へ →</div>
-          </button>
+          </div>
 
-          <button
+          <div
             onClick={() => {
               // TODO: 一括登録画面へ遷移
               alert('一括登録機能は今後実装予定です');
             }}
-            className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200 text-left"
+            className="bg-white rounded-md shadow-md p-6 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
           >
             <h3 className="text-base font-semibold text-gray-800 mb-2">一括登録</h3>
             <p className="text-xs text-gray-600 mb-4">
               CSVファイルなどから一括でクラス構成を登録します
             </p>
             <div className="text-xs text-blue-600 font-medium">登録画面へ →</div>
-          </button>
+          </div>
         </div>
       </section>
 
@@ -142,23 +142,23 @@ export default function AcademicYearManagement() {
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4">翌年度担任設定</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button
+          <div
             onClick={() => navigate('/desktop/staff-class-assignment')}
-            className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200 text-left"
+            className="bg-white rounded-md shadow-md p-6 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
           >
             <h3 className="text-base font-semibold text-gray-800 mb-2">クラス別担任割り当てと役割設定</h3>
             <p className="text-xs text-gray-600 mb-4">
               各クラスに担任を割り当て、役割（主担任・副担任）を設定します
             </p>
             <div className="text-xs text-blue-600 font-medium">設定画面へ →</div>
-          </button>
+          </div>
         </div>
       </section>
 
       {/* 年度スライド実行セクション */}
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4">年度スライド実行</h2>
-        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
+        <div className="bg-white rounded-md shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
           <div className="mb-4">
             <p className="text-gray-700 mb-2">
               年度スライドを実行すると、現在年度のクラス割り当て（園児・職員）を新年度にコピーします。
@@ -197,7 +197,7 @@ export default function AcademicYearManagement() {
       {/* 過去年度参照セクション */}
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4">過去年度参照</h2>
-        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
+        <div className="bg-white rounded-md shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
           {pastYears.length > 0 ? (
             <div className="space-y-4">
               <p className="text-gray-700">

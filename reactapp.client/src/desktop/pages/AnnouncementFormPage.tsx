@@ -346,7 +346,7 @@ export function AnnouncementFormPage() {
         )}
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md border border-gray-200">
+        <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-md">
           <div className="p-6 space-y-6">
             {/* タイトル */}
             <div>

@@ -442,7 +442,7 @@ export function PhotoUploadPage() {
           </div>
         )}
 
-        <div className="bg-white shadow-md rounded-lg border border-gray-200">
+        <div className="bg-white shadow-md rounded-lg">
           <div className="p-6 space-y-6">
             {/* File upload */}
             <div>

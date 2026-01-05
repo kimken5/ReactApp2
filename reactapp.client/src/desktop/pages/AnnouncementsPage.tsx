@@ -353,7 +353,7 @@ export function AnnouncementsPage() {
         )}
 
         {/* フィルター */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 p-4">
+        <div className="bg-white rounded-md shadow-md p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 検索 */}
             <div>
@@ -409,7 +409,7 @@ export function AnnouncementsPage() {
         </div>
 
         {/* お知らせ一覧 */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200">
+        <div className="bg-white rounded-md shadow-md">
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>

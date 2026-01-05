@@ -101,6 +101,9 @@ export function ChildrenPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingChildId, setEditingChildId] = useState<number | null>(null);
 
+  // 削除確認モーダル状態
+  const [deleteConfirmChild, setDeleteConfirmChild] = useState<ChildDto | null>(null);
+
   // 日付入力フィールドのref
   const graduationDateFromRef = useRef<HTMLInputElement>(null);
   const graduationDateToRef = useRef<HTMLInputElement>(null);
@@ -280,19 +283,18 @@ export function ChildrenPage() {
   };
 
   // 削除ハンドラ
-  const handleDelete = async (child: ChildDto) => {
-    if (!confirm(`${child.name}を削除してもよろしいですか？この操作は取り消せません。`)) {
-      return;
-    }
-
+  const handleDelete = async (childId: number) => {
     try {
-      await masterService.deleteChild(child.childId);
-      setSuccessMessage(`${child.name}を削除しました`);
+      const child = deleteConfirmChild;
+      await masterService.deleteChild(childId);
+      setSuccessMessage(`${child?.name}を削除しました`);
+      setDeleteConfirmChild(null);
       loadData();
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error('削除に失敗しました:', error);
       setErrorMessage('削除に失敗しました');
+      setDeleteConfirmChild(null);
       setTimeout(() => setErrorMessage(null), 3000);
     }
   };
@@ -395,7 +397,7 @@ export function ChildrenPage() {
         )}
 
         {/* フィルタ・検索バー */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-md shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* 検索キーワード */}
             <div>
@@ -587,7 +589,7 @@ export function ChildrenPage() {
         </div>
 
         {/* テーブル表示 */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-md shadow-md overflow-hidden">
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
@@ -720,7 +722,7 @@ export function ChildrenPage() {
 
                           {/* 削除ボタン */}
                           <button
-                            onClick={() => handleDelete(child)}
+                            onClick={() => setDeleteConfirmChild(child)}
                             className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
                             title="削除"
                           >
@@ -751,6 +753,52 @@ export function ChildrenPage() {
           onSuccess={handleEditSuccess}
           childId={editingChildId}
         />
+      )}
+
+      {/* 削除確認モーダル */}
+      {deleteConfirmChild && (
+        <>
+          {/* オーバーレイ */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            onClick={() => setDeleteConfirmChild(null)}
+          />
+
+          {/* モーダル */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              {/* ヘッダー */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">園児を削除</h3>
+              </div>
+
+              {/* コンテンツ */}
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  本当に「{deleteConfirmChild.name}」を削除しますか？
+                  <br />
+                  この操作は取り消せません。
+                </p>
+
+                {/* ボタン */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteConfirmChild(null)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirmChild.childId)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    削除する
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </DashboardLayout>
   );

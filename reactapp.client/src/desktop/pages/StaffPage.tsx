@@ -33,6 +33,9 @@ export function StaffPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 削除確認モーダル状態
+  const [deleteConfirmStaff, setDeleteConfirmStaff] = useState<StaffDto | null>(null);
+
   // フィルタ状態
   const [filter, setFilter] = useState<StaffFilterDto>({
     role: undefined,
@@ -178,17 +181,15 @@ export function StaffPage() {
   };
 
   // 削除処理
-  const handleDelete = async (staffId: number, staffName: string) => {
-    if (!confirm(`職員「${staffName}」を削除してもよろしいですか？`)) {
-      return;
-    }
-
+  const handleDelete = async (staffId: number) => {
     try {
       await masterService.deleteStaff(staffId);
+      setDeleteConfirmStaff(null);
       loadStaff();
     } catch (err) {
       console.error('削除に失敗しました:', err);
       alert('削除に失敗しました');
+      setDeleteConfirmStaff(null);
     }
   };
 
@@ -244,7 +245,7 @@ export function StaffPage() {
         </div>
 
         {/* フィルタセクション */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+        <div className="bg-white rounded-md shadow-md p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* 役割フィルタ */}
             <div>
@@ -319,7 +320,7 @@ export function StaffPage() {
         )}
 
         {/* 職員一覧テーブル */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-md shadow-md overflow-hidden">
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
@@ -450,7 +451,7 @@ export function StaffPage() {
                               </button>
                               {/* 削除ボタン */}
                               <button
-                                onClick={() => handleDelete(s.staffId, s.name)}
+                                onClick={() => setDeleteConfirmStaff(s)}
                                 className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
                                 title="削除"
                               >
@@ -489,6 +490,52 @@ export function StaffPage() {
           </div>
         )}
       </div>
+
+      {/* 削除確認モーダル */}
+      {deleteConfirmStaff && (
+        <>
+          {/* オーバーレイ */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            onClick={() => setDeleteConfirmStaff(null)}
+          />
+
+          {/* モーダル */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              {/* ヘッダー */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">職員を削除</h3>
+              </div>
+
+              {/* コンテンツ */}
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  本当に「{deleteConfirmStaff.name}」を削除しますか？
+                  <br />
+                  この操作は取り消せません。
+                </p>
+
+                {/* ボタン */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteConfirmStaff(null)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirmStaff.staffId)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    削除する
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

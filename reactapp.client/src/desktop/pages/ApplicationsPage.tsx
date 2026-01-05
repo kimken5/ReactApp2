@@ -246,7 +246,7 @@ export function ApplicationsPage() {
       </div>
 
       {/* フィルター・検索 */}
-      <div className="mb-6 bg-white shadow-sm rounded-md border border-gray-200 p-4">
+      <div className="mb-6 bg-white shadow-md rounded-md p-4">
         <form onSubmit={handleSearch} className="flex gap-4 items-end">
           <div className="flex-1">
             <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
@@ -299,7 +299,7 @@ export function ApplicationsPage() {
       )}
 
       {/* テーブル */}
-      <div className="bg-white shadow-sm rounded-md border border-gray-200 overflow-hidden">
+      <div className="bg-white shadow-md rounded-md overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-gray-500">読み込み中...</div>
         ) : applications.length === 0 ? (

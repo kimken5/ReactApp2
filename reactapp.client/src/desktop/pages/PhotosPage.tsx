@@ -445,7 +445,7 @@ export function PhotosPage() {
         )}
 
         {/* フィルタ */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 mb-6 p-6">
+        <div className="bg-white rounded-md shadow-md mb-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* 公開範囲選択 */}
             <div>
@@ -662,21 +662,21 @@ export function PhotosPage() {
         {hasSearched && (
           <>
             {isLoading ? (
-              <div className="bg-white rounded-md shadow-md border border-gray-200 p-12 text-center">
+              <div className="bg-white rounded-md shadow-md p-12 text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
                 <p className="mt-4 text-gray-600">読み込み中...</p>
               </div>
             ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
               {currentPhotos.length === 0 ? (
-                <div className="col-span-full bg-white rounded-md shadow-md border border-gray-200 p-12 text-center text-gray-500">
+                <div className="col-span-full bg-white rounded-md shadow-md p-12 text-center text-gray-500">
                   写真が見つかりませんでした
                 </div>
               ) : (
                 currentPhotos.map(photo => (
               <div
                 key={photo.id}
-                className="bg-white rounded-md shadow-md border border-gray-200 hover:shadow-lg transition-shadow overflow-hidden"
+                className="bg-white rounded-md shadow-md hover:shadow-lg transition-shadow overflow-hidden"
               >
                 {/* サムネイル画像 */}
                 <div
@@ -795,7 +795,7 @@ export function PhotosPage() {
 
             {/* ページネーション */}
             {totalPages > 1 && (
-              <div className="bg-white rounded-md shadow-md border border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div className="bg-white rounded-md shadow-md px-6 py-4 flex items-center justify-between">
                 <div className="text-sm text-gray-700">
                   全 {filteredPhotos.length} 件中 {startIndex + 1} ～{' '}
                   {Math.min(endIndex, filteredPhotos.length)} 件を表示
@@ -848,31 +848,43 @@ export function PhotosPage() {
       {/* 削除確認モーダル */}
       {deleteConfirmPhoto && (
         <>
+          {/* オーバーレイ */}
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
             onClick={() => setDeleteConfirmPhoto(null)}
           />
-          <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white rounded-md shadow-xl border border-gray-200 p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">写真を削除</h3>
-              <p className="text-gray-600 mb-6">
-                本当にこの写真を削除しますか？
-                <br />
-                この操作は取り消せません。
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setDeleteConfirmPhoto(null)}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={() => handleDelete(deleteConfirmPhoto)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow-sm"
-                >
-                  削除する
-                </button>
+
+          {/* モーダル */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              {/* ヘッダー */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">写真を削除</h3>
+              </div>
+
+              {/* コンテンツ */}
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  本当にこの写真を削除しますか？
+                  <br />
+                  この操作は取り消せません。
+                </p>
+
+                {/* ボタン */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteConfirmPhoto(null)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirmPhoto)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    削除する
+                  </button>
+                </div>
               </div>
             </div>
           </div>

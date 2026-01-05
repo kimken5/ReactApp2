@@ -268,13 +268,24 @@ export function ContactNotificationsPage() {
               : n
           )
         );
-        setSuccessMessage('連絡を確認しました');
         return;
       }
 
       await contactNotificationService.acknowledgeNotification(id, {});
-      setSuccessMessage('連絡を確認しました');
-      loadNotifications();
+
+      // ローカル状態を更新（サーバーへのリクエストなし）
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === id
+            ? {
+                ...n,
+                acknowledgedByAdminUser: true,
+                acknowledgedByAdminAt: new Date().toISOString(),
+                status: 'acknowledged',
+              }
+            : n
+        )
+      );
     } catch (error: any) {
       console.error('確認処理に失敗:', error);
       setErrorMessage('確認処理に失敗しました');
@@ -395,7 +406,7 @@ export function ContactNotificationsPage() {
         )}
 
         {/* フィルタ・検索バー */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-md shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* 日付 */}
             <div>
@@ -514,7 +525,7 @@ export function ContactNotificationsPage() {
         </div>
 
         {/* 連絡通知一覧 */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-md shadow-md overflow-hidden">
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
@@ -734,7 +745,7 @@ export function ContactNotificationsPage() {
 
             {/* Modal */}
             <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
-              <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-3xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto">
+              <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto">
               {/* モーダルヘッダー */}
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-800">連絡通知詳細</h2>

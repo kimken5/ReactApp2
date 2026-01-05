@@ -116,13 +116,10 @@ export function DailyReportDetailModal({ reportId, onClose, onEdit }: DailyRepor
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl border border-gray-300 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
           {/* ヘッダー */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-orange-50 to-yellow-50">
-            <div>
-              {report && <p className="text-sm text-gray-600">レポートID: {report.id}</p>}
-            </div>
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-end">
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white hover:bg-opacity-50 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               title="閉じる"
             >
               <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +151,7 @@ export function DailyReportDetailModal({ reportId, onClose, onEdit }: DailyRepor
             ) : (
               <div className="space-y-6">
                 {/* 基本情報 */}
-                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                <div className="p-6">
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">園児名</p>

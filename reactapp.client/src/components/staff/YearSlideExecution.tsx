@@ -190,7 +190,7 @@ export default function YearSlideExecution() {
 
         {/* ステップ1: 年度選択 */}
         {step === 'select' && (
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+          <div className="bg-white rounded-md shadow-md p-6">
             <h2 className="text-lg font-semibold mb-4">スライド先の年度を選択</h2>
 
             {currentYear && (
@@ -234,7 +234,7 @@ export default function YearSlideExecution() {
 
         {/* ステップ2: プレビュー */}
         {step === 'preview' && preview && (
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+          <div className="bg-white rounded-md shadow-md p-6">
             <h2 className="text-lg font-semibold mb-4">スライド内容の確認</h2>
 
             <div className="mb-6 grid grid-cols-2 gap-4">
@@ -249,11 +249,11 @@ export default function YearSlideExecution() {
             </div>
 
             <div className="mb-6 grid grid-cols-2 gap-4">
-              <div className="p-4 border border-gray-200 rounded-md">
+              <div className="p-4 bg-gray-50 rounded-md">
                 <p className="text-sm text-gray-600 mb-1">影響を受ける園児数</p>
                 <p className="text-3xl font-bold text-gray-900">{preview.affectedChildrenCount}名</p>
               </div>
-              <div className="p-4 border border-gray-200 rounded-md">
+              <div className="p-4 bg-gray-50 rounded-md">
                 <p className="text-sm text-gray-600 mb-1">影響を受ける職員数</p>
                 <p className="text-3xl font-bold text-gray-900">{preview.affectedStaffCount}名</p>
               </div>
@@ -291,7 +291,7 @@ export default function YearSlideExecution() {
 
         {/* ステップ3: 確認と実行 */}
         {step === 'confirm' && (
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+          <div className="bg-white rounded-md shadow-md p-6">
             <h2 className="text-lg font-semibold mb-4 text-red-900">最終確認</h2>
 
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -347,7 +347,7 @@ export default function YearSlideExecution() {
 
         {/* 実行中 */}
         {step === 'executing' && (
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+          <div className="bg-white rounded-md shadow-md p-6">
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-600 mb-4"></div>
               <p className="text-lg text-gray-700">年度スライドを実行中...</p>
@@ -358,7 +358,7 @@ export default function YearSlideExecution() {
 
         {/* 完了 */}
         {step === 'result' && result && (
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+          <div className="bg-white rounded-md shadow-md p-6">
             <div className="text-center py-8">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

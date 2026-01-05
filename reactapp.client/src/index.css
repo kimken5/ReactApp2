@@ -8,7 +8,6 @@
 /* Explicitly allow Tailwind border utilities */
 .border, .border-t, .border-b, .border-l, .border-r,
 .border-2, .border-4, .border-8,
-.shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl,
 button {
   border-width: revert;
 }
@@ -33,7 +32,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   min-height: 100dvh;
-  background: linear-gradient(135deg, #fefcf6 0%, #faf7f0 100%);
+  background: #f3f4f6;
 }
 
 h1, h2, h3, h4, h5, h6 {

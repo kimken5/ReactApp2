@@ -92,7 +92,7 @@ export function DashboardPage() {
 
         {/* 最近の活動 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
+          <div className="bg-white rounded-md shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">最近の連絡帳</h2>
             <div className="space-y-3">
               {recentReports.length > 0 ? (
@@ -113,7 +113,7 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-md shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
+          <div className="bg-white rounded-md shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">今日の予定</h2>
             <div className="space-y-3">
               {todayEvents.length > 0 ? (
@@ -175,7 +175,7 @@ function ClassNotificationCard({
   return (
     <div
       onClick={() => onClassClick(classId)}
-      className="bg-white rounded-md shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      className="bg-white rounded-md shadow-md p-4 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-gray-800 font-semibold text-base">{className}</h3>
@@ -307,7 +307,7 @@ function QuickActionButton({ iconType, label, href }: QuickActionButtonProps) {
   return (
     <a
       href={href}
-      className="flex flex-col items-center justify-center p-6 bg-white rounded-md shadow-md border border-gray-200 hover:shadow-lg hover:border-gray-300 transition-all duration-200 group"
+      className="flex flex-col items-center justify-center p-6 bg-white rounded-md shadow-md hover:shadow-lg transition-all duration-200 group"
     >
       <div className="p-3 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full text-white mb-3 group-hover:scale-110 transition-transform duration-200">
         {getQuickIcon(iconType)}

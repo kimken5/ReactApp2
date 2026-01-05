@@ -122,7 +122,7 @@ export function ApplicationDetailModal({ applicationId, onClose, onImport, onRej
 
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
             <h2 className="text-xl font-bold text-gray-800">

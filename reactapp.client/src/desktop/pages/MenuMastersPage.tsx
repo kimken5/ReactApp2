@@ -120,7 +120,7 @@ export function MenuMastersPage() {
             </button>
           </div>
         ) : (
-          <div className="bg-white shadow-md rounded-md border border-gray-200 overflow-hidden">
+          <div className="bg-white shadow-md rounded-md overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

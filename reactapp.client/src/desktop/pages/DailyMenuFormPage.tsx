@@ -206,7 +206,7 @@ export function DailyMenuFormPage() {
     label: string
   ) => {
     return (
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">{label}</h3>
         </div>
@@ -269,11 +269,11 @@ export function DailyMenuFormPage() {
 
           {/* 登録済み献立一覧（テーブル形式） */}
           {menuList.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-sm bg-gray-50 rounded-md border border-gray-200">
+            <div className="text-center py-8 text-gray-500 text-sm bg-gray-50 rounded-md">
               献立が登録されていません
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -388,7 +388,7 @@ export function DailyMenuFormPage() {
         )}
 
         {/* 提供日選択 */}
-        <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
+        <div className="bg-white shadow-md rounded-lg p-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             提供日
           </label>

@@ -299,6 +299,9 @@ export function ParentsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingParentId, setEditingParentId] = useState<number | null>(null);
 
+  // 削除確認モーダル状態
+  const [deleteConfirmParent, setDeleteConfirmParent] = useState<ParentDto | null>(null);
+
   // フィルタ状態
   const [filter, setFilter] = useState<{
     classId?: string;
@@ -426,13 +429,10 @@ export function ParentsPage() {
   };
 
   // 削除処理
-  const handleDelete = async (parentId: number, parentName: string) => {
-    if (!confirm(`保護者「${parentName || '(名前未登録)'}」を削除してもよろしいですか？`)) {
-      return;
-    }
-
+  const handleDelete = async (parentId: number) => {
     try {
       await masterService.deleteParent(parentId);
+      setDeleteConfirmParent(null);
       loadParents();
     } catch (err) {
       console.error('削除に失敗しました:', err);
@@ -482,7 +482,7 @@ export function ParentsPage() {
         </div>
 
         {/* フィルタセクション */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 p-6">
+        <div className="bg-white rounded-md shadow-md p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* クラスフィルタ */}
             <div>
@@ -546,7 +546,7 @@ export function ParentsPage() {
         )}
 
         {/* 保護者一覧テーブル */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-md shadow-md overflow-hidden">
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
@@ -646,7 +646,7 @@ export function ParentsPage() {
 
                               {/* 削除ボタン */}
                               <button
-                                onClick={() => handleDelete(parent.id, parent.name || '')}
+                                onClick={() => setDeleteConfirmParent(parent)}
                                 className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
                                 title="削除"
                               >
@@ -684,6 +684,52 @@ export function ParentsPage() {
           onSuccess={handleEditSuccess}
           parentId={editingParentId}
         />
+      )}
+
+      {/* 削除確認モーダル */}
+      {deleteConfirmParent && (
+        <>
+          {/* 背景オーバーレイ */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            onClick={() => setDeleteConfirmParent(null)}
+          />
+
+          {/* モーダルコンテンツ */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              {/* ヘッダー */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">保護者を削除</h3>
+              </div>
+
+              {/* ボディ */}
+              <div className="px-6 py-6">
+                <p className="text-gray-600 mb-6">
+                  本当に「{deleteConfirmParent.name || '(名前未登録)'}」を削除しますか？
+                  <br />
+                  この操作は取り消せません。
+                </p>
+
+                {/* アクションボタン */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteConfirmParent(null)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirmParent.id)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    削除する
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </DashboardLayout>
   );

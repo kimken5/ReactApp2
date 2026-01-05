@@ -78,7 +78,7 @@ export function RejectApplicationModal({ applicationId, onClose, onSuccess }: Pr
 
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-w-2xl w-full">
+        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
           {/* Header */}
           <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-800">

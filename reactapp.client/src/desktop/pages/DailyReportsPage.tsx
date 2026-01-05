@@ -546,7 +546,7 @@ export function DailyReportsPage() {
         )}
 
         {/* フィルタ */}
-        <div className="bg-white rounded-md shadow-md border border-gray-200 mb-6 p-6">
+        <div className="bg-white rounded-md shadow-md mb-6 p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* クラス選択 */}
             <div>
@@ -828,7 +828,7 @@ export function DailyReportsPage() {
 
         {/* テーブル */}
         {hasSearched && (
-        <div className="bg-white rounded-md shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-md shadow-md overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -1029,9 +1029,9 @@ export function DailyReportsPage() {
 
           {/* モーダル */}
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl border border-gray-300 max-w-md w-full overflow-hidden">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
               {/* ヘッダー */}
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-yellow-50">
+              <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">レポートを削除</h3>
               </div>
 
