@@ -370,11 +370,8 @@ export function ContactNotificationsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ヘッダー */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">連絡通知管理</h1>
-            <p className="text-gray-600 mt-2">保護者からの欠席・遅刻・お迎え連絡の確認と返信</p>
-          </div>
+        <div className="mb-8 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">連絡通知管理</h1>
         </div>
 
         {/* 成功メッセージ */}

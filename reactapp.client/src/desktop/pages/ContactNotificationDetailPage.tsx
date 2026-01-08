@@ -266,10 +266,7 @@ export function ContactNotificationDetailPage() {
       <div className="max-w-4xl mx-auto">
         {/* ヘッダー */}
         <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">連絡通知詳細</h1>
-            <p className="text-gray-600">保護者からの連絡内容の確認と返信</p>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">連絡通知詳細</h1>
           <button
             onClick={() => navigate('/desktop/contact-notifications')}
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"

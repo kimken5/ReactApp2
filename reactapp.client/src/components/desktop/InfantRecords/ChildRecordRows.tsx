@@ -85,11 +85,12 @@ const ChildRecordRows: React.FC<ChildRecordRowsProps> = ({
         {dateRange.map(date => {
           const dateKey = formatDateKey(date);
           const temp = child.dailyRecords[dateKey]?.home?.temperature;
+          const cellClasses = getCellClassName('data-cell parent-input readonly', date);
           return (
             <td
               key={dateKey}
-              className="data-cell parent-input readonly"
-              style={{ cursor: 'not-allowed', backgroundColor: '#f9fafb' }}
+              className={cellClasses}
+              style={{ cursor: 'not-allowed', backgroundColor: isToday(date) ? undefined : '#f9fafb' }}
             >
               {formatTemperature(temp)}
             </td>
@@ -103,10 +104,11 @@ const ChildRecordRows: React.FC<ChildRecordRowsProps> = ({
         {dateRange.map(date => {
           const dateKey = formatDateKey(date);
           const note = child.dailyRecords[dateKey]?.home?.parentNote;
+          const cellClasses = getCellClassName('data-cell parent-input readonly note-cell', date);
           return (
             <td
               key={dateKey}
-              className="data-cell parent-input readonly note-cell"
+              className={cellClasses}
             >
               {note?.text || ''}
             </td>

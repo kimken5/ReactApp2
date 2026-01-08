@@ -229,13 +229,8 @@ export function ApplicationsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">入園申込管理</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            保護者からの入園申込を確認し、インポートまたは却下します。
-          </p>
-        </div>
+      <div className="mb-8 flex justify-between items-start">
+        <h1 className="text-2xl font-bold text-gray-800">入園申込管理</h1>
         <button
           onClick={() => setIsApplicationKeyModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md"

@@ -183,13 +183,11 @@ export function DailyReportEditModal({ reportId, onClose, onSuccess }: DailyRepo
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl border border-gray-300 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
           {/* ヘッダー */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-orange-50 to-yellow-50">
-            <div>
-              {report && <p className="text-sm text-gray-600">レポートID: {report.id}</p>}
-            </div>
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">レポート修正</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white hover:bg-opacity-50 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               title="閉じる"
             >
               <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

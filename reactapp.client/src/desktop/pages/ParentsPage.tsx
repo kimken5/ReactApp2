@@ -465,11 +465,8 @@ export function ParentsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ヘッダー */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">保護者管理</h1>
-            <p className="text-gray-600 mt-2">保護者情報の登録・編集・削除を行います</p>
-          </div>
+        <div className="mb-8 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">保護者管理</h1>
           <button
             onClick={() => navigate('/desktop/parents/create')}
             className="px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-md transition-all duration-200 flex items-center gap-2"

@@ -225,7 +225,7 @@ const AttendanceReportPage: React.FC = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="mb-8 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">出席統計レポート</h1>
           <button
             onClick={() => navigate('/desktop/attendance')}

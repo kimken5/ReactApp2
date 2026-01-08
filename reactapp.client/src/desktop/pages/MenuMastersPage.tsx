@@ -68,7 +68,9 @@ export function MenuMastersPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ページタイトル */}
-        <h1 className="text-2xl font-bold text-gray-900">献立マスター管理</h1>
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">献立マスター管理</h1>
+        </div>
 
         {/* 成功メッセージ */}
         {successMessage && (

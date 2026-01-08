@@ -444,12 +444,9 @@ export function ChildFormPage() {
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900">
             {isEditMode ? '園児編集' : '園児新規作成'}
           </h1>
-          <p className="text-gray-600">
-            {isEditMode ? '園児情報を編集します' : '新しい園児を登録します'}
-          </p>
         </div>
 
         {/* エラーメッセージ */}

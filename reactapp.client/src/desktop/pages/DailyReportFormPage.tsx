@@ -580,14 +580,9 @@ export function DailyReportFormPage() {
       <div className="max-w-4xl mx-auto">
         {/* ヘッダー */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900">
             {isEditMode ? 'レポート編集' : 'レポート新規作成'}
           </h1>
-          <p className="text-gray-600">
-            {isEditMode
-              ? `レポート「${existingReport?.title}」の情報を編集します`
-              : '新しいレポートを作成します'}
-          </p>
         </div>
 
         {/* 読み取り専用メッセージ */}

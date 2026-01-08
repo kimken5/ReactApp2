@@ -131,11 +131,8 @@ export function DailyReportDetailPage() {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto">
         {/* ヘッダー */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">日報詳細</h1>
-            <p className="text-gray-600">日報ID: {report.id}</p>
-          </div>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">日報詳細</h1>
           <div className="flex space-x-3">
             {!isPublishedOrArchived(report.status) && (
               <button

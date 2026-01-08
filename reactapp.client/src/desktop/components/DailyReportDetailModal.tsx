@@ -116,7 +116,8 @@ export function DailyReportDetailModal({ reportId, onClose, onEdit }: DailyRepor
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl border border-gray-300 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
           {/* ヘッダー */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-end">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">レポート詳細</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"

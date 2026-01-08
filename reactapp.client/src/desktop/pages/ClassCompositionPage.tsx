@@ -288,12 +288,9 @@ export function ClassCompositionPage() {
       <div className="max-w-6xl mx-auto">
         {/* ヘッダー */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900">
             クラス構成管理
           </h1>
-          <p className="text-gray-600">
-            {classData.name} ({classData.classId}) の担任・園児を設定します
-          </p>
         </div>
 
         {/* 成功メッセージ */}

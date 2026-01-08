@@ -566,11 +566,8 @@ export function CalendarPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">カレンダー管理</h1>
-            <p className="text-gray-600 mt-2">イベントの確認・作成・編集を行います</p>
-          </div>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">カレンダー管理</h1>
           <button
             onClick={openCreateEventModal}
             className="px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
@@ -611,7 +608,7 @@ export function CalendarPage() {
         )}
 
         {/* コントロールバー */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-md p-4">
           {/* 表示切り替えと今日ボタン */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2">

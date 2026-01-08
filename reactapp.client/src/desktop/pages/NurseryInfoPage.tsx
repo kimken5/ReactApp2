@@ -267,8 +267,7 @@ export function NurseryInfoPage() {
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">保育園情報</h1>
-          <p className="text-gray-600">保育園の基本情報を編集できます</p>
+          <h1 className="text-2xl font-bold text-gray-900">保育園情報</h1>
         </div>
 
         {/* 成功メッセージ */}

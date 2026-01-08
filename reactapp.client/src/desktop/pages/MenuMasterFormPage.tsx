@@ -162,7 +162,9 @@ export function MenuMasterFormPage() {
     <DashboardLayout>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ページタイトル */}
-        <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? '献立マスター編集' : '献立マスター作成'}</h1>
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? '献立マスター編集' : '献立マスター作成'}</h1>
+        </div>
 
         {/* エラーメッセージ */}
         {errors.general && (

@@ -151,7 +151,9 @@ export function DailyMenusPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ページタイトル */}
-        <h1 className="text-2xl font-bold text-gray-900">日別献立カレンダー</h1>
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">日別献立カレンダー</h1>
+        </div>
 
         {/* 成功メッセージ */}
         {successMessage && (
@@ -340,7 +342,13 @@ export function DailyMenusPage() {
                               acc[menu.menuType].push(menu);
                               return acc;
                             }, {} as Record<string, typeof menusForDate>)
-                          ).map(([menuType, menus]) => {
+                          )
+                            .sort(([typeA], [typeB]) => {
+                              // 順序: MorningSnack → Lunch → AfternoonSnack
+                              const order = { MorningSnack: 1, Lunch: 2, AfternoonSnack: 3 };
+                              return order[typeA as keyof typeof order] - order[typeB as keyof typeof order];
+                            })
+                            .map(([menuType, menus]) => {
                             // 全アレルゲンを収集（重複を除く）
                             const allAllergens = Array.from(
                               new Set(

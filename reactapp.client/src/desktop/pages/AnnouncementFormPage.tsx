@@ -323,12 +323,9 @@ export function AnnouncementFormPage() {
       <div className="max-w-4xl mx-auto">
         {/* ヘッダー */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900">
             {isEditMode ? 'お知らせ編集' : 'お知らせ新規作成'}
           </h1>
-          <p className="text-gray-600">
-            {isEditMode ? 'お知らせの情報を編集します' : '新しいお知らせを作成します'}
-          </p>
         </div>
 
         {/* 全体エラーメッセージ */}

@@ -371,7 +371,7 @@ export function AttendancePage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ヘッダー */}
-        <div className="flex justify-between items-center">
+        <div className="mb-8 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">出欠表管理</h1>
           <button
             onClick={handleBulkPresent}

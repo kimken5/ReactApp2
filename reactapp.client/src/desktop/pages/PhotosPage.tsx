@@ -400,11 +400,8 @@ export function PhotosPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">写真管理</h1>
-            <p className="text-gray-600 mt-2">写真の一覧・アップロード・編集・削除を行います</p>
-          </div>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">写真管理</h1>
           <button
             onClick={() => navigate('/desktop/photos/upload')}
             className="px-6 py-3 bg-gradient-to-r from-orange-400 to-yellow-400 text-white rounded-lg font-medium hover:from-orange-500 hover:to-yellow-500 active:from-orange-600 active:to-yellow-600 transition flex items-center space-x-2 shadow-sm"

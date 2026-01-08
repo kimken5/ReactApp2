@@ -359,7 +359,7 @@ export function DailyMenuFormPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">日別献立登録</h1>
           <div className="flex gap-2">
             <button

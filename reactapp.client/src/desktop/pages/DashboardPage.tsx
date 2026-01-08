@@ -201,16 +201,16 @@ function ClassNotificationCard({
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-600">欠席連絡</span>
-          <span className="text-sm font-bold text-gray-800">{absence}件</span>
+          <span className="text-xs text-red-600 font-medium">欠席連絡</span>
+          <span className="text-sm font-bold text-red-600">{absence}件</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-600">遅刻連絡</span>
-          <span className="text-sm font-bold text-gray-800">{late}件</span>
+          <span className="text-xs text-orange-600 font-medium">遅刻連絡</span>
+          <span className="text-sm font-bold text-orange-600">{late}件</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-600">お迎え連絡</span>
-          <span className="text-sm font-bold text-gray-800">{pickup}件</span>
+          <span className="text-xs text-blue-600 font-medium">お迎え連絡</span>
+          <span className="text-sm font-bold text-blue-600">{pickup}件</span>
         </div>
       </div>
     </div>

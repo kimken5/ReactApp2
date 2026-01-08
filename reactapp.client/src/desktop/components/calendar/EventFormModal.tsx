@@ -418,7 +418,7 @@ export function EventFormModal({ isOpen, onClose, onSubmit, event, classes, mode
             </div>
 
             {/* アクションボタン */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-md flex justify-end space-x-3 -mx-6 -mb-6 mt-6">
+            <div className="sticky bottom-0 px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-md flex justify-end space-x-3 -mx-6 -mb-6 mt-6">
               <button
                 type="button"
                 onClick={onClose}

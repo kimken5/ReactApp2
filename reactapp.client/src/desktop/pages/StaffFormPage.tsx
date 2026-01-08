@@ -332,12 +332,9 @@ export function StaffFormPage() {
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900">
             {isEditMode ? '職員編集' : '職員新規作成'}
           </h1>
-          <p className="text-gray-600">
-            {isEditMode ? '職員情報を編集します' : '新しい職員を登録します'}
-          </p>
         </div>
 
         {/* 成功メッセージ */}
