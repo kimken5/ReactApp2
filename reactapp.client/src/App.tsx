@@ -7,6 +7,13 @@ import { DesktopApp } from './desktop/DesktopApp';
 import { ApplicationFormPage } from './pages/ApplicationFormPage';
 import { ApplicationCompletePage } from './pages/ApplicationCompletePage';
 
+// 保護者モバイルアプリ
+import { ParentBarcodePage } from './pages/mobile/ParentBarcodePage';
+
+// 入退管理システム（タブレット）
+import { EntryExitLoginPage } from './pages/entry-exit/EntryExitLoginPage';
+import { EntryExitRegistrationPage } from './pages/entry-exit/EntryExitRegistrationPage';
+
 function App() {
     return (
         <Router>
@@ -18,6 +25,13 @@ function App() {
                 <Route path="/application" element={<ApplicationFormPage />} />
                 <Route path="/application/complete" element={<ApplicationCompletePage />} />
 
+                {/* 保護者モバイルアプリ */}
+                <Route path="/mobile/barcode" element={<ParentBarcodePage />} />
+
+                {/* 入退管理システム（タブレット） */}
+                <Route path="/entry-exit/login" element={<EntryExitLoginPage />} />
+                <Route path="/entry-exit/registration" element={<EntryExitRegistrationPage />} />
+
                 <Route path="/" element={
                     <div style={{padding: '20px', maxWidth: '800px', margin: '0 auto'}}>
                         <h1 style={{color: '#333', marginBottom: '30px'}}>保育園アプリ</h1>
@@ -26,6 +40,14 @@ function App() {
                             <h2 style={{color: '#666', borderBottom: '2px solid #10b981', paddingBottom: '10px'}}>👶 保護者向け</h2>
                             <ul style={{listStyle: 'none', padding: 0}}>
                                 <li style={{margin: '10px 0'}}><a href="/application" style={{color: '#10b981', textDecoration: 'none', fontSize: '16px', fontWeight: 'bold'}}>📝 入園申込フォーム</a></li>
+                                <li style={{margin: '10px 0'}}><a href="/mobile/barcode" style={{color: '#10b981', textDecoration: 'none', fontSize: '16px', fontWeight: 'bold'}}>📱 入退管理バーコード</a></li>
+                            </ul>
+                        </div>
+
+                        <div style={{marginBottom: '30px'}}>
+                            <h2 style={{color: '#666', borderBottom: '2px solid #3b82f6', paddingBottom: '10px'}}>📲 タブレット端末専用</h2>
+                            <ul style={{listStyle: 'none', padding: 0}}>
+                                <li style={{margin: '10px 0'}}><a href="/entry-exit/login" style={{color: '#3b82f6', textDecoration: 'none', fontSize: '16px', fontWeight: 'bold'}}>🔐 入退管理システムログイン</a></li>
                             </ul>
                         </div>
 
@@ -40,6 +62,7 @@ function App() {
                                 <li style={{margin: '10px 0'}}><a href="/desktop/staff" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>👩‍🏫 職員管理</a></li>
                                 <li style={{margin: '10px 0'}}><a href="/desktop/dailyreports" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>📋 日報管理</a></li>
                                 <li style={{margin: '10px 0'}}><a href="/desktop/photos" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>📸 写真管理</a></li>
+                                <li style={{margin: '10px 0'}}><a href="/desktop/entry-exit-logs" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>🚪 入退ログ管理</a></li>
                                 <li style={{margin: '10px 0'}}><a href="/desktop/academic-years" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>📅 年度管理</a></li>
                                 <li style={{margin: '10px 0'}}><a href="/desktop/applications" style={{color: '#7c3aed', textDecoration: 'none', fontSize: '16px'}}>📋 入園申込管理</a></li>
                             </ul>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using ReactApp.Server.DTOs;
 using ReactApp.Server.DTOs.Desktop;
 using ReactApp.Server.Services;
 using System.Security.Claims;
@@ -9,7 +10,7 @@ namespace ReactApp.Server.Controllers;
 
 /// <summary>
 /// デスクトップアプリ認証コントローラー
-/// ログインID・パスワード認証、トークン管理、パスワード変更を提供
+/// ログインID・パスワード認証、トークン管理、パスワード変更、入退管理用認証を提供
 /// </summary>
 [ApiController]
 [Route("api/desktop/auth")]
@@ -17,13 +18,16 @@ namespace ReactApp.Server.Controllers;
 public class DesktopAuthController : ControllerBase
 {
     private readonly IDesktopAuthenticationService _authService;
+    private readonly IAuthenticationService _mobileAuthService;
     private readonly ILogger<DesktopAuthController> _logger;
 
     public DesktopAuthController(
         IDesktopAuthenticationService authService,
+        IAuthenticationService mobileAuthService,
         ILogger<DesktopAuthController> logger)
     {
         _authService = authService;
+        _mobileAuthService = mobileAuthService;
         _logger = logger;
     }
 
@@ -321,6 +325,126 @@ public class DesktopAuthController : ControllerBase
                 {
                     Code = "SERVER_ERROR",
                     Message = "アカウントロック解除中にエラーが発生しました"
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// 入退管理用ログイン
+    /// タブレット端末から入退管理画面へのログインを処理
+    /// </summary>
+    /// <param name="request">入退管理用ログインリクエスト</param>
+    /// <returns>JWTトークンと保育園情報</returns>
+    [HttpPost("entry-exit-login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<EntryExitLoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> EntryExitLogin([FromBody] EntryExitLoginRequest request)
+    {
+        try
+        {
+            var response = await _mobileAuthService.EntryExitLoginAsync(request);
+
+            _logger.LogInformation("Entry/Exit login successful for NurseryId: {NurseryId}", response.NurseryId);
+
+            return Ok(new ApiResponse<EntryExitLoginResponse>
+            {
+                Success = true,
+                Data = response
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Entry/Exit login failed for LoginId: {LoginId}", request.LoginId);
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError
+                {
+                    Code = "AUTH_INVALID_CREDENTIALS",
+                    Message = ex.Message
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Entry/Exit login error for LoginId: {LoginId}", request.LoginId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError
+                {
+                    Code = "SERVER_ERROR",
+                    Message = "ログイン処理中にエラーが発生しました"
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// ハートビート（トークン更新）
+    /// 入退管理画面のセッション維持用に定期的にトークンを更新
+    /// </summary>
+    /// <returns>新しいJWTトークンと有効期限</returns>
+    [HttpPost("heartbeat")]
+    [Authorize(Roles = "EntryExit")]
+    [EnableRateLimiting("heartbeat")]
+    [ProducesResponseType(typeof(ApiResponse<HeartbeatResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Heartbeat()
+    {
+        try
+        {
+            // Authorizationヘッダーからトークンを取得
+            var authHeader = Request.Headers["Authorization"].ToString();
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Error = new ApiError
+                    {
+                        Code = "AUTH_TOKEN_MISSING",
+                        Message = "認証トークンが見つかりません"
+                    }
+                });
+            }
+
+            var currentToken = authHeader.Substring("Bearer ".Length).Trim();
+            var response = await _mobileAuthService.HeartbeatAsync(currentToken);
+
+            _logger.LogDebug("Heartbeat successful, token refreshed");
+
+            return Ok(new ApiResponse<HeartbeatResponse>
+            {
+                Success = true,
+                Data = response
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Heartbeat failed: Invalid token");
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError
+                {
+                    Code = "AUTH_TOKEN_INVALID",
+                    Message = ex.Message
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Heartbeat error");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError
+                {
+                    Code = "SERVER_ERROR",
+                    Message = "ハートビート処理中にエラーが発生しました"
                 }
             });
         }

@@ -696,5 +696,115 @@ namespace ReactApp.Server.Services
             // ハイフン・空白・先頭末尾の空白を除去して正規化
             return phoneNumber.Replace("-", "").Replace(" ", "").Trim();
         }
+
+        /// <summary>
+        /// 入退登録画面用ログイン
+        /// 保育園ログインID + 入退管理用パスワードで認証し、JWTトークンを発行
+        /// </summary>
+        public async Task<EntryExitLoginResponse> EntryExitLoginAsync(EntryExitLoginRequest request)
+        {
+            try
+            {
+                // 保育園を検索（LoginIdで検索）
+                var nursery = await _context.Nurseries
+                    .Where(n => n.LoginId == request.LoginId)
+                    .FirstOrDefaultAsync();
+
+                if (nursery == null)
+                {
+                    _logger.LogWarning("入退登録ログイン失敗: 保育園が見つかりません。LoginId={LoginId}", request.LoginId);
+                    throw new UnauthorizedAccessException("ログインIDまたはパスワードが正しくありません。");
+                }
+
+                // 入退管理用パスワードが設定されているかチェック
+                if (string.IsNullOrEmpty(nursery.EntryExitPassword))
+                {
+                    _logger.LogWarning("入退登録ログイン失敗: 入退管理用パスワードが設定されていません。NurseryId={NurseryId}", nursery.Id);
+                    throw new UnauthorizedAccessException("入退管理機能が有効化されていません。管理者にお問い合わせください。");
+                }
+
+                // パスワード検証（BCrypt）
+                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, nursery.EntryExitPassword);
+                if (!isPasswordValid)
+                {
+                    _logger.LogWarning("入退登録ログイン失敗: パスワードが正しくありません。NurseryId={NurseryId}", nursery.Id);
+                    throw new UnauthorizedAccessException("ログインIDまたはパスワードが正しくありません。");
+                }
+
+                // JWTトークンを生成（有効期限: 1時間）
+                var expiresAt = DateTimeHelper.GetJstNow().AddHours(1);
+                var token = _jwtService.GenerateEntryExitToken(nursery.Id, nursery.Name, expiresAt);
+
+                _logger.LogInformation("入退登録ログイン成功: NurseryId={NurseryId}, NurseryName={NurseryName}", nursery.Id, nursery.Name);
+
+                return new EntryExitLoginResponse
+                {
+                    Token = token,
+                    NurseryId = nursery.Id,
+                    NurseryName = nursery.Name,
+                    ExpiresAt = expiresAt
+                };
+            }
+            catch (UnauthorizedAccessException)
+            {
+                throw; // そのまま再スロー
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "入退登録ログインエラー: LoginId={LoginId}", request.LoginId);
+                throw new InvalidOperationException("ログイン処理中にエラーが発生しました。");
+            }
+        }
+
+        /// <summary>
+        /// ハートビート処理（トークンリフレッシュ）
+        /// 現在のトークンを検証し、新しいトークンを発行して有効期限を延長
+        /// </summary>
+        public async Task<HeartbeatResponse> HeartbeatAsync(string currentToken)
+        {
+            try
+            {
+                // トークンを検証してクレームを取得
+                var principal = _jwtService.GetPrincipalFromToken(currentToken);
+                if (principal == null)
+                {
+                    _logger.LogWarning("ハートビート失敗: トークンが無効です");
+                    throw new UnauthorizedAccessException("トークンが無効です。再ログインしてください。");
+                }
+
+                // NurseryIdとNurseryNameをクレームから取得
+                var nurseryIdClaim = principal.FindFirst("nursery_id")?.Value;
+                var nurseryNameClaim = principal.FindFirst("nursery_name")?.Value;
+
+                if (string.IsNullOrEmpty(nurseryIdClaim) || string.IsNullOrEmpty(nurseryNameClaim))
+                {
+                    _logger.LogWarning("ハートビート失敗: トークンに必要な情報が含まれていません");
+                    throw new UnauthorizedAccessException("トークンが不正です。再ログインしてください。");
+                }
+
+                int nurseryId = int.Parse(nurseryIdClaim);
+
+                // 新しいトークンを生成（有効期限: 1時間）
+                var expiresAt = DateTimeHelper.GetJstNow().AddHours(1);
+                var newToken = _jwtService.GenerateEntryExitToken(nurseryId, nurseryNameClaim, expiresAt);
+
+                _logger.LogInformation("ハートビート成功: NurseryId={NurseryId}, 新有効期限={ExpiresAt}", nurseryId, expiresAt);
+
+                return new HeartbeatResponse
+                {
+                    Token = newToken,
+                    ExpiresAt = expiresAt
+                };
+            }
+            catch (UnauthorizedAccessException)
+            {
+                throw; // そのまま再スロー
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ハートビート処理エラー");
+                throw new InvalidOperationException("ハートビート処理中にエラーが発生しました。");
+            }
+        }
     }
 }

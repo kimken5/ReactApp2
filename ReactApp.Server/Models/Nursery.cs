@@ -85,6 +85,14 @@ public class Nursery
     public string? Password { get; set; }
 
     /// <summary>
+    /// 入退管理用パスワード（任意、最大255文字）
+    /// BCryptハッシュ化されたパスワード
+    /// タブレット入退登録画面用の認証に使用
+    /// </summary>
+    [StringLength(255)]
+    public string? EntryExitPassword { get; set; }
+
+    /// <summary>
     /// 最終ログイン日時（任意）
     /// デスクトップアプリへの最終ログイン時刻
     /// </summary>

@@ -164,13 +164,18 @@
   border: 1px solid #9ca3af;
   vertical-align: top;
   min-height: 40px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   word-wrap: break-word;
   overflow-wrap: break-word;
   max-width: 120px;
   text-align: center;
   margin-left: -1px;
+}
+
+/* 入力済みデータを太字にする（-以外） */
+.data-cell:not(:empty):not([data-empty="true"]) {
+  font-weight: bold;
 }
 
 /* 本日のセル */

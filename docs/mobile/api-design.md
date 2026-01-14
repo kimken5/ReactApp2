@@ -2042,10 +2042,9 @@ Authorization: Bearer {access_token}
     "staffId": 4,
     "staffName": "高橋健一",
     "reportDate": "2025-10-06T00:00:00Z",
-    "category": "日常",
+    "reportKind": "activity,meal",
     "title": "田中花子の日報",
     "content": "元気に遊んでいました。",
-    "tags": ["活動", "食事"],
     "photos": [],
     "status": "draft",
     "createdAt": "2025-10-06T12:40:33Z",
@@ -2080,10 +2079,9 @@ Authorization: Bearer {access_token}
   "staffId": 4,
   "staffName": "高橋健一",
   "reportDate": "2025-10-06T00:00:00Z",
-  "category": "日常",
+  "reportKind": "activity,meal",
   "title": "田中花子の日報",
   "content": "元気に遊んでいました。食事も完食しました。",
-  "tags": ["活動", "食事"],
   "photos": ["https://storage.example.com/photo1.jpg"],
   "status": "draft",
   "createdAt": "2025-10-06T12:40:33Z",
@@ -2112,10 +2110,9 @@ Authorization: Bearer {access_token}
 ```json
 {
   "reportDate": "2025-10-06T00:00:00Z",
-  "category": "日常",
+  "reportKind": "activity,meal,sleep",
   "title": "田中花子の日報（更新）",
   "content": "元気に遊んでいました。食事も完食しました。午睡は1時間でした。",
-  "tags": ["活動", "食事", "睡眠"],
   "photos": ["https://storage.example.com/photo1.jpg"]
 }
 ```

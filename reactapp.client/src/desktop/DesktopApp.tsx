@@ -36,6 +36,7 @@ import { MenuMasterFormPage } from './pages/MenuMasterFormPage';
 import { DailyMenusPage } from './pages/DailyMenusPage';
 import { DailyMenuFormPage } from './pages/DailyMenuFormPage';
 import InfantRecordsWeeklyPage from '../components/desktop/InfantRecords/InfantRecordsWeeklyPage';
+import { EntryExitLogsPage } from './pages/EntryExitLogsPage';
 
 /**
  * デスクトップアプリ用ルーター
@@ -454,6 +455,16 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <InfantRecordsWeeklyPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 入退ログ管理 */}
+      <Route
+        path="/entry-exit-logs"
+        element={
+          <ProtectedRoute>
+            <EntryExitLogsPage />
           </ProtectedRoute>
         }
       />

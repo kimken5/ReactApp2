@@ -377,7 +377,7 @@ const InfantRecordsWeeklyPage: React.FC = () => {
         </div>
 
         {/* コントロールセクション */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
+        <div className="bg-white rounded-lg shadow-md p-4 mb-3">
           <div className="flex flex-wrap items-center gap-4">
             {/* 週選択 */}
             <div className="flex items-center gap-3">
@@ -450,14 +450,14 @@ const InfantRecordsWeeklyPage: React.FC = () => {
 
         {/* メインコンテンツ */}
         {isLoading ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+          <div className="bg-white rounded-lg shadow-md p-12">
             <div className="flex flex-col items-center justify-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
               <p className="text-sm text-gray-600">データを読み込んでいます...</p>
             </div>
           </div>
         ) : !error && selectedClassId ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {console.log('🎨 Rendering table with data:', {
               hasData: !!weeklyData,
               childrenCount: weeklyData?.children?.length || 0,

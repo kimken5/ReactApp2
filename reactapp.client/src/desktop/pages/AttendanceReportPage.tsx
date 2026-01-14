@@ -178,14 +178,14 @@ const AttendanceReportPage: React.FC = () => {
         </h3>
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-            <thead className="bg-gray-100">
+            <thead className="bg-gray-500">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">園児名</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">出席日数</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">欠席日数</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">遅刻日数</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">記録日数</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b">出席率</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-white border-b border-gray-400">園児名</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-white border-b border-gray-400">出席日数</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-white border-b border-gray-400">欠席日数</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-white border-b border-gray-400">遅刻日数</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-white border-b border-gray-400">記録日数</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-white border-b border-gray-400">出席率</th>
               </tr>
             </thead>
             <tbody>
@@ -194,12 +194,12 @@ const AttendanceReportPage: React.FC = () => {
                   key={child.childId}
                   className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
                 >
-                  <td className="px-4 py-3 text-sm text-gray-800 border-b">{child.childName}</td>
-                  <td className="px-4 py-3 text-sm text-center text-gray-800 border-b">{child.presentDays}</td>
-                  <td className="px-4 py-3 text-sm text-center text-gray-800 border-b">{child.absentDays}</td>
-                  <td className="px-4 py-3 text-sm text-center text-gray-800 border-b">{child.lateDays}</td>
-                  <td className="px-4 py-3 text-sm text-center text-gray-800 border-b">{child.totalRecordedDays}</td>
-                  <td className="px-4 py-3 text-sm text-center font-semibold border-b">
+                  <td className="px-4 py-3 text-sm text-gray-800 border-b border-gray-200">{child.childName}</td>
+                  <td className="px-4 py-3 text-sm text-center text-gray-800 border-b border-gray-200">{child.presentDays}</td>
+                  <td className="px-4 py-3 text-sm text-center text-gray-800 border-b border-gray-200">{child.absentDays}</td>
+                  <td className="px-4 py-3 text-sm text-center text-gray-800 border-b border-gray-200">{child.lateDays}</td>
+                  <td className="px-4 py-3 text-sm text-center text-gray-800 border-b border-gray-200">{child.totalRecordedDays}</td>
+                  <td className="px-4 py-3 text-sm text-center font-semibold border-b border-gray-200">
                     <span
                       className={
                         child.attendanceRate >= 90
@@ -409,7 +409,7 @@ const AttendanceReportPage: React.FC = () => {
         <div className="bg-white p-6 rounded-md shadow-md border border-gray-200">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              期間: {statistics.period.from} 〜 {statistics.period.to}
+              期間: {statistics.period.from.split('T')[0]} 〜 {statistics.period.to.split('T')[0]}
             </h2>
             <p className="text-lg text-gray-700">
               全体平均出席率: <span className="font-bold text-blue-600">{statistics.overallSummary.averageAttendanceRate.toFixed(1)}%</span>

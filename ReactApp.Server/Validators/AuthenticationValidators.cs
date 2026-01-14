@@ -116,4 +116,58 @@ namespace ReactApp.Server.Validators
                 .WithMessage("リフレッシュトークンは必須です。");
         }
     }
+
+    /// <summary>
+    /// 入退ログ作成リクエストバリデーター
+    /// CreateEntryExitLogRequestのバリデーションルールを定義し、入退種別の妥当性を検証する
+    /// </summary>
+    public class CreateEntryExitLogRequestValidator : AbstractValidator<CreateEntryExitLogRequest>
+    {
+        /// <summary>
+        /// CreateEntryExitLogRequestValidatorコンストラクタ
+        /// 入退ログ作成リクエストのバリデーションルールを設定する
+        /// </summary>
+        public CreateEntryExitLogRequestValidator()
+        {
+            RuleFor(x => x.ParentId)
+                .GreaterThan(0)
+                .WithMessage("保護者IDは1以上である必要があります。");
+
+            RuleFor(x => x.NurseryId)
+                .GreaterThan(0)
+                .WithMessage("保育園IDは1以上である必要があります。");
+
+            RuleFor(x => x.EntryType)
+                .NotEmpty()
+                .WithMessage("入退種別は必須です。")
+                .Must(type => type == "Entry" || type == "Exit")
+                .WithMessage("入退種別は 'Entry' または 'Exit' である必要があります。");
+        }
+    }
+
+    /// <summary>
+    /// 入退管理用ログインリクエストバリデーター
+    /// EntryExitLoginRequestのバリデーションルールを定義し、ログインIDとパスワードの存在を検証する
+    /// </summary>
+    public class EntryExitLoginRequestValidator : AbstractValidator<EntryExitLoginRequest>
+    {
+        /// <summary>
+        /// EntryExitLoginRequestValidatorコンストラクタ
+        /// 入退管理用ログインリクエストのバリデーションルールを設定する
+        /// </summary>
+        public EntryExitLoginRequestValidator()
+        {
+            RuleFor(x => x.LoginId)
+                .NotEmpty()
+                .WithMessage("ログインIDは必須です。")
+                .MaximumLength(50)
+                .WithMessage("ログインIDは50文字以内である必要があります。");
+
+            RuleFor(x => x.Password)
+                .NotEmpty()
+                .WithMessage("パスワードは必須です。")
+                .MinimumLength(4)
+                .WithMessage("パスワードは4文字以上である必要があります。");
+        }
+    }
 }

@@ -417,5 +417,45 @@ namespace ReactApp.Server.Services
                 return string.Empty;
             }
         }
+
+        /// <summary>
+        /// 入退管理用JWTトークン生成
+        /// 保育園の入退管理画面用に特化したJWTトークンを生成
+        /// </summary>
+        /// <param name="nurseryId">保育園ID</param>
+        /// <param name="nurseryName">保育園名</param>
+        /// <param name="expiresAt">有効期限（JST）</param>
+        /// <returns>署名付きJWTトークン</returns>
+        public string GenerateEntryExitToken(int nurseryId, string nurseryName, DateTime expiresAt)
+        {
+            // JWTトークンハンドラーと署名用秘密鍵の準備
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_secretKey);
+
+            // 入退管理用クレームの作成
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                new Claim("nursery_id", nurseryId.ToString()),
+                new Claim("nursery_name", nurseryName),
+                new Claim(ClaimTypes.Role, "EntryExit"),  // 入退管理用の専用ロール
+                new Claim("token_type", "entry_exit")      // トークン種別の明示
+            };
+
+            // JWTトークンのメタデータと署名情報を設定
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = expiresAt,
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                Issuer = _issuer,
+                Audience = _audience
+            };
+
+            // JWTトークンを生成して文字列化
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
     }
 }

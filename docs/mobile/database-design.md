@@ -27,10 +27,11 @@
 │ PhoneNumber     │         │ AgeGroupMin     │         │ PhoneNumber     │
 │ Email           │         │ AgeGroupMax     │         │ Email           │
 │ PrincipalName   │         │ MaxCapacity     │         │ Role            │
-│ EstablishedDate │         └─────────────────┘         │ Position        │
-│ LogoUrl         │                 │ ▲                 │ IsActive        │
-└─────────────────┘                 │ │                 │ LastLoginAt     │
-                                    │ │                 └─────────────────┘
+│ EstablishedDate │         │ CreatedAt       │         │ Position        │
+│ LogoUrl         │         │ UpdatedAt       │         │ IsActive        │
+│ CreatedAt       │         │ IsActive        │         │ LastLoginAt     │
+│ UpdatedAt       │         └─────────────────┘         └─────────────────┘
+└─────────────────┘                 │ ▲                         │
                                     │ │                         │
                                     │ └─────────────────────────┘
                                     │  ┌────────────────────────────────────┐
@@ -71,13 +72,15 @@
                             │     Parent      │
                             ├─────────────────┤
                             │ Id (PK)         │
-                            │ FirstName       │
-                            │ LastName        │
+                            │ PhoneNumber     │
+                            │ Name            │
                             │ Email           │
-                            │ PhoneNumber     │◄─┐
-                            │ DeviceToken     │  │
-                            │ Address         │  │
-                            │ EmergencyContact│  │
+                            │ Address         │
+                            │ NurseryId (FK)  │◄─┐
+                            │ IsActive        │  │
+                            │ CreatedAt       │  │
+                            │ UpdatedAt       │  │
+                            │ LastLoginAt     │  │
                             └─────────────────┘  │
                                                │
     ┌──────────────────────────────────────────┘
@@ -125,13 +128,19 @@ CREATE TABLE Nurseries (
     Id INT PRIMARY KEY,
     Name NVARCHAR(100) NOT NULL,
     LoginID NVARCHAR(10) NULL,
-    Password NVARCHAR(10) NULL,
+    Password NVARCHAR(255) NULL,
     Address NVARCHAR(500) NOT NULL,
     PhoneNumber NVARCHAR(20) NOT NULL,
     Email NVARCHAR(255) NOT NULL,
     PrincipalName NVARCHAR(100) NOT NULL,
     EstablishedDate DATETIME2 NOT NULL,
-    LogoUrl NVARCHAR(500),
+    ApplicationKey NVARCHAR(50) NULL,
+    LastLoginAt DATETIME2 NULL,
+    KeyLockCode NVARCHAR(4) NOT NULL,
+    LoginAttempts INT NOT NULL DEFAULT 0,
+    IsLocked BIT NOT NULL DEFAULT 0,
+    LockedUntil DATETIME2 NULL,
+    CurrentAcademicYear INT NOT NULL DEFAULT DATEPART(YEAR, GETDATE()),
     CreatedAt DATETIME2 DEFAULT GETUTCDATE() NOT NULL,
     UpdatedAt DATETIME2,
 
@@ -139,12 +148,15 @@ CREATE TABLE Nurseries (
     CONSTRAINT UK_Nurseries_Email UNIQUE (Email)
 );
 
+-- インデックスの作成
 CREATE INDEX IX_Nurseries_Name ON Nurseries (Name);
+CREATE INDEX IX_Nurseries_LoginID ON Nurseries (LoginID);
+CREATE INDEX IX_Nurseries_CurrentAcademicYear ON Nurseries (CurrentAcademicYear);
 
--- テーブルコメント追加
+-- テーブルコメント
 EXEC sp_addextendedproperty 'MS_Description', '保育園マスタ', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries';
 
--- カラムコメント追加
+-- カラムコメント
 EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'Id';
 EXEC sp_addextendedproperty 'MS_Description', '保育園名', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'Name';
 EXEC sp_addextendedproperty 'MS_Description', 'ログインID', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'LoginID';
@@ -154,535 +166,146 @@ EXEC sp_addextendedproperty 'MS_Description', '電話番号', 'SCHEMA', 'dbo', '
 EXEC sp_addextendedproperty 'MS_Description', 'メールアドレス', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'Email';
 EXEC sp_addextendedproperty 'MS_Description', '園長名', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'PrincipalName';
 EXEC sp_addextendedproperty 'MS_Description', '設立日', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'EstablishedDate';
-EXEC sp_addextendedproperty 'MS_Description', 'ロゴURL', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'LogoUrl';
+EXEC sp_addextendedproperty 'MS_Description', '入園申込キー', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'ApplicationKey';
+EXEC sp_addextendedproperty 'MS_Description', '最終ログイン日時', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'LastLoginAt';
+EXEC sp_addextendedproperty 'MS_Description', 'キーロックコード', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'KeyLockCode';
+EXEC sp_addextendedproperty 'MS_Description', 'ログイン試行回数', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'LoginAttempts';
+EXEC sp_addextendedproperty 'MS_Description', 'アカウントロック状態', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'IsLocked';
+EXEC sp_addextendedproperty 'MS_Description', 'ロック解除日時', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'LockedUntil';
+EXEC sp_addextendedproperty 'MS_Description', '現在の年度', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'CurrentAcademicYear';
 EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'CreatedAt';
 EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'Nurseries', 'COLUMN', 'UpdatedAt';
 ```
 
 #### 3.1.2 Classes (クラス)
 ```sql
--- チェック制約:
---   AgeGroupMin: 0以上6以下
---   AgeGroupMax: 0以上6以下
---   MaxCapacity: 0より大きい値
---   AgeGroupMin <= AgeGroupMax
--- 複合主キー: (NurseryId, ClassId) で一意性を保証
+-- クラス情報管理テーブル
+-- 複合主キー: (NurseryId, ClassId)
 CREATE TABLE Classes (
-    NurseryId INT NOT NULL, -- 保育園ID（複合主キーの第1カラム）
-    ClassId NVARCHAR(50) NOT NULL, -- クラスID（複合主キーの第2カラム）
-    Name NVARCHAR(50) NOT NULL, -- "さくら組", "ひまわり組"
+    NurseryId INT NOT NULL,
+    ClassId NVARCHAR(50) NOT NULL,
+    Name NVARCHAR(50) NOT NULL,
     AgeGroupMin INT NOT NULL,
     AgeGroupMax INT NOT NULL,
     MaxCapacity INT NOT NULL,
-    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 DEFAULT GETUTCDATE(),
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2,
+    IsActive BIT NOT NULL DEFAULT 1,
 
     CONSTRAINT PK_Classes PRIMARY KEY (NurseryId, ClassId),
+    CONSTRAINT FK_Classes_Nurseries FOREIGN KEY (NurseryId) REFERENCES Nurseries(Id) ON DELETE CASCADE
 );
 
 CREATE INDEX IX_Classes_NurseryId ON Classes (NurseryId);
+CREATE INDEX IX_Classes_IsActive ON Classes (IsActive) WHERE IsActive = 1;
 
 -- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', 'クラス情報を管理するテーブル', 'SCHEMA', 'dbo', 'TABLE', 'Classes';
+EXEC sp_addextendedproperty 'MS_Description', 'クラス情報管理テーブル', 'SCHEMA', 'dbo', 'TABLE', 'Classes';
 
 -- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '保育園ID（複合主キー第1カラム）', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'NurseryId';
-EXEC sp_addextendedproperty 'MS_Description', 'クラスID（複合主キー第2カラム）', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'ClassId';
+EXEC sp_addextendedproperty 'MS_Description', '保育園ID（複合主キー）', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'NurseryId';
+EXEC sp_addextendedproperty 'MS_Description', 'クラスID（複合主キー）', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'ClassId';
 EXEC sp_addextendedproperty 'MS_Description', 'クラス名', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'Name';
-EXEC sp_addextendedproperty 'MS_Description', '最小年齢', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'AgeGroupMin';
-EXEC sp_addextendedproperty 'MS_Description', '最大年齢', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'AgeGroupMax';
-EXEC sp_addextendedproperty 'MS_Description', '定員数', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'MaxCapacity';
+EXEC sp_addextendedproperty 'MS_Description', '年齢グループ最小値', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'AgeGroupMin';
+EXEC sp_addextendedproperty 'MS_Description', '年齢グループ最大値', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'AgeGroupMax';
+EXEC sp_addextendedproperty 'MS_Description', '最大定員数', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'MaxCapacity';
 EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'CreatedAt';
 EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'UpdatedAt';
+EXEC sp_addextendedproperty 'MS_Description', '有効/無効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Classes', 'COLUMN', 'IsActive';
 ```
 
-#### 3.1.3 Staff (スタッフ・職員)
+#### 3.1.3 Parents (保護者)
 ```sql
--- チェック制約:
---   Role: 'Teacher', 'Admin', 'Clerk' のみ
--- 複合主キー: (NurseryId, StaffId) で一意性を保証
-CREATE TABLE Staff (
-    NurseryId INT NOT NULL, -- 所属保育園ID（複合主キーの第1カラム）
-    StaffId INT NOT NULL, -- スタッフID（複合主キーの第2カラム）
-    Name NVARCHAR(50) NOT NULL, -- 氏名
-    PhoneNumber NVARCHAR(15) NOT NULL,
-    Email NVARCHAR(200),
-    Role NVARCHAR(50) NOT NULL, -- 'Teacher'(教師), 'Admin'(管理者), 'Clerk'(事務員)
-    Position NVARCHAR(100), -- 職位（任意）
-    LastLoginAt DATETIME2,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2,
-
-    CONSTRAINT PK_Staff PRIMARY KEY (NurseryId, StaffId)
-);
-
-CREATE INDEX IX_Staff_Nursery_Active ON Staff (NurseryId, IsActive);
-CREATE INDEX IX_Staff_PhoneNumber_Active ON Staff (PhoneNumber, IsActive);
-CREATE UNIQUE INDEX IX_Staff_PhoneNumber_Unique ON Staff (PhoneNumber);
-CREATE INDEX IX_Staff_Role_Active ON Staff (Role, IsActive);
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '職員マスタ', 'SCHEMA', 'dbo', 'TABLE', 'Staff';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'NurseryId';
-EXEC sp_addextendedproperty 'MS_Description', '職員ID', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'StaffId';
-EXEC sp_addextendedproperty 'MS_Description', '氏名', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'Name';
-EXEC sp_addextendedproperty 'MS_Description', '電話番号', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'PhoneNumber';
-EXEC sp_addextendedproperty 'MS_Description', 'メールアドレス', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'Email';
-EXEC sp_addextendedproperty 'MS_Description', '役職', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'Role';
-EXEC sp_addextendedproperty 'MS_Description', '職位', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'Position';
-EXEC sp_addextendedproperty 'MS_Description', '最終ログイン日時', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'LastLoginAt';
-EXEC sp_addextendedproperty 'MS_Description', 'アクティブフラグ', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'IsActive';
-EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'CreatedAt';
-EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'Staff', 'COLUMN', 'UpdatedAt';
-```
-
-#### 3.1.4 StaffClassAssignments (スタッフ・クラス割り当て)
-```sql
--- スタッフとクラスの多対多関係を管理
--- 1つのクラスに複数のスタッフが担当可能
--- 1人のスタッフが複数のクラスを担当可能
--- 複合主キー: (NurseryId, StaffId, ClassId) で一意性を保証
-CREATE TABLE StaffClassAssignments (
-    NurseryId INT NOT NULL, -- 保育園ID（複合主キーの第1カラム）
-    StaffId INT NOT NULL, -- スタッフID（複合主キーの第2カラム）
-    ClassId NVARCHAR(50) NOT NULL, -- クラスID（複合主キーの第3カラム）
-    AssignmentRole NVARCHAR(50) NOT NULL, -- 'MainTeacher'(主担任), 'AssistantTeacher'(副担任)
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2,
-
-    CONSTRAINT PK_StaffClassAssignments PRIMARY KEY (NurseryId, StaffId, ClassId)
-);
-
-CREATE INDEX IX_StaffClassAssignments_Staff ON StaffClassAssignments (NurseryId, StaffId);
-CREATE INDEX IX_StaffClassAssignments_Class ON StaffClassAssignments (NurseryId, ClassId);
-CREATE INDEX IX_StaffClassAssignments_Class_Role ON StaffClassAssignments (NurseryId, ClassId, AssignmentRole);
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '職員クラス割当テーブル', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'NurseryId';
-EXEC sp_addextendedproperty 'MS_Description', '職員ID', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'StaffId';
-EXEC sp_addextendedproperty 'MS_Description', 'クラスID', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'ClassId';
-EXEC sp_addextendedproperty 'MS_Description', '割当役割', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'AssignmentRole';
-EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'CreatedAt';
-EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'StaffClassAssignments', 'COLUMN', 'UpdatedAt';
-```
-
-
-### 3.2 ユーザー関連テーブル
-
-#### 3.2.1 Children (子ども)
-```sql
---   NurseryId -> Nurseries(Id) (CASCADE削除)
---   (NurseryId, ClassId) -> Classes(NurseryId, ClassId) (CASCADE削除)
--- チェック制約:
---   DateOfBirth: '2018-01-01'以降（過去7年以内）
--- 複合主キー: (NurseryId, ChildId) で一意性を保証
-CREATE TABLE Children (
-    NurseryId INT NOT NULL, -- 保育園ID（複合主キーの第1カラム）
-    ChildId INT NOT NULL, -- 園児ID（複合主キーの第2カラム）
-    Name NVARCHAR(100) NOT NULL,
-    DateOfBirth DATE NOT NULL,
-    ClassId NVARCHAR(50) NOT NULL,
-    Gender NVARCHAR(10) NULL,
-    MedicalNotes NVARCHAR(500) NULL,
-    SpecialInstructions NVARCHAR(500) NULL,
-    EnrollmentDate DATE NOT NULL DEFAULT CAST(GETUTCDATE() AS DATE),
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    ClassId1 NVARCHAR(50) NULL,
-    ClassNurseryId INT NULL,
-
-    CONSTRAINT PK_Children PRIMARY KEY (NurseryId, ChildId),
-    CONSTRAINT FK_Children_Classes FOREIGN KEY (NurseryId, ClassId) REFERENCES Classes(NurseryId, ClassId)
-);
-
-CREATE INDEX IX_Children_NurseryId_ClassId ON Children (NurseryId, ClassId);
-CREATE INDEX IX_Children_IsActive ON Children (IsActive) WHERE IsActive = 1;
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '子ども（園児）情報を管理するテーブル', 'SCHEMA', 'dbo', 'TABLE', 'Children';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '保育園ID（複合主キー第1カラム）', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'NurseryId';
-EXEC sp_addextendedproperty 'MS_Description', '園児ID（複合主キー第2カラム）', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'ChildId';
-EXEC sp_addextendedproperty 'MS_Description', '氏名', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'Name';
-EXEC sp_addextendedproperty 'MS_Description', '生年月日', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'DateOfBirth';
-EXEC sp_addextendedproperty 'MS_Description', '所属クラスID', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'ClassId';
-EXEC sp_addextendedproperty 'MS_Description', '性別', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'Gender';
-EXEC sp_addextendedproperty 'MS_Description', '医療情報・アレルギー等', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'MedicalNotes';
-EXEC sp_addextendedproperty 'MS_Description', '特記事項', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'SpecialInstructions';
-EXEC sp_addextendedproperty 'MS_Description', '入園日', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'EnrollmentDate';
-EXEC sp_addextendedproperty 'MS_Description', '在園中フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'IsActive';
-EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'CreatedAt';
-EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'UpdatedAt';
-EXEC sp_addextendedproperty 'MS_Description', '追加クラスID（調査中）', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'ClassId1';
-EXEC sp_addextendedproperty 'MS_Description', '追加クラス保育園ID（調査中）', 'SCHEMA', 'dbo', 'TABLE', 'Children', 'COLUMN', 'ClassNurseryId';
-```
-
-#### 3.2.2 Parents (保護者)
-
-> **2025/10/20更新**: NotificationSettingsテーブルの設定とカスタマイズ設定をParentsテーブルに統合しました。
-> - 通知設定: プッシュ通知、欠席確認、日報、イベント、お知らせの5種類
-> - カスタマイズ設定: フォントサイズ、言語設定
-
-```sql
+-- 保護者マスタテーブル
+-- 複合ユニーク制約: (PhoneNumber, NurseryId) - 同一電話番号でも異なる保育園では登録可能
 CREATE TABLE Parents (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     PhoneNumber NVARCHAR(15) NOT NULL,
-    Name NVARCHAR(100) NULL,
-    Email NVARCHAR(200) NULL,
-    Address NVARCHAR(200) NULL,
+    Name NVARCHAR(100),
+    NameKana NVARCHAR(100),
+    DateOfBirth DATETIME2,
+    PostalCode NVARCHAR(8),
+    Prefecture NVARCHAR(10),
+    City NVARCHAR(50),
+    AddressLine NVARCHAR(200),
+    HomePhone NVARCHAR(20),
+    Email NVARCHAR(200),
+    NurseryId INT NOT NULL,
+    PushNotificationsEnabled BIT DEFAULT 1,
+    AbsenceConfirmationEnabled BIT DEFAULT 1,
+    DailyReportEnabled BIT DEFAULT 1,
+    EventNotificationEnabled BIT DEFAULT 1,
+    AnnouncementEnabled BIT DEFAULT 1,
+    FontSize NVARCHAR(10) DEFAULT 'medium' NOT NULL,
+    Language NVARCHAR(10) DEFAULT 'ja' NOT NULL,
+    IsPrimary BIT DEFAULT 1 NOT NULL,
+    IsActive BIT NOT NULL,
+    CreatedAt DATETIME2 DEFAULT GETUTCDATE() NOT NULL,
+    UpdatedAt DATETIME2,
+    LastLoginAt DATETIME2,
 
-    -- 通知設定（NotificationSettingsから統合）
-    PushNotificationsEnabled BIT NOT NULL DEFAULT 1,
-    AbsenceConfirmationEnabled BIT NOT NULL DEFAULT 1,
-    DailyReportEnabled BIT NOT NULL DEFAULT 1,
-    EventNotificationEnabled BIT NOT NULL DEFAULT 1,
-    AnnouncementEnabled BIT NOT NULL DEFAULT 1,
-
-    -- カスタマイズ設定
-    FontSize NVARCHAR(10) NOT NULL DEFAULT 'medium',  -- 'small', 'medium', 'large', 'xlarge'
-    Language NVARCHAR(10) NOT NULL DEFAULT 'ja',      -- 'ja', 'en', 'zh-CN', 'ko'
-
-    -- システムカラム
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    LastLoginAt DATETIME2 NULL,
-
-    CONSTRAINT UK_Parents_PhoneNumber UNIQUE (PhoneNumber)
+    CONSTRAINT FK_Parents_Nurseries FOREIGN KEY (NurseryId) REFERENCES Nurseries(Id) ON DELETE CASCADE
 );
 
--- インデックス作成
+-- インデックスとユニーク制約の作成
 CREATE INDEX IX_Parents_Active_Created ON Parents (IsActive, CreatedAt);
 CREATE INDEX IX_Parents_Email ON Parents (Email);
 CREATE INDEX IX_Parents_PhoneNumber_Active_Children ON Parents (PhoneNumber, IsActive, Id, Name, Email, LastLoginAt);
-CREATE UNIQUE INDEX IX_Parents_PhoneNumber_Unique ON Parents (PhoneNumber);
+CREATE INDEX IX_Parents_PostalCode ON Parents (PostalCode);
+CREATE UNIQUE INDEX IX_Parents_PhoneNumber_Unique ON Parents (PhoneNumber, NurseryId);
 
 -- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '保護者・家族情報、通知設定、カスタマイズ設定を管理するテーブル', 'SCHEMA', 'dbo', 'TABLE', 'Parents';
+EXEC sp_addextendedproperty 'MS_Description', '保護者マスタ', 'SCHEMA', 'dbo', 'TABLE', 'Parents';
 
--- 基本情報カラムコメント
-EXEC sp_addextendedproperty 'MS_Description', '保護者ID（主キー）', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'Id';
-EXEC sp_addextendedproperty 'MS_Description', '電話番号（SMS認証用、一意）', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'PhoneNumber';
+-- カラムコメント追加
+EXEC sp_addextendedproperty 'MS_Description', '保護者ID', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'Id';
+EXEC sp_addextendedproperty 'MS_Description', '電話番号', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'PhoneNumber';
 EXEC sp_addextendedproperty 'MS_Description', '氏名', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'Name';
+EXEC sp_addextendedproperty 'MS_Description', '氏名ふりがな', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'NameKana';
+EXEC sp_addextendedproperty 'MS_Description', '生年月日', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'DateOfBirth';
+EXEC sp_addextendedproperty 'MS_Description', '郵便番号', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'PostalCode';
+EXEC sp_addextendedproperty 'MS_Description', '都道府県', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'Prefecture';
+EXEC sp_addextendedproperty 'MS_Description', '市区町村', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'City';
+EXEC sp_addextendedproperty 'MS_Description', '番地・建物名', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'AddressLine';
+EXEC sp_addextendedproperty 'MS_Description', '固定電話', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'HomePhone';
 EXEC sp_addextendedproperty 'MS_Description', 'メールアドレス', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'Email';
-EXEC sp_addextendedproperty 'MS_Description', '住所', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'Address';
-
--- 通知設定カラムコメント
-EXEC sp_addextendedproperty 'MS_Description', 'プッシュ通知有効フラグ（全体ON/OFF）', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'PushNotificationsEnabled';
+EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'NurseryId';
+EXEC sp_addextendedproperty 'MS_Description', 'プッシュ通知有効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'PushNotificationsEnabled';
 EXEC sp_addextendedproperty 'MS_Description', '欠席確認通知有効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'AbsenceConfirmationEnabled';
-EXEC sp_addextendedproperty 'MS_Description', '日報通知有効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'DailyReportEnabled';
+EXEC sp_addextendedproperty 'MS_Description', '連絡帳通知有効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'DailyReportEnabled';
 EXEC sp_addextendedproperty 'MS_Description', 'イベント通知有効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'EventNotificationEnabled';
 EXEC sp_addextendedproperty 'MS_Description', 'お知らせ通知有効フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'AnnouncementEnabled';
-
--- カスタマイズ設定カラムコメント
-EXEC sp_addextendedproperty 'MS_Description', 'フォントサイズ（small/medium/large/xlarge）', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'FontSize';
-EXEC sp_addextendedproperty 'MS_Description', '表示言語（ja/en/zh-CN/ko）', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'Language';
-
--- システムカラムコメント
+EXEC sp_addextendedproperty 'MS_Description', 'フォントサイズ', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'FontSize';
+EXEC sp_addextendedproperty 'MS_Description', '言語', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'Language';
+EXEC sp_addextendedproperty 'MS_Description', '主親（0:家族登録で追加/1:保育園側で追加）', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'IsPrimary';
 EXEC sp_addextendedproperty 'MS_Description', 'アクティブフラグ', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'IsActive';
 EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'CreatedAt';
 EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'UpdatedAt';
 EXEC sp_addextendedproperty 'MS_Description', '最終ログイン日時', 'SCHEMA', 'dbo', 'TABLE', 'Parents', 'COLUMN', 'LastLoginAt';
-```
 
-**カラム説明**:
-- **通知設定**: NotificationSettingsテーブルから統合。プッシュ通知がOFFの場合、全ての個別通知も無効化されます。
-- **FontSize**: 画面表示のフォントサイズ（小/中/大/特大）
-- **Language**: アプリ表示言語（日本語/英語/中国語簡体字/韓国語）
+-- 主キーの作成
+ALTER TABLE [dbo].[DailyReports] ADD CONSTRAINT [PK_DailyReports] PRIMARY KEY ([Id]);
 
-#### 3.2.3 ParentChildRelationships (親子関係)
-```sql
---   ParentId -> Parents(Id) (CASCADE削除)
---   ChildId -> Children(Id) (CASCADE削除)
--- チェック制約:
---   RelationshipType: 'Father', 'Mother', 'Grandfather', 'Grandmother', 'Brother', 'Sister', 'Other' のみ
-CREATE TABLE ParentChildRelationships (
-    ParentId INT NOT NULL,
-    NurseryId INT NOT NULL,
-    ChildId INT NOT NULL,
-    RelationshipType NVARCHAR(20) NOT NULL DEFAULT 'Parent',
-    IsPrimaryContact BIT NOT NULL DEFAULT 0,
-    IsAuthorizedPickup BIT NOT NULL DEFAULT 1,
-    CanReceiveReports BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
-
-    CONSTRAINT PK_ParentChildRelationships PRIMARY KEY (ParentId, NurseryId, ChildId),
-    CONSTRAINT FK_ParentChildRelationships_Parents FOREIGN KEY (ParentId) REFERENCES Parents(Id),
-    CONSTRAINT FK_ParentChildRelationships_Children FOREIGN KEY (NurseryId, ChildId) REFERENCES Children(NurseryId, ChildId)
-);
-
-CREATE INDEX IX_ParentChildRelationships_ChildId ON ParentChildRelationships (ChildId);
-CREATE INDEX IX_ParentChildRelationships_IsPrimaryContact ON ParentChildRelationships (IsPrimaryContact) WHERE IsPrimaryContact = 1;
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '保護者と子どもの関係を管理するテーブル', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '保護者ID（複合主キー第1カラム）', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships', 'COLUMN', 'ParentId';
-EXEC sp_addextendedproperty 'MS_Description', '保育園ID（複合主キー第2カラム）', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships', 'COLUMN', 'NurseryId';
-EXEC sp_addextendedproperty 'MS_Description', '子どもID（複合主キー第3カラム）', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships', 'COLUMN', 'ChildId';
-EXEC sp_addextendedproperty 'MS_Description', '関係性（父・母・祖父・祖母等）', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships', 'COLUMN', 'RelationshipType';
-EXEC sp_addextendedproperty 'MS_Description', '第一連絡先フラグ', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships', 'COLUMN', 'IsPrimaryContact';
-EXEC sp_addextendedproperty 'MS_Description', 'お迎え権限有フラグ', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships', 'COLUMN', 'IsAuthorizedPickup';
-EXEC sp_addextendedproperty 'MS_Description', 'レポート受信権限有フラグ', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships', 'COLUMN', 'CanReceiveReports';
-EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'ParentChildRelationships', 'COLUMN', 'CreatedAt';
-```
-
-#### 3.2.4 FamilyMembers (家族メンバー)
-
-> **家族メンバー直接登録方式**:
-> - 主要保護者が家族メンバーの名前・電話番号・続柄を登録
-> - 登録と同時にParentsテーブルに新規保護者アカウントが作成されます
-> - FamilyMembersテーブルで保護者と園児の関係性を管理
-> - 登録された家族メンバーは即座にログイン可能
-> - SMS招待やコード認証は不要
-
-```sql
-CREATE TABLE FamilyMembers (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    ParentId INT NOT NULL,
-    NurseryId INT NOT NULL,
-    ChildId INT NOT NULL,
-    RelationshipType NVARCHAR(20) NOT NULL,
-    DisplayName NVARCHAR(100) NULL,
-    IsPrimaryContact BIT NOT NULL,
-    CanReceiveNotifications BIT NOT NULL DEFAULT CAST(1 AS bit),
-    CanViewReports BIT NOT NULL DEFAULT CAST(1 AS bit),
-    CanViewPhotos BIT NOT NULL DEFAULT CAST(1 AS bit),
-    HasPickupPermission BIT NOT NULL,
-    JoinedAt DATETIME2 NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT (GETUTCDATE()),
-    IsActive BIT NOT NULL DEFAULT CAST(1 AS bit),
-    UpdatedAt DATETIME2 NULL,
-    InvitedByParentId INT NULL
-);
-
--- インデックス作成
-CREATE INDEX IX_FamilyMembers_ParentId ON FamilyMembers (ParentId);  -- 保護者別の家族メンバー一覧取得
-CREATE INDEX IX_FamilyMembers_ChildId ON FamilyMembers (ChildId);  -- 園児別の家族メンバー一覧取得
-CREATE INDEX IX_FamilyMembers_NurseryId ON FamilyMembers (NurseryId);  -- 保育園別の家族メンバー一覧取得
-CREATE INDEX IX_FamilyMembers_IsActive ON FamilyMembers (IsActive);  -- アクティブ・非アクティブフィルタリング（論理削除対応）
-CREATE INDEX IX_FamilyMembers_NurseryId_ChildId ON FamilyMembers (NurseryId, ChildId);  -- 保育園・園児別の家族メンバー検索
-CREATE UNIQUE INDEX IX_FamilyMembers_NurseryId_ChildId_ParentId ON FamilyMembers (NurseryId, ChildId, ParentId);  -- 同一保護者の重複登録防止
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '家族メンバーテーブル', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', 'メンバーID', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'Id';
-EXEC sp_addextendedproperty 'MS_Description', '保護者ID', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'ParentId';
-EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'NurseryId';
-EXEC sp_addextendedproperty 'MS_Description', '園児ID', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'ChildId';
-EXEC sp_addextendedproperty 'MS_Description', '続柄', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'RelationshipType';
-EXEC sp_addextendedproperty 'MS_Description', '表示名', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'DisplayName';
-EXEC sp_addextendedproperty 'MS_Description', '主連絡先フラグ', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'IsPrimaryContact';
-EXEC sp_addextendedproperty 'MS_Description', '通知受信可能フラグ', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'CanReceiveNotifications';
-EXEC sp_addextendedproperty 'MS_Description', '連絡帳閲覧可能フラグ', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'CanViewReports';
-EXEC sp_addextendedproperty 'MS_Description', '写真閲覧可能フラグ', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'CanViewPhotos';
-EXEC sp_addextendedproperty 'MS_Description', 'お迎え許可フラグ', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'HasPickupPermission';
-EXEC sp_addextendedproperty 'MS_Description', '参加日時', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'JoinedAt';
-EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'CreatedAt';
-EXEC sp_addextendedproperty 'MS_Description', 'アクティブフラグ', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'IsActive';
-EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'UpdatedAt';
-EXEC sp_addextendedproperty 'MS_Description', '招待元保護者ID', 'SCHEMA', 'dbo', 'TABLE', 'FamilyMembers', 'COLUMN', 'InvitedByParentId';
-```
-
-### 3.3 機能関連テーブル
-
-#### 3.3.1 ContactNotifications (欠席・遅刻・お迎え連絡)
-```sql
---   ChildId -> Children(Id) (CASCADE削除)
---   SubmittedBy -> Parents(Id) (NO ACTION削除)
---   AcknowledgedBy -> Staff(Id) (NO ACTION削除)
--- チェック制約:
---   Type: 'Absence', 'Lateness', 'Pickup' のみ
---   Status: 'Submitted', 'Acknowledged', 'Processed', 'Cancelled' のみ
---   PickupPerson: Type='Pickup'の場合必須
---   PickupTime: Type='Pickup'の場合必須
---   ExpectedArrivalTime: Type='Lateness'の場合必須
-CREATE TABLE ContactNotifications (
-    Id NVARCHAR(100) PRIMARY KEY, -- contact-123形式のID
-    ChildId INT NOT NULL,
-    Type NVARCHAR(20) NOT NULL DEFAULT 'Absence',
-    TargetDate DATE NOT NULL,
-    Reason NVARCHAR(500) NOT NULL,
-    PickupPerson NVARCHAR(100) NULL, -- Type='Pickup'の場合必須
-    PickupTime TIME NULL, -- Type='Pickup'の場合必須
-    ExpectedArrivalTime TIME NULL, -- Type='Lateness'の場合必須
-    AdditionalNotes NVARCHAR(500),
-    Status NVARCHAR(20) NOT NULL DEFAULT 'Submitted',
-    StaffResponse NVARCHAR(500),
-    SubmittedBy INT NOT NULL, -- ParentId
-    SubmittedAt DATETIME2 DEFAULT GETUTCDATE(),
-    AcknowledgedAt DATETIME2 NULL,
-    AcknowledgedBy INT NULL -- StaffId
-);
-
-CREATE INDEX IX_ContactNotifications_ChildId_TargetDate ON ContactNotifications (ChildId, TargetDate DESC);
-CREATE INDEX IX_ContactNotifications_Status ON ContactNotifications (Status) WHERE Status IN ('Submitted', 'Acknowledged');
-CREATE INDEX IX_ContactNotifications_SubmittedAt ON ContactNotifications (SubmittedAt DESC);
-CREATE INDEX IX_ContactNotifications_Type ON ContactNotifications (Type);
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '欠席・遅刻・お迎え連絡を管理するテーブル', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '連絡ID（主キー）', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'Id';
-EXEC sp_addextendedproperty 'MS_Description', '対象の子どもID', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'ChildId';
-EXEC sp_addextendedproperty 'MS_Description', '連絡種類（欠席・遅刻・お迎え）', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'Type';
-EXEC sp_addextendedproperty 'MS_Description', '対象日', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'TargetDate';
-EXEC sp_addextendedproperty 'MS_Description', '連絡理由', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'Reason';
-EXEC sp_addextendedproperty 'MS_Description', 'お迎え者（お迎え連絡時）', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'PickupPerson';
-EXEC sp_addextendedproperty 'MS_Description', 'お迎え時間（お迎え連絡時）', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'PickupTime';
-EXEC sp_addextendedproperty 'MS_Description', '到着予定時刻（遅刻連絡時）', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'ExpectedArrivalTime';
-EXEC sp_addextendedproperty 'MS_Description', '追加の備考・連絡事項', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'AdditionalNotes';
-EXEC sp_addextendedproperty 'MS_Description', '処理状況', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'Status';
-EXEC sp_addextendedproperty 'MS_Description', '職員からの返信・コメント', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'StaffResponse';
-EXEC sp_addextendedproperty 'MS_Description', '連絡送信者の保護者ID', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'SubmittedBy';
-EXEC sp_addextendedproperty 'MS_Description', '連絡送信日時', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'SubmittedAt';
-EXEC sp_addextendedproperty 'MS_Description', '職員確認日時', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'AcknowledgedAt';
-EXEC sp_addextendedproperty 'MS_Description', '確認した職員ID', 'SCHEMA', 'dbo', 'TABLE', 'ContactNotifications', 'COLUMN', 'AcknowledgedBy';
-```
-
-#### 3.3.1-A AbsenceNotificationResponses (欠席連絡への返信)
-```sql
---   NotificationId -> ContactNotifications(Id) (CASCADE削除)
---   ParentId -> Parents(Id) (CASCADE削除)
-CREATE TABLE AbsenceNotificationResponses (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    NotificationId NVARCHAR(100) NOT NULL,
-    ParentId INT NOT NULL,
-    ResponseText NVARCHAR(1000) NULL,
-    ResponseType NVARCHAR(50) NOT NULL DEFAULT 'Comment',
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-
-    CONSTRAINT FK_AbsenceNotificationResponses_Notifications FOREIGN KEY (NotificationId) REFERENCES ContactNotifications(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_AbsenceNotificationResponses_Parents FOREIGN KEY (ParentId) REFERENCES Parents(Id) ON DELETE CASCADE
-);
-
-CREATE INDEX IX_AbsenceNotificationResponses_NotificationId ON AbsenceNotificationResponses (NotificationId);
-CREATE INDEX IX_AbsenceNotificationResponses_ParentId ON AbsenceNotificationResponses (ParentId);
-CREATE INDEX IX_AbsenceNotificationResponses_CreatedAt ON AbsenceNotificationResponses (CreatedAt DESC);
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '欠席連絡への保護者返信を管理するテーブル', 'SCHEMA', 'dbo', 'TABLE', 'AbsenceNotificationResponses';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '返信ID（主キー）', 'SCHEMA', 'dbo', 'TABLE', 'AbsenceNotificationResponses', 'COLUMN', 'Id';
-EXEC sp_addextendedproperty 'MS_Description', '欠席連絡ID（外部キー）', 'SCHEMA', 'dbo', 'TABLE', 'AbsenceNotificationResponses', 'COLUMN', 'NotificationId';
-EXEC sp_addextendedproperty 'MS_Description', '返信した保護者ID（外部キー）', 'SCHEMA', 'dbo', 'TABLE', 'AbsenceNotificationResponses', 'COLUMN', 'ParentId';
-EXEC sp_addextendedproperty 'MS_Description', '返信内容', 'SCHEMA', 'dbo', 'TABLE', 'AbsenceNotificationResponses', 'COLUMN', 'ResponseText';
-EXEC sp_addextendedproperty 'MS_Description', '返信種別', 'SCHEMA', 'dbo', 'TABLE', 'AbsenceNotificationResponses', 'COLUMN', 'ResponseType';
-EXEC sp_addextendedproperty 'MS_Description', '返信作成日時', 'SCHEMA', 'dbo', 'TABLE', 'AbsenceNotificationResponses', 'COLUMN', 'CreatedAt';
-```
-
-#### 3.3.2 Events (イベント)
-```sql
---   CreatedBy -> Staff(Id) (NO ACTION削除)
---   TargetClassId -> Classes(Id) (CASCADE削除)
--- チェック制約:
---   EndDateTime: StartDateTime以降
---   Category: 'GeneralAnnouncement', 'GeneralEvent', 'GradeActivity', 'ClassActivity', 'NurseryHoliday' のみ
---   TargetAudience: 'All', 'SpecificClass', 'SpecificChild' のみ
---   RecurrencePattern: IsRecurring=1の場合は'Daily', 'Weekly', 'Monthly'のみ
-CREATE TABLE Events (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    Title NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(1000),
-    Category NVARCHAR(50) NOT NULL DEFAULT 'GeneralAnnouncement',
-    StartDateTime DATETIME2 NOT NULL,
-    EndDateTime DATETIME2 NOT NULL,
-    IsAllDay BIT NOT NULL DEFAULT 0,
-    IsRecurring BIT NOT NULL DEFAULT 0,
-    RecurrencePattern NVARCHAR(50) NULL, -- 'Daily', 'Weekly', 'Monthly'
-    TargetAudience NVARCHAR(50) NOT NULL DEFAULT 'All', -- 'All', 'SpecificClass', 'SpecificChild'
-    TargetClassId NVARCHAR(50) NULL,
-    RequiresPreparation BIT NOT NULL DEFAULT 0,
-    PreparationInstructions NVARCHAR(1000),
-    CreatedBy INT NOT NULL, -- StaffId
-    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 DEFAULT GETUTCDATE()
-);
-
-CREATE INDEX IX_Events_StartDateTime_EndDateTime ON Events (StartDateTime, EndDateTime);
-CREATE INDEX IX_Events_Category ON Events (Category);
-CREATE INDEX IX_Events_TargetClassId ON Events (TargetClassId) WHERE TargetClassId IS NOT NULL;
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '保育園行事・イベントを管理するテーブル', 'SCHEMA', 'dbo', 'TABLE', 'Events';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', 'イベントID（主キー）', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'Id';
-EXEC sp_addextendedproperty 'MS_Description', 'イベントタイトル', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'Title';
-EXEC sp_addextendedproperty 'MS_Description', 'イベント詳細説明', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'Description';
-EXEC sp_addextendedproperty 'MS_Description', 'イベントカテゴリ', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'Category';
-EXEC sp_addextendedproperty 'MS_Description', '開始日時', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'StartDateTime';
-EXEC sp_addextendedproperty 'MS_Description', '終了日時', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'EndDateTime';
-EXEC sp_addextendedproperty 'MS_Description', '終日イベントフラグ（週表示時は「全日」行に表示）', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'IsAllDay';
-EXEC sp_addextendedproperty 'MS_Description', '繰り返しイベントフラグ', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'IsRecurring';
-EXEC sp_addextendedproperty 'MS_Description', '繰り返しパターン（毎日・毎週・毎月）', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'RecurrencePattern';
-EXEC sp_addextendedproperty 'MS_Description', '対象者（全体・クラス限定・個人）', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'TargetAudience';
-EXEC sp_addextendedproperty 'MS_Description', '対象クラスID', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'TargetClassId';
-EXEC sp_addextendedproperty 'MS_Description', '事前準備必要フラグ', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'RequiresPreparation';
-EXEC sp_addextendedproperty 'MS_Description', '準備物・指示事項', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'PreparationInstructions';
-EXEC sp_addextendedproperty 'MS_Description', '作成者（スタッフID）', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'CreatedBy';
-EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'CreatedAt';
-EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'Events', 'COLUMN', 'UpdatedAt';
-```
-
-#### 3.3.3 DailyReports (日次レポート)
-```sql
---   ChildId -> Children(Id) (CASCADE削除)
---   StaffMemberId -> Staff(Id) (NO ACTION削除)
---   AcknowledgedBy -> Parents(Id) (NO ACTION削除)
--- チェック制約:
---   Type: 'Daily', 'Meal', 'Health', 'Incident', 'Sleep' のみ
---   ReportDate: '2024-01-01'以降
-CREATE TABLE DailyReports (
-    Id NVARCHAR(100) PRIMARY KEY, -- report-123形式のID
-    ChildId INT NOT NULL,
-    ChildName NVARCHAR(100) NOT NULL,
-    ReportDate DATE NOT NULL,
-    Tags NVARCHAR(500) NOT NULL, -- JSON配列: ["活動", "食事", "睡眠", "ケガ", "事故", "喧嘩"]
-    StaffMember NVARCHAR(100) NOT NULL,
-    StaffPhoto NVARCHAR(500) NULL,
-    Content NVARCHAR(MAX) NOT NULL, -- JSON形式でレポート詳細を保存
-    Attachments NVARCHAR(MAX) NULL, -- JSON配列形式で添付ファイル情報を保存
-    ParentAcknowledged BIT NOT NULL DEFAULT 0,
-    AcknowledgedAt DATETIME2 NULL,
-    ParentNote NVARCHAR(1000) NULL,
-    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 DEFAULT GETUTCDATE()
-);
-
-CREATE INDEX IX_DailyReports_ChildId_ReportDate ON DailyReports (ChildId, ReportDate DESC);
-CREATE INDEX IX_DailyReports_Tags ON DailyReports (Tags);
-CREATE INDEX IX_DailyReports_ParentAcknowledged ON DailyReports (ParentAcknowledged) WHERE ParentAcknowledged = 0;
-
--- テーブルコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '子どもの日常レポートを管理するテーブル', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports';
-
--- カラムコメント追加
-EXEC sp_addextendedproperty 'MS_Description', '日常レポートID（主キー）', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'Id';
-EXEC sp_addextendedproperty 'MS_Description', '対象の子どもID', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'ChildId';
-EXEC sp_addextendedproperty 'MS_Description', 'レポート対象日', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'ReportDate';
-EXEC sp_addextendedproperty 'MS_Description', 'レポート種別（日常・食事・健康等）', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'Type';
-EXEC sp_addextendedproperty 'MS_Description', 'レポート内容（JSON形式）', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'Content';
-EXEC sp_addextendedproperty 'MS_Description', '作成者（スタッフID）', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'StaffMemberId';
-EXEC sp_addextendedproperty 'MS_Description', '保護者応答必要フラグ', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'RequiresParentResponse';
-EXEC sp_addextendedproperty 'MS_Description', '保護者確認済みフラグ', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'ParentAcknowledged';
-EXEC sp_addextendedproperty 'MS_Description', '保護者確認日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'AcknowledgedAt';
-EXEC sp_addextendedproperty 'MS_Description', '確認した保護者ID', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'AcknowledgedBy';
-EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'CreatedAt';
-EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'DailyReports', 'COLUMN', 'UpdatedAt';
+-- コメントの作成
+EXECUTE sp_addextendedproperty N'MS_Description', N'連絡帳テーブル', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', NULL, NULL;
+EXECUTE sp_addextendedproperty N'MS_Description', N'連絡帳ID', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'Id';
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'職員保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'StaffNurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'職員ID', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'StaffId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'対象日', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'ReportDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'レポート種別（activity,meal,sleep,injury,accident,fight）', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'ReportKind';
+EXECUTE sp_addextendedproperty N'MS_Description', N'タイトル', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'Title';
+EXECUTE sp_addextendedproperty N'MS_Description', N'内容', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'Content';
+EXECUTE sp_addextendedproperty N'MS_Description', N'写真', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'Photos';
+EXECUTE sp_addextendedproperty N'MS_Description', N'ステータス', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'Status';
+EXECUTE sp_addextendedproperty N'MS_Description', N'公開日時', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'PublishedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'保護者確認', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'ParentAcknowledged';
+EXECUTE sp_addextendedproperty N'MS_Description', N'保護者日報確認日時', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'AcknowledgedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'アクティブフラグ', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'IsActive';
+EXECUTE sp_addextendedproperty N'MS_Description', N'管理者作成フラグ', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'CreatedByAdminUser';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'DailyReports', N'COLUMN', N'UpdatedAt';
 ```
 
 #### 3.3.3-A DailyReportResponses (日報への返信)
@@ -742,9 +365,11 @@ CREATE TABLE Photos (
     VisibilityLevel NVARCHAR(20) DEFAULT 'class' NOT NULL, -- all/grade/class
     TargetClassId NVARCHAR(50),
     Status NVARCHAR(20) DEFAULT 'draft' NOT NULL, -- draft/published/archived
+    IsReportCreate BIT DEFAULT 0 NOT NULL, -- レポート作成フラグ
     RequiresConsent BIT DEFAULT 1 NOT NULL,
     ViewCount INT DEFAULT 0 NOT NULL,
     DownloadCount INT DEFAULT 0 NOT NULL,
+    UploadedByAdminUser BIT DEFAULT 0 NOT NULL,
     IsActive BIT NOT NULL,
     DeletedAt DATETIME2,
     UpdatedAt DATETIME2
@@ -776,9 +401,11 @@ EXEC sp_addextendedproperty 'MS_Description', '公開日時', 'SCHEMA', 'dbo', '
 EXEC sp_addextendedproperty 'MS_Description', '公開範囲（all:全体公開/grade:学年限定/class:クラス限定）', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'VisibilityLevel';
 EXEC sp_addextendedproperty 'MS_Description', '対象クラスID（VisibilityLevel=classの場合）', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'TargetClassId';
 EXEC sp_addextendedproperty 'MS_Description', 'ステータス（draft:下書き/published:公開済み/archived:アーカイブ）', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'Status';
+EXEC sp_addextendedproperty 'MS_Description', 'レポート作成フラグ（1:レポート作成時の写真/0:写真管理から登録）', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'IsReportCreate';
 EXEC sp_addextendedproperty 'MS_Description', '保護者同意が必要か', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'RequiresConsent';
 EXEC sp_addextendedproperty 'MS_Description', '閲覧回数', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'ViewCount';
 EXEC sp_addextendedproperty 'MS_Description', 'ダウンロード回数', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'DownloadCount';
+EXEC sp_addextendedproperty 'MS_Description', '管理者アップロードフラグ', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'UploadedByAdminUser';
 EXEC sp_addextendedproperty 'MS_Description', 'アクティブフラグ', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'IsActive';
 EXEC sp_addextendedproperty 'MS_Description', '削除日時', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'DeletedAt';
 EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'Photos', 'COLUMN', 'UpdatedAt';
@@ -1348,3 +975,384 @@ CREATE TABLE Photos_Partitioned (
 ```
 
 このデータベース設計書により、保育園保護者向けモバイルアプリに必要な全てのデータを効率的に管理し、高いパフォーマンスとセキュリティを実現できます。
+
+### 3.7 乳児連絡帳関連テーブル (Infant Daily Records)
+
+0～2歳児を対象とした日々の記録（体温、食事、睡眠、排泄、機嫌など）を管理する連絡帳機能のテーブル群です。
+
+**重要**: 個別の連絡事項は年齢に関わらず既存の `DailyReports` テーブルで管理します。
+
+#### 3.7.1 InfantTemperatures (乳児体温記録)
+
+朝（自宅・保護者入力または園・スタッフ入力）と午後（園・スタッフ入力）の体温記録を管理します。
+
+**2026-01-02更新**: `CreatedByType` フィールドを追加し、保護者とスタッフの入力を区別できるようにしました。`Notes` フィールドは削除しました。
+
+```sql
+-- 1. InfantTemperatures（乳児体温記録）
+CREATE TABLE InfantTemperatures (
+    NurseryId INT NOT NULL,
+    ChildId INT NOT NULL,
+    RecordDate DATE NOT NULL,
+    MeasurementType NVARCHAR(20) NOT NULL,
+    Temperature DECIMAL(3, 1) NOT NULL,
+    MeasuredAt DATETIME2 NOT NULL,
+    IsAbnormal BIT NOT NULL DEFAULT 0,
+    CreatedByType VARCHAR(20) NOT NULL DEFAULT 'Staff',  -- 2026-01-02追加: Parent/Staff
+    CreatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    CreatedBy INT NOT NULL,
+    UpdatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    UpdatedBy INT NOT NULL,
+    PRIMARY KEY (NurseryId, ChildId, RecordDate, MeasurementType)
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_InfantTemperatures_Abnormal ON InfantTemperatures (IsAbnormal, RecordDate DESC) WHERE IsAbnormal = 1;
+CREATE INDEX IX_InfantTemperatures_CreatedByType ON InfantTemperatures (NurseryId, ChildId, RecordDate, CreatedByType) WHERE CreatedByType = 'Parent';
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'乳児体温記録', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'測定種別（Morning:朝/Afternoon:午後）', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'MeasurementType';
+EXECUTE sp_addextendedproperty N'MS_Description', N'体温（℃）', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'Temperature';
+EXECUTE sp_addextendedproperty N'MS_Description', N'測定日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'MeasuredAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'異常値フラグ（37.5℃以上）', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'IsAbnormal';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成者タイプ（Parent:保護者入力/Staff:スタッフ入力）', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'CreatedByType';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成者ID（ParentIdまたはStaffId）', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'CreatedBy';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'UpdatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新者ID（ParentIdまたはStaffId）', N'SCHEMA', N'dbo', N'TABLE', N'InfantTemperatures', N'COLUMN', N'UpdatedBy';
+GO
+```
+
+#### 3.7.2 InfantMeals (乳児食事記録)
+
+午前おやつ（園）、昼食（園）、午後おやつ（園）の食事記録を管理します。
+
+```sql
+-- 2. InfantMeals（乳児食事記録）
+CREATE TABLE InfantMeals (
+    NurseryId INT NOT NULL,
+    ChildId INT NOT NULL,
+    RecordDate DATE NOT NULL,
+    MealType NVARCHAR(20) NOT NULL,
+    MainDishAmount NVARCHAR(20),
+    SideDishAmount NVARCHAR(20),
+    SoupAmount NVARCHAR(20),
+    TotalAmount NVARCHAR(20) NOT NULL,
+    Notes NVARCHAR(500),
+    CreatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    PRIMARY KEY (NurseryId, ChildId, RecordDate, MealType)
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_InfantMeals_Date ON InfantMeals (RecordDate DESC);
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'乳児食事記録', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'食事種別（breakfast:午前おやつ/lunch:昼食/snack:午後おやつ）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'MealType';
+EXECUTE sp_addextendedproperty N'MS_Description', N'主食の摂取量（all:完食/most:ほとんど/half:半分/little:少し/none:なし）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'MainDishAmount';
+EXECUTE sp_addextendedproperty N'MS_Description', N'副食の摂取量（all:完食/most:ほとんど/half:半分/little:少し/none:なし）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'SideDishAmount';
+EXECUTE sp_addextendedproperty N'MS_Description', N'汁物の摂取量（all:完食/most:ほとんど/half:半分/little:少し/none:なし）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'SoupAmount';
+EXECUTE sp_addextendedproperty N'MS_Description', N'全体の摂取量（all:完食/most:ほとんど/half:半分/little:少し/none:なし）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'TotalAmount';
+EXECUTE sp_addextendedproperty N'MS_Description', N'備考（食べ方の様子、嫌いな食材など）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'Notes';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantMeals', N'COLUMN', N'UpdatedAt';
+GO
+```
+
+#### 3.7.3 InfantSleeps (乳児睡眠記録)
+
+昼寝の開始・終了時刻、睡眠時間、睡眠の質を記録します。
+
+```sql
+-- 3. InfantSleeps（乳児睡眠記録）
+CREATE TABLE InfantSleeps (
+    NurseryId INT NOT NULL,
+    ChildId INT NOT NULL,
+    RecordDate DATE NOT NULL,
+    StartTime DATETIME2 NOT NULL,
+    EndTime DATETIME2,
+    DurationMinutes AS DATEDIFF(MINUTE, StartTime, EndTime) PERSISTED,
+    Quality NVARCHAR(20),
+    Notes NVARCHAR(500),
+    CreatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    PRIMARY KEY (NurseryId, ChildId, RecordDate)
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_InfantSleeps_StartTime ON InfantSleeps (StartTime DESC);
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'乳児睡眠記録（昼寝）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'開始時刻', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'StartTime';
+EXECUTE sp_addextendedproperty N'MS_Description', N'終了時刻', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'EndTime';
+EXECUTE sp_addextendedproperty N'MS_Description', N'睡眠時間（分）計算カラム', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'DurationMinutes';
+EXECUTE sp_addextendedproperty N'MS_Description', N'睡眠の質（sound:ぐっすり/normal:普通/light:浅い/restless:何度も起きた）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'Quality';
+EXECUTE sp_addextendedproperty N'MS_Description', N'備考（寝つきの様子、起き方など）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'Notes';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleeps', N'COLUMN', N'UpdatedAt';
+GO
+```
+
+#### 3.7.4 InfantNapChecks (乳児午睡チェック)
+
+SIDS予防のための5～10分間隔の午睡チェック記録です。
+
+```sql
+-- 4. InfantNapChecks（乳児午睡チェック）
+CREATE TABLE InfantNapChecks (
+    CheckId INT IDENTITY(1,1) PRIMARY KEY,
+    NurseryId INT NOT NULL,
+    ChildId INT NOT NULL,
+    RecordDate DATE NOT NULL,
+    CheckTime DATETIME2 NOT NULL,
+    BreathingOk BIT NOT NULL,
+    BodyPosition NVARCHAR(20) NOT NULL,
+    IsAbnormal BIT NOT NULL DEFAULT 0,
+    Notes NVARCHAR(500),
+    CheckedByStaffId INT NOT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime]()
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_InfantNapChecks_Child_Date ON InfantNapChecks (NurseryId, ChildId, RecordDate, CheckTime DESC);
+CREATE INDEX IX_InfantNapChecks_Abnormal ON InfantNapChecks (IsAbnormal, CheckTime DESC) WHERE IsAbnormal = 1;
+CREATE INDEX IX_InfantNapChecks_Staff ON InfantNapChecks (CheckedByStaffId, CheckTime DESC);
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'乳児午睡チェック（SIDS予防）', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'チェックID（主キー、自動採番）', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'CheckId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'チェック時刻', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'CheckTime';
+EXECUTE sp_addextendedproperty N'MS_Description', N'呼吸確認OK', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'BreathingOk';
+EXECUTE sp_addextendedproperty N'MS_Description', N'体位（supine:仰向け/side:横向き/prone:うつ伏せ）', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'BodyPosition';
+EXECUTE sp_addextendedproperty N'MS_Description', N'異常フラグ', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'IsAbnormal';
+EXECUTE sp_addextendedproperty N'MS_Description', N'備考（異常時の詳細など）', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'Notes';
+EXECUTE sp_addextendedproperty N'MS_Description', N'チェック実施保育士ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'CheckedByStaffId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantNapChecks', N'COLUMN', N'CreatedAt';
+GO
+```
+
+#### 3.7.5 InfantToileting (乳児排泄記録)
+
+おしっこ（尿）とうんち（便）の記録を管理します。1日1レコードで管理します。
+
+```sql
+-- 5. InfantToileting（乳児排泄記録）
+CREATE TABLE [dbo].[InfantToileting] (
+    [NurseryId] INT NOT NULL,
+    [ChildId] INT NOT NULL,
+    [RecordDate] DATE NOT NULL,
+    [ToiletingTime] DATETIME2 NOT NULL,
+    [ToiletingType] NVARCHAR(20) NOT NULL,
+    [BowelCondition] NVARCHAR(20),
+    [BowelColor] NVARCHAR(20),
+    [UrineAmount] NVARCHAR(20),
+    [DiaperChangeCount] INT,
+    [CreatedAt] DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    [CreatedBy] INT NOT NULL,
+    [UpdatedAt] DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    [UpdatedBy] INT NOT NULL,
+    CONSTRAINT [PK__InfantTo__7633B73838B467A0] PRIMARY KEY ([NurseryId], [ChildId], [RecordDate])
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_InfantToileting_Record ON [dbo].[InfantToileting] ([NurseryId], [ChildId], [RecordDate], [ToiletingTime]);
+CREATE INDEX IX_InfantToileting_Time ON [dbo].[InfantToileting] ([ToiletingTime]);
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'乳児排泄記録', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'排泄時刻', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'ToiletingTime';
+EXECUTE sp_addextendedproperty N'MS_Description', N'排泄タイプ（Urine/Bowel）', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'ToiletingType';
+EXECUTE sp_addextendedproperty N'MS_Description', N'便の状態（Normal/Soft/Diarrhea/Hard）', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'BowelCondition';
+EXECUTE sp_addextendedproperty N'MS_Description', N'便の色（Normal/Green/White/Black/Bloody）', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'BowelColor';
+EXECUTE sp_addextendedproperty N'MS_Description', N'おしっこの量（Little/Normal/Lot）', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'UrineAmount';
+EXECUTE sp_addextendedproperty N'MS_Description', N'おむつ交換回数', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'DiaperChangeCount';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成者ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'CreatedBy';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'UpdatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新者ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantToileting', N'COLUMN', N'UpdatedBy';
+GO
+```
+
+#### 3.7.6 InfantMoods (乳児機嫌記録)
+
+朝（登園時）と午後（降園前）の機嫌状態を記録します。
+
+```sql
+-- 6. InfantMoods（乳児機嫌記録）
+CREATE TABLE InfantMoods (
+    NurseryId INT NOT NULL,
+    ChildId INT NOT NULL,
+    RecordDate DATE NOT NULL,
+    TimeOfDay NVARCHAR(20) NOT NULL,
+    MoodState NVARCHAR(20) NOT NULL,
+    Notes NVARCHAR(500),
+    CreatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    PRIMARY KEY (NurseryId, ChildId, RecordDate, TimeOfDay)
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_InfantMoods_Date ON InfantMoods (RecordDate DESC);
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'乳児機嫌記録', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'時間帯（morning:朝/afternoon:午後）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', N'COLUMN', N'TimeOfDay';
+EXECUTE sp_addextendedproperty N'MS_Description', N'機嫌の状態（good:良い/normal:普通/bad:悪い/crying:泣いていた）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', N'COLUMN', N'MoodState';
+EXECUTE sp_addextendedproperty N'MS_Description', N'備考（保護者からの申し送り、様子の詳細など）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', N'COLUMN', N'Notes';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantMoods', N'COLUMN', N'UpdatedAt';
+GO
+```
+
+#### 3.7.7 ParentMorningNote (保護者からの申し送り)
+
+**2026-01-02追加**: 保護者が朝に入力する子供の様子と申し送り事項を記録します。
+
+```sql
+-- 7. ParentMorningNote（保護者からの申し送り）
+CREATE TABLE ParentMorningNote (
+    NurseryId INT NOT NULL,
+    ChildId INT NOT NULL,
+    RecordDate DATE NOT NULL,
+    Note NVARCHAR(500) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    CreatedBy INT NOT NULL,
+    UpdatedAt DATETIME2 NOT NULL DEFAULT [dbo].[GetJstDateTime](),
+    UpdatedBy INT NOT NULL,
+    PRIMARY KEY (NurseryId, ChildId, RecordDate)
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_ParentMorningNote_Child_Date ON ParentMorningNote (NurseryId, ChildId, RecordDate);
+CREATE INDEX IX_ParentMorningNote_RecordDate ON ParentMorningNote (RecordDate);
+CREATE INDEX IX_ParentMorningNote_CreatedBy ON ParentMorningNote (CreatedBy, RecordDate);
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保護者からの申し送り', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID（複合主キー1）', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID（複合主キー2）', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日（複合主キー3）', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'子供の様子（フリーフォーマット、最大500文字）朝食の食べ具合、夜の睡眠状況、体調、保育士への申し送りなど', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', N'COLUMN', N'Note';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成者ID（ParentId）', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', N'COLUMN', N'CreatedBy';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', N'COLUMN', N'UpdatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新者ID（ParentId）', N'SCHEMA', N'dbo', N'TABLE', N'ParentMorningNote', N'COLUMN', N'UpdatedBy';
+GO
+```
+
+#### 設計のポイント
+
+**複合主キーの使用**
+- 7つの Infant テーブルで (NurseryId, ChildId, RecordDate) を基本とした複合主キーを採用
+- InfantNapChecks は1日に複数回記録されるため、IDENTITY カラムを使用
+- InfantToileting は1日1レコード管理のため、(NurseryId, ChildId, RecordDate) の複合主キーのみ
+- InfantSleeps は同日複数回の昼寝に対応するため SleepSequence を含む複合主キー
+- ParentMorningNote は1日1レコード管理のため、(NurseryId, ChildId, RecordDate) の複合主キーのみ
+
+**時刻の扱い**
+- DEFAULT値には `[dbo].[GetJstDateTime]()` 関数を使用（JST対応）
+- 体温・排泄・午睡チェックは DATETIME2 で時刻まで記録
+- 睡眠時間は計算カラム (PERSISTED) で自動算出
+
+**外部キー制約なし**
+- プロジェクトのポリシーに従い、外部キー制約は設定していません
+- アプリケーション層で整合性を保証
+
+**CHECK制約なし**
+- プロジェクトのポリシーに従い、CHECK制約は設定していません
+- アプリケーション層でバリデーション実施
+
+**拡張プロパティ**
+- すべてのテーブルとカラムに日本語の論理名を設定
+- `sp_addextendedproperty` でデータベースカタログに保存
+
+## 12. 変更履歴
+
+### 2025-12-28: 乳児連絡帳機能追加
+- **新規テーブル追加**: 0～2歳児向け連絡帳機能のための6テーブルを追加
+  - InfantTemperatures: 乳児体温記録（朝・午後）
+  - InfantMeals: 乳児食事記録（午前おやつ・昼食・午後おやつ）
+  - InfantSleeps: 乳児睡眠記録（昼寝）
+  - InfantNapChecks: 乳児午睡チェック（SIDS予防）
+  - InfantToileting: 乳児排泄記録（おしっこ・うんち）
+  - InfantMoods: 乳児機嫌記録（朝・午後）
+- **設計方針**: 複合主キー、外部キーなし、CHECK制約なし、JST対応DEFAULT値
+- **既存テーブル活用**: 個別連絡事項は既存の DailyReports テーブルを使用（年齢共通）
+- **関連ドキュメント**:
+  - [docs/requirements/infant-daily-records-requirements.md](../requirements/infant-daily-records-requirements.md)
+  - [docs/database/infant-daily-records-schema.md](../database/infant-daily-records-schema.md)
+  - [docs/specifications/infant-daily-records-ui-spec.md](../specifications/infant-daily-records-ui-spec.md)
+
+### 2025-12-17: 撮影禁止(NoPhoto)機能追加
+
+#### Childrenテーブル
+- **NoPhotoカラム追加**: 園児の写真撮影・共有を禁止するフラグ
+  - カラム名: `NoPhoto`
+  - データ型: `BIT`
+  - NULL許可: `NOT NULL`
+  - デフォルト値: `0` (FALSE - 撮影・共有を許可)
+  - 説明: 保護者が園児の写真撮影・共有を望まない場合にtrueを設定
+
+#### ApplicationWorksテーブル
+- **ChildNoPhotoカラム追加**: 入園申込時の撮影禁止希望フラグ
+  - カラム名: `ChildNoPhoto`
+  - データ型: `BIT`
+  - NULL許可: `NOT NULL`
+  - デフォルト値: `0` (FALSE - 撮影・共有を許可)
+  - 説明: 入園申込時に保護者が撮影禁止を希望した場合にtrueを設定。園児登録時にChildren.NoPhotoに引き継がれる

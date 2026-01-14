@@ -544,7 +544,7 @@ interface NotificationSettings {
 #### 2.6.2 レポートタグシステム
 園内レポートには以下の6種類のタグを複数組み合わせて分類できます：
 - **活動** (🎨): 制作活動、遊び、学習活動、運動など
-- **食事** (🍽️): 朝食、昼食、おやつの摂取に関する報告
+- **食事** (🍽️): 午前おやつ、昼食、午後おやつの摂取に関する報告
 - **睡眠** (😴): お昼寝時間、睡眠の質に関する報告
 - **ケガ** (🩹): 軽微なけがや治療が必要な傷の報告
 - **事故** (⚠️): 転倒、衝突などの事故発生の報告
@@ -1001,9 +1001,10 @@ public class FamilyMember
     public bool CanViewPhotos { get; set; } // 写真閲覧可否
     public bool HasPickupPermission { get; set; } // お迎え権限
     public DateTime JoinedAt { get; set; } // 参加日時
-    public DateTime CreatedAt { get; set; }
     public int? InvitedByParentId { get; set; } // 登録者のParentId
     public bool IsActive { get; set; } // アクティブ状態（論理削除用）
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }
 
 // Parentsテーブル - 既存テーブル活用
@@ -1014,14 +1015,72 @@ public class Parent
     public string PhoneNumber { get; set; } // 電話番号（一意）
     public string Name { get; set; } // 名前
     public string? Email { get; set; }
+    public bool IsPrimary { get; set; } // true: 保育園側で登録, false: 家族登録で追加
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 ```
 
-#### 3.5.7 セキュリティ要件
+#### 3.5.7 家族招待機能の制限仕様
+
+**目的**: 家族追加機能で招待された保護者が、さらに別の家族メンバーを招待することを防止し、招待チェーンの無限連鎖や権限管理の複雑化を回避する。
+
+**基本ルール**:
+- **主保護者（初期登録者）**: 家族メンバーを招待できる（家族追加メニュー表示）
+- **招待された保護者**: 家族メンバーを招待できない（家族追加メニュー非表示）
+
+**判定方法**:
+1. `FamilyMembers`テーブルの`InvitedByParentId`カラムを使用
+2. ログイン中の保護者IDで`FamilyMembers`テーブルを検索
+3. `ParentId = 自分のID` かつ `InvitedByParentId IS NOT NULL` のレコードが存在する場合、その保護者は「招待された保護者」
+4. 該当レコードが存在しない、または`InvitedByParentId IS NULL`の場合は「主保護者」
+
+**実装箇所**:
+
+```sql
+-- 招待された保護者かどうかを判定するクエリ
+SELECT COUNT(*)
+FROM FamilyMembers
+WHERE ParentId = @CurrentParentId
+  AND InvitedByParentId IS NOT NULL
+  AND IsActive = 1;
+
+-- 結果が1件以上の場合 → 招待された保護者（家族追加メニュー非表示）
+-- 結果が0件の場合 → 主保護者（家族追加メニュー表示）
+```
+
+**フロントエンド実装**:
+- ParentDashboard（保護者ダッシュボード）で家族追加メニューボタンの表示制御
+- API呼び出し: `/api/family/can-invite/{parentId}` で招待可否を取得
+- レスポンスが`false`の場合、家族追加ボタンを非表示または無効化
+
+**バックエンド実装**:
+- FamilyController に `CanInviteFamilyMember(int parentId)` メソッドを追加
+- 家族メンバー招待API (`POST /api/family/invite`) で事前チェック
+- 招待された保護者が招待APIを呼び出した場合は `403 Forbidden` エラーを返す
+
+**エラーメッセージ**:
+- 日本語: 「あなたは招待された家族メンバーのため、新しい家族メンバーを追加できません。」
+- 英語: "You cannot invite new family members as you were invited by another member."
+- 中国語: "您作为受邀成员，无法邀请新的家庭成员。"
+- 韓国語: "초대받은 가족 구성원이므로 새 가족 구성원을 추가할 수 없습니다."
+
+**データ整合性**:
+- `InvitedByParentId`は`Parents`テーブルの`Id`への外部キー制約
+- 招待者が削除された場合でも、`InvitedByParentId`の値は保持（履歴として維持）
+- 論理削除（`IsActive = 0`）の場合は判定対象外
+
+**テストケース**:
+1. 主保護者がログイン → 家族追加メニュー表示 ✓
+2. 招待された保護者がログイン → 家族追加メニュー非表示 ✓
+3. 招待された保護者が直接APIを呼び出し → 403エラー ✓
+4. 複数の園児を持つ主保護者 → 全ての園児に対して家族追加可能 ✓
+5. 招待された保護者が別の園児の主保護者になった場合 → その園児に対してのみ家族追加可能 ✓
+
+#### 3.5.8 セキュリティ要件
 - **ロールベースアクセス**: 保護者、スタッフ、管理者ロール
 - **家族内権限管理**: 主要保護者、一般家族メンバーの権限区分
+- **家族招待制限**: 招待された保護者は新たな家族メンバーを招待不可（無限連鎖防止）
 - **データ暗号化**: 全通信のHTTPS、データベースフィールドの暗号化
 - **レート制限**: SMS送信は1日3回まで、認証試行は5分間に3回まで
 - **登録制限**: 1つの子どもに対して最大10名の家族メンバーまで登録可能
@@ -1448,7 +1507,7 @@ public class AzureBlobPhotoService : IPhotoStorageService
 #### 9.3.2 レポート内容要件
 - **CR-SR-001**: 基本情報（園児名、日付、スタッフ名）の自動設定
 - **CR-SR-002**: 活動内容の詳細記述欄
-- **CR-SR-003**: 食事摂取量の記録（朝食/昼食/おやつ）
+- **CR-SR-003**: 食事摂取量の記録（午前おやつ/昼食/午後おやつ）
 - **CR-SR-004**: お昼寝時間の記録（開始/終了時刻）
 - **CR-SR-005**: 健康状態・気になる点の記録
 - **CR-SR-006**: 保護者への特記事項欄

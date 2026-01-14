@@ -95,6 +95,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const normalMenuItems = [
     { path: '/desktop/dashboard', label: 'ダッシュボード', icon: 'chart' },
     { path: '/desktop/attendance', label: '出欠表管理', icon: 'clipboard' },
+    { path: '/desktop/entry-exit-logs', label: '入退ログ管理', icon: 'clock' },
     { path: '/desktop/contact-notifications', label: '連絡通知管理', icon: 'phone' },
     { path: '/desktop/calendar', label: '予定管理', icon: 'calendar' },
     { path: '/desktop/announcements', label: 'お知らせ管理', icon: 'megaphone' },

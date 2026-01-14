@@ -12,7 +12,7 @@ import type {
  * 体温表示フォーマット: "36.5℃"
  */
 export function formatTemperature(temp?: TemperatureRecord): string {
-  if (!temp || !temp.value) return '';
+  if (!temp || !temp.value) return '-';
   return `${temp.value}℃`;
 }
 
@@ -20,7 +20,7 @@ export function formatTemperature(temp?: TemperatureRecord): string {
  * 食事量表示フォーマット
  */
 export function formatMealAmount(meal?: MealRecord): string {
-  if (!meal || !meal.amount) return '';
+  if (!meal || !meal.amount) return '-';
 
   const map: Record<string, string> = {
     All: '完食',
@@ -37,7 +37,7 @@ export function formatMealAmount(meal?: MealRecord): string {
  * 機嫌表示フォーマット
  */
 export function formatMoodState(mood?: MoodRecord): string {
-  if (!mood || !mood.state) return '';
+  if (!mood || !mood.state) return '-';
 
   const map: Record<string, string> = {
     VeryGood: 'とても良い',
@@ -54,7 +54,7 @@ export function formatMoodState(mood?: MoodRecord): string {
  * 睡眠表示フォーマット: "12:30-14:00\n(90分)\nぐっすり"
  */
 export function formatSleep(sleep?: SleepRecord): string {
-  if (!sleep || !sleep.start || !sleep.end) return '';
+  if (!sleep || !sleep.start || !sleep.end) return '-';
 
   const qualityMap: Record<string, string> = {
     Deep: 'ぐっすり',
@@ -77,7 +77,7 @@ export function formatSleep(sleep?: SleepRecord): string {
  * おしっこの量表示フォーマット
  */
 export function formatUrineAmount(amount?: string): string {
-  if (!amount) return '';
+  if (!amount) return '-';
 
   const map: Record<string, string> = {
     Little: '少量',
@@ -92,7 +92,7 @@ export function formatUrineAmount(amount?: string): string {
  * うんちの状態/色表示フォーマット: "軟便/普通"
  */
 export function formatBowelCondition(condition?: string, color?: string): string {
-  if (!condition) return '';
+  if (!condition) return '-';
 
   const conditionMap: Record<string, string> = {
     Normal: '普通',
@@ -119,7 +119,7 @@ export function formatBowelCondition(condition?: string, color?: string): string
  * おむつ交換回数表示フォーマット: "3回"
  */
 export function formatDiaperChangeCount(count?: number): string {
-  return count !== undefined && count !== null ? `${count}回` : '';
+  return count !== undefined && count !== null ? `${count}回` : '-';
 }
 
 /**

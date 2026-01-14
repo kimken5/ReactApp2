@@ -78,5 +78,15 @@ namespace ReactApp.Server.Services
         /// <param name="token">対象のJWTトークン</param>
         /// <returns>JWT ID文字列</returns>
         string GetJwtIdFromToken(string token);
+
+        /// <summary>
+        /// 入退管理用トークン生成
+        /// 保育園の入退管理画面用のJWTトークンを生成
+        /// </summary>
+        /// <param name="nurseryId">保育園ID</param>
+        /// <param name="nurseryName">保育園名</param>
+        /// <param name="expiresAt">有効期限</param>
+        /// <returns>JWT形式のトークン文字列</returns>
+        string GenerateEntryExitToken(int nurseryId, string nurseryName, DateTime expiresAt);
     }
 }

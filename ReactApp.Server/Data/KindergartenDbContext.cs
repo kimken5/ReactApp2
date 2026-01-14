@@ -72,6 +72,9 @@ namespace ReactApp.Server.Data
         public DbSet<InfantSleep> InfantSleeps { get; set; }
         public DbSet<InfantToileting> InfantToiletings { get; set; }
 
+        // 入退管理用エンティティ
+        public DbSet<EntryExitLog> EntryExitLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -205,6 +205,15 @@ builder.Services.AddRateLimiter(options =>
         config.QueueLimit = 5;
     });
 
+    // Heartbeat Rate Limiting (入退管理システムのトークン更新)
+    options.AddFixedWindowLimiter("heartbeat", config =>
+    {
+        config.PermitLimit = 120; // 1時間に120回（30秒間隔×2で1分に2回 = 60分で120回）
+        config.Window = TimeSpan.FromHours(1);
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 5;
+    });
+
     // Application Submit Rate Limiting (入園申込送信)
     options.AddFixedWindowLimiter("application-submit", config =>
     {
@@ -212,6 +221,15 @@ builder.Services.AddRateLimiter(options =>
         config.Window = TimeSpan.FromHours(1);
         config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         config.QueueLimit = 2;
+    });
+
+    // General Rate Limiting (入退ログ作成など)
+    options.AddFixedWindowLimiter("general", config =>
+    {
+        config.PermitLimit = 100; // バーコードスキャン用に十分な余裕を持たせる
+        config.Window = TimeSpan.FromMinutes(1);
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 10;
     });
 
     options.OnRejected = async (context, token) =>
@@ -287,6 +305,9 @@ builder.Services.AddScoped<IDesktopMenuService, DesktopMenuService>();
 // Infant Record Service (乳児生活記録サービス)
 builder.Services.AddScoped<IInfantRecordService, InfantRecordService>();
 
+// Entry/Exit Management Service (入退管理サービス)
+builder.Services.AddScoped<IEntryExitService, EntryExitService>();
+
 // Database Seeding Service (Development only)
 builder.Services.AddScoped<DatabaseSeeder>();
 
@@ -297,6 +318,8 @@ builder.Services.AddAutoMapper(typeof(ReactApp.Server.Mapping.MappingProfile));
 builder.Services.AddScoped<IValidator<ReactApp.Server.DTOs.SendSmsRequest>, SendSmsRequestValidator>();
 builder.Services.AddScoped<IValidator<ReactApp.Server.DTOs.VerifySmsRequest>, VerifySmsRequestValidator>();
 builder.Services.AddScoped<IValidator<ReactApp.Server.DTOs.RefreshTokenRequest>, RefreshTokenRequestValidator>();
+builder.Services.AddScoped<IValidator<ReactApp.Server.DTOs.CreateEntryExitLogRequest>, CreateEntryExitLogRequestValidator>();
+builder.Services.AddScoped<IValidator<ReactApp.Server.DTOs.EntryExitLoginRequest>, EntryExitLoginRequestValidator>();
 
 // FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<SendSmsRequestValidator>();

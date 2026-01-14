@@ -267,10 +267,6 @@ export function AttendancePage() {
     const nurseryId = nursery.id;
     const staffId = 1;
 
-    if (!confirm('クラス全員を出席として登録しますか？（既に記録済みの園児はスキップされます）')) {
-      return;
-    }
-
     const request: BulkPresentRequest = {
       nurseryId,
       classId: selectedClassId,
@@ -279,16 +275,27 @@ export function AttendancePage() {
       recordedByStaffNurseryId: nurseryId,
     };
 
-    setLoading(true);
     try {
+      // チラつき防止: loadingフラグを使わず、楽観的UI更新
+      // まずローカルステートを即座に更新（blankの園児のみをpresentに）
+      setAttendanceGrid((prev) =>
+        prev.map((c) => ({
+          ...c,
+          attendances: c.attendances.map((a, index) =>
+            index === 0 && a.status === 'blank' ? { ...a, status: 'present' as const } : a
+          ),
+        }))
+      );
+
+      // バックグラウンドでAPIリクエスト
       await attendanceService.bulkPresent(request);
-      await fetchAttendances();
     } catch (err: any) {
       console.error('一括出席登録エラー:', err);
       setError(err.response?.data?.message || '一括出席登録に失敗しました');
       setTimeout(() => setError(null), 5000);
-    } finally {
-      setLoading(false);
+
+      // エラー時は再取得して正しい状態に戻す
+      await fetchAttendances();
     }
   };
 
@@ -374,11 +381,13 @@ export function AttendancePage() {
         <div className="mb-8 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">出欠表管理</h1>
           <button
-            onClick={handleBulkPresent}
-            disabled={loading || !selectedClassId}
-            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => navigate('/desktop/attendance/report')}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
-            クラス全員を出席に
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            詳細レポート
           </button>
         </div>
 
@@ -457,13 +466,11 @@ export function AttendancePage() {
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm text-gray-600">最新日（{formatDate(selectedDate)}）の統計</div>
               <button
-                onClick={() => navigate('/desktop/attendance/report')}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                onClick={handleBulkPresent}
+                disabled={loading || !selectedClassId}
+                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-md font-medium hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                詳細レポート
+                全員出席
               </button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

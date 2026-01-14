@@ -75,5 +75,21 @@ namespace ReactApp.Server.Services
         /// <param name="staffId">スタッフID</param>
         /// <returns>クラス割り当て情報のリスト</returns>
         Task<List<ClassAssignmentDto>> GetStaffClassAssignmentsAsync(int nurseryId, int staffId);
+
+        /// <summary>
+        /// 入退登録画面用ログイン
+        /// 保育園ログインID + 入退管理用パスワードで認証し、JWTトークンを発行
+        /// </summary>
+        /// <param name="request">入退登録ログインリクエスト</param>
+        /// <returns>認証結果とJWTトークン</returns>
+        Task<EntryExitLoginResponse> EntryExitLoginAsync(EntryExitLoginRequest request);
+
+        /// <summary>
+        /// ハートビート処理（トークンリフレッシュ）
+        /// 現在のトークンを検証し、新しいトークンを発行して有効期限を延長
+        /// </summary>
+        /// <param name="currentToken">現在のJWTトークン</param>
+        /// <returns>新しいトークンと有効期限</returns>
+        Task<HeartbeatResponse> HeartbeatAsync(string currentToken);
     }
 }
