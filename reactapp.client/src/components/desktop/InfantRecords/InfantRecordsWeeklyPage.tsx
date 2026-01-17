@@ -214,7 +214,8 @@ const InfantRecordsWeeklyPage: React.FC = () => {
                 urineAmount: value.urineAmount,
                 bowelCondition: value.bowelCondition,
                 bowelColor: value.bowelColor,
-                diaperChangeCount: value.diaperChangeCount
+                diaperChangeCount: value.diaperChangeCount,
+                readonly: false
               };
               newChild.dailyRecords = { ...newChild.dailyRecords, [editingCell.date]: record };
               return newChild;
@@ -458,11 +459,6 @@ const InfantRecordsWeeklyPage: React.FC = () => {
           </div>
         ) : !error && selectedClassId ? (
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            {console.log('🎨 Rendering table with data:', {
-              hasData: !!weeklyData,
-              childrenCount: weeklyData?.children?.length || 0,
-              weekStartDate
-            })}
             <WeeklyMatrixTable
               weekStartDate={weekStartDate}
               children={weeklyData?.children || []}
