@@ -71,6 +71,9 @@ namespace ReactApp.Server.Data
         public DbSet<InfantMood> InfantMoods { get; set; }
         public DbSet<InfantSleep> InfantSleeps { get; set; }
         public DbSet<InfantToileting> InfantToiletings { get; set; }
+        public DbSet<InfantMilk> InfantMilks { get; set; }
+        public DbSet<InfantSleepCheck> InfantSleepChecks { get; set; }
+        public DbSet<RoomEnvironmentRecord> RoomEnvironmentRecords { get; set; }
 
         // 入退管理用エンティティ
         public DbSet<EntryExitLog> EntryExitLogs { get; set; }
@@ -462,6 +465,11 @@ namespace ReactApp.Server.Data
             ConfigureInfantMood(modelBuilder);
             ConfigureInfantSleep(modelBuilder);
             ConfigureInfantToileting(modelBuilder);
+
+            // 追加の乳児記録用エンティティ設定
+            ConfigureInfantMilk(modelBuilder);
+            ConfigureInfantSleepCheck(modelBuilder);
+            ConfigureRoomEnvironmentRecord(modelBuilder);
         }
 
         private void ConfigureNursery(ModelBuilder modelBuilder)
@@ -1213,6 +1221,70 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.BowelCondition).HasMaxLength(20);
                 entity.Property(e => e.BowelColor).HasMaxLength(20);
                 entity.Property(e => e.UrineAmount).HasMaxLength(20);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
+        }
+
+        private void ConfigureInfantMilk(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<InfantMilk>(entity =>
+            {
+                // 複合主キー: (NurseryId, ChildId, RecordDate, MilkTime)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.MilkTime });
+
+                // 検索最適化インデックス
+                entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.RecordDate })
+                    .HasDatabaseName("IX_InfantMilk_Record");
+
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
+        }
+
+        private void ConfigureInfantSleepCheck(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<InfantSleepCheck>(entity =>
+            {
+                // 主キー: ID (IDENTITY)
+                entity.HasKey(e => e.Id);
+
+                // 複合インデックス: 園児と日付による検索最適化
+                entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.SleepSequence })
+                    .HasDatabaseName("IX_InfantSleepCheck_Record");
+
+                // チェック時刻による検索最適化
+                entity.HasIndex(e => new { e.RecordDate, e.CheckTime })
+                    .HasDatabaseName("IX_InfantSleepCheck_Time");
+
+                entity.Property(e => e.BreathingStatus).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.HeadDirection).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.BodyTemperature).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.FaceColor).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.BodyPosition).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
+            });
+        }
+
+        private void ConfigureRoomEnvironmentRecord(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<RoomEnvironmentRecord>(entity =>
+            {
+                // 複合主キー: (NurseryId, ClassId, RecordDate)
+                entity.HasKey(e => new { e.NurseryId, e.ClassId, e.RecordDate });
+
+                // 日付と記録時刻による検索最適化
+                entity.HasIndex(e => new { e.RecordDate, e.RecordedAt })
+                    .HasDatabaseName("IX_RoomEnvironment_DateTime");
+
+                // クラスと日付による検索最適化
+                entity.HasIndex(e => new { e.NurseryId, e.ClassId, e.RecordDate })
+                    .HasDatabaseName("IX_RoomEnvironment_ClassDate");
+
+                entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });

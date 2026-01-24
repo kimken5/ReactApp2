@@ -10,10 +10,11 @@ namespace ReactApp.Server.Controllers;
 /// <summary>
 /// 入退管理コントローラー
 /// 保護者の入退ログの作成、取得、削除を提供
+/// デスクトップアプリからのアクセスにも対応
 /// </summary>
 [ApiController]
 [Route("api/entry-exit-logs")]
-[Authorize(Roles = "EntryExit")]
+[Authorize(Roles = "EntryExit,Desktop,Admin")]
 [EnableRateLimiting("general")]
 public class EntryExitController : ControllerBase
 {
@@ -44,7 +45,7 @@ public class EntryExitController : ControllerBase
         try
         {
             // JWTトークンから保育園IDを取得
-            var nurseryIdClaim = User.FindFirst("nursery_id")?.Value;
+            var nurseryIdClaim = User.FindFirst("NurseryId")?.Value;
             if (string.IsNullOrEmpty(nurseryIdClaim) || !int.TryParse(nurseryIdClaim, out var tokenNurseryId))
             {
                 return Unauthorized(new ApiResponse<object>
@@ -137,7 +138,7 @@ public class EntryExitController : ControllerBase
         try
         {
             // JWTトークンから保育園IDを取得
-            var nurseryIdClaim = User.FindFirst("nursery_id")?.Value;
+            var nurseryIdClaim = User.FindFirst("NurseryId")?.Value;
             if (string.IsNullOrEmpty(nurseryIdClaim) || !int.TryParse(nurseryIdClaim, out var nurseryId))
             {
                 return Unauthorized(new ApiResponse<object>
@@ -197,7 +198,7 @@ public class EntryExitController : ControllerBase
         try
         {
             // JWTトークンから保育園IDを取得
-            var nurseryIdClaim = User.FindFirst("nursery_id")?.Value;
+            var nurseryIdClaim = User.FindFirst("NurseryId")?.Value;
             if (string.IsNullOrEmpty(nurseryIdClaim) || !int.TryParse(nurseryIdClaim, out var nurseryId))
             {
                 return Unauthorized(new ApiResponse<object>

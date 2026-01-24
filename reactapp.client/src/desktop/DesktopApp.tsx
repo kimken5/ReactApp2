@@ -35,7 +35,8 @@ import { MenuMastersPage } from './pages/MenuMastersPage';
 import { MenuMasterFormPage } from './pages/MenuMasterFormPage';
 import { DailyMenusPage } from './pages/DailyMenusPage';
 import { DailyMenuFormPage } from './pages/DailyMenuFormPage';
-import InfantRecordsWeeklyPage from '../components/desktop/InfantRecords/InfantRecordsWeeklyPage';
+import { ClassTemperatureBulkPage } from './pages/ClassTemperatureBulkPage';
+import { InfantRecordsIndexPage } from './pages/InfantRecordsIndexPage';
 import { EntryExitLogsPage } from './pages/EntryExitLogsPage';
 
 /**
@@ -451,10 +452,18 @@ function DesktopRoutes() {
 
       {/* 生活記録 */}
       <Route
-        path="/infant-records/weekly"
+        path="/infant-records"
         element={
           <ProtectedRoute>
-            <InfantRecordsWeeklyPage />
+            <InfantRecordsIndexPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/infant-records/class-temperature"
+        element={
+          <ProtectedRoute>
+            <ClassTemperatureBulkPage />
           </ProtectedRoute>
         }
       />

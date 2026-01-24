@@ -27,6 +27,12 @@ public class InfantTemperature
     [Column(TypeName = "decimal(3,1)")]
     public decimal Temperature { get; set; }
 
+    [StringLength(20)]
+    public string MeasurementLocation { get; set; } = "Armpit"; // 'Armpit', 'Ear', 'Forehead'
+
+    [StringLength(500)]
+    public string? Notes { get; set; }
+
     public bool IsAbnormal { get; set; } = false;
 
     [Required]

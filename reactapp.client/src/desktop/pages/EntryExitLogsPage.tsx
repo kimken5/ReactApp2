@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { getEntryExitLogs, deleteEntryExitLog } from '../../services/entryExitService';
 import type { EntryExitLogDto } from '../../services/entryExitService';
+import { useDesktopAuth } from '../contexts/DesktopAuthContext';
 
 /**
  * 入退ログ管理画面
@@ -17,12 +18,14 @@ interface FilterState {
 }
 
 export function EntryExitLogsPage() {
+  const { state: authState } = useDesktopAuth();
   const [logs, setLogs] = useState<EntryExitLogDto[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(50);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // フィルター状態
   const [filters, setFilters] = useState<FilterState>({
@@ -36,22 +39,13 @@ export function EntryExitLogsPage() {
   const [deleteTarget, setDeleteTarget] = useState<EntryExitLogDto | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // デスクトップ認証トークンを取得
-  const getAuthToken = (): string | null => {
-    const authData = localStorage.getItem('desktop_auth');
-    if (!authData) return null;
-    const parsed = JSON.parse(authData);
-    return parsed.token || null;
-  };
-
   // ログ一覧を取得
   const fetchLogs = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const token = getAuthToken();
-      if (!token) {
+      if (!authState.accessToken) {
         setError('認証情報が見つかりません。再ログインしてください。');
         setLoading(false);
         return;
@@ -67,9 +61,10 @@ export function EntryExitLogsPage() {
       if (filters.parentName) params.parentName = filters.parentName;
       if (filters.entryType) params.entryType = filters.entryType;
 
-      const response = await getEntryExitLogs(token, params);
+      const response = await getEntryExitLogs(authState.accessToken, params);
       setLogs(response.logs);
       setTotalCount(response.totalCount);
+      setHasSearched(true);
     } catch (err: any) {
       console.error('入退ログ取得エラー:', err);
       setError(err.message || '入退ログの取得に失敗しました');
@@ -77,11 +72,6 @@ export function EntryExitLogsPage() {
       setLoading(false);
     }
   };
-
-  // 初回ロード
-  useEffect(() => {
-    fetchLogs();
-  }, [currentPage]);
 
   // フィルター変更時（ページを1にリセット）
   const handleFilterChange = () => {
@@ -98,7 +88,6 @@ export function EntryExitLogsPage() {
       entryType: '',
     });
     setCurrentPage(1);
-    setTimeout(() => fetchLogs(), 0);
   };
 
   // 削除確認ダイアログを開く
@@ -117,13 +106,12 @@ export function EntryExitLogsPage() {
 
     setDeleteLoading(true);
     try {
-      const token = getAuthToken();
-      if (!token) {
+      if (!authState.accessToken) {
         setError('認証情報が見つかりません');
         return;
       }
 
-      await deleteEntryExitLog(deleteTarget.id, token);
+      await deleteEntryExitLog(deleteTarget.id, authState.accessToken);
 
       // 削除成功後、一覧を再取得
       setDeleteTarget(null);
@@ -144,15 +132,21 @@ export function EntryExitLogsPage() {
     }
 
     // CSVヘッダー
-    const headers = ['日時', '保護者名', '園児名', '入/出', 'ID'];
+    const headers = ['日時', '保護者名', '園児名', '入/出'];
 
     // CSVボディ
     const rows = logs.map(log => [
-      new Date(log.timestamp).toLocaleString('ja-JP'),
+      new Date(log.timestamp).toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
       log.parentName,
-      log.childNames.join(', '),
+      log.childNames.join('/'),
       log.entryType === 'Entry' ? '入' : '出',
-      log.id.toString(),
     ]);
 
     // CSV文字列を生成
@@ -181,20 +175,10 @@ export function EntryExitLogsPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
+      <div className="space-y-6">
         {/* ヘッダー */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">入退ログ管理</h1>
-          <button
-            onClick={handleExportCSV}
-            disabled={logs.length === 0}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            CSVエクスポート
-          </button>
         </div>
 
         {/* エラーメッセージ */}
@@ -265,183 +249,207 @@ export function EntryExitLogsPage() {
             </div>
           </div>
 
-          {/* フィルターボタン */}
-          <div className="mt-4 flex gap-3">
+          {/* 表示ボタン */}
+          <div className="flex justify-center mt-6">
             <button
               onClick={handleFilterChange}
               disabled={loading}
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-8 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              検索
-            </button>
-            <button
-              onClick={handleClearFilters}
-              disabled={loading}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
-            >
-              クリア
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  読み込み中...
+                </>
+              ) : (
+                '表示'
+              )}
             </button>
           </div>
         </div>
 
-        {/* ローディング */}
-        {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-purple-600"></div>
-            <p className="mt-4 text-gray-600">読み込み中...</p>
-          </div>
-        )}
-
         {/* テーブル */}
-        {!loading && (
-          <>
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-500">
+        {hasSearched && (
+          <div className="bg-white rounded-md shadow-md overflow-hidden">
+            {/* CSVエクスポートボタン */}
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                全 {totalCount} 件{logs.length > 0 && ` 中 ${(currentPage - 1) * pageSize + 1} 〜 ${Math.min(currentPage * pageSize, totalCount)} 件を表示`}
+              </p>
+              <button
+                onClick={handleExportCSV}
+                disabled={logs.length === 0}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                CSVエクスポート
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      日時
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      保護者名
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      園児名
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      入/出
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {logs.length === 0 ? (
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                        日時
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                        保護者名
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                        園児名
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
-                        入/出
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
-                        操作
-                      </th>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                        データがありません
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {logs.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                          データがありません
+                  ) : (
+                    logs.map((log) => (
+                      <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(log.timestamp).toLocaleString('ja-JP', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
                         </td>
-                      </tr>
-                    ) : (
-                      logs.map((log) => (
-                        <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {new Date(log.timestamp).toLocaleString('ja-JP', {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {log.parentName}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {log.childNames.join(', ')}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                log.entryType === 'Entry'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-blue-100 text-blue-800'
-                              }`}
-                            >
-                              {log.entryType === 'Entry' ? '入' : '出'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {log.parentName}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {log.childNames.join('/')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                              log.entryType === 'Entry'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}
+                          >
+                            {log.entryType === 'Entry' ? '入' : '出'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <div className="flex gap-1 justify-end">
+                            {/* 削除ボタン */}
                             <button
                               onClick={() => handleDeleteClick(log)}
-                              className="text-red-600 hover:text-red-800 font-medium transition-colors"
+                              className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
+                              title="削除"
                             >
-                              削除
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                削除
+                              </span>
                             </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
 
             {/* ページネーション */}
             {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-between">
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    setCurrentPage(currentPage - 1);
+                    fetchLogs();
+                  }}
+                  disabled={!canGoPrevious}
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                >
+                  前へ
+                </button>
                 <div className="text-sm text-gray-700">
-                  全 {totalCount} 件中 {(currentPage - 1) * pageSize + 1} 〜{' '}
-                  {Math.min(currentPage * pageSize, totalCount)} 件を表示
+                  ページ {currentPage} / {totalPages}
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={!canGoPrevious}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
-                  >
-                    前へ
-                  </button>
-                  <div className="px-4 py-2 bg-purple-600 text-white rounded-lg">
-                    {currentPage} / {totalPages}
-                  </div>
-                  <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={!canGoNext}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
-                  >
-                    次へ
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    setCurrentPage(currentPage + 1);
+                    fetchLogs();
+                  }}
+                  disabled={!canGoNext}
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                >
+                  次へ
+                </button>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* 削除確認ダイアログ */}
         {deleteTarget && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">削除確認</h3>
-              <p className="text-gray-700 mb-6">
-                以下のログを削除してもよろしいですか？
-              </p>
-              <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-2">
-                <div className="text-sm">
-                  <span className="font-semibold">日時:</span>{' '}
-                  {new Date(deleteTarget.timestamp).toLocaleString('ja-JP')}
+          <>
+            {/* オーバーレイ */}
+            <div
+              className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+              onClick={handleCancelDelete}
+            />
+
+            {/* モーダル */}
+            <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+                {/* ヘッダー */}
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">入退ログを削除</h3>
                 </div>
-                <div className="text-sm">
-                  <span className="font-semibold">保護者:</span> {deleteTarget.parentName}
+
+                {/* コンテンツ */}
+                <div className="px-6 py-6">
+                  <p className="text-gray-600 mb-6">
+                    本当に入退ログ「{deleteTarget.parentName}」を削除しますか？
+                    <br />
+                    この操作は取り消せません。
+                  </p>
+
+                  {/* ボタン */}
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={handleCancelDelete}
+                      disabled={deleteLoading}
+                      className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={handleConfirmDelete}
+                      disabled={deleteLoading}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
+                    >
+                      {deleteLoading ? '削除中...' : '削除する'}
+                    </button>
+                  </div>
                 </div>
-                <div className="text-sm">
-                  <span className="font-semibold">入/出:</span>{' '}
-                  {deleteTarget.entryType === 'Entry' ? '入' : '出'}
-                </div>
-              </div>
-              <p className="text-sm text-red-600 mb-6">
-                ※ この操作は取り消せません
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCancelDelete}
-                  disabled={deleteLoading}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  disabled={deleteLoading}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  {deleteLoading ? '削除中...' : '削除する'}
-                </button>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </DashboardLayout>

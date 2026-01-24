@@ -314,6 +314,7 @@ public class DesktopAuthenticationService : IDesktopAuthenticationService
         {
             new Claim(ClaimTypes.NameIdentifier, nursery.Id.ToString()),
             new Claim(ClaimTypes.Name, nursery.Name),
+            new Claim(ClaimTypes.Role, "Desktop"),
             new Claim("NurseryId", nursery.Id.ToString()),
             new Claim("LoginId", nursery.LoginId ?? ""),
             new Claim("UserType", "Desktop"),

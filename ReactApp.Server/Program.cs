@@ -302,9 +302,6 @@ builder.Services.AddScoped<IApplicationService, ApplicationService>();
 // Menu Management Service (献立管理サービス)
 builder.Services.AddScoped<IDesktopMenuService, DesktopMenuService>();
 
-// Infant Record Service (乳児生活記録サービス)
-builder.Services.AddScoped<IInfantRecordService, InfantRecordService>();
-
 // Entry/Exit Management Service (入退管理サービス)
 builder.Services.AddScoped<IEntryExitService, EntryExitService>();
 

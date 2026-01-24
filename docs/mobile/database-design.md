@@ -1322,7 +1322,181 @@ GO
 - すべてのテーブルとカラムに日本語の論理名を設定
 - `sp_addextendedproperty` でデータベースカタログに保存
 
+#### 3.7.8 InfantMilks (乳児ミルク記録)
+
+**2026-01-17追加**: 0歳児のミルク記録を管理します。1日複数回記録可能です。
+
+```sql
+-- InfantMilks（ミルク記録）
+CREATE TABLE [dbo].[InfantMilks] (
+    [NurseryId] INT NOT NULL,
+    [ChildId] INT NOT NULL,
+    [RecordDate] DATE NOT NULL,
+    [MilkTime] TIME NOT NULL,
+    [AmountMl] INT NOT NULL,
+    [Notes] NVARCHAR(500),
+    [CreatedAt] DATETIME2 DEFAULT [dbo].[GetJstDateTime]() NOT NULL,
+    [CreatedBy] INT NOT NULL,
+    [UpdatedAt] DATETIME2 DEFAULT [dbo].[GetJstDateTime]() NOT NULL,
+    [UpdatedBy] INT NOT NULL,
+    CONSTRAINT [PK_InfantMilks] PRIMARY KEY ([NurseryId], [ChildId], [RecordDate], [MilkTime])
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_InfantMilks_Child_Date ON [dbo].[InfantMilks]([NurseryId], [ChildId], [RecordDate] DESC);
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'乳児ミルク記録', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'ミルク時刻', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'MilkTime';
+EXECUTE sp_addextendedproperty N'MS_Description', N'ミルク量（mL）', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'AmountMl';
+EXECUTE sp_addextendedproperty N'MS_Description', N'メモ', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'Notes';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成者ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'CreatedBy';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'UpdatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新者ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantMilks', N'COLUMN', N'UpdatedBy';
+GO
+```
+
+#### 3.7.9 InfantSleepChecks (乳児午睡チェック)
+
+**2026-01-17追加・改訂**: SIDS予防のための5～10分間隔の午睡チェック記録です。InfantNapChecksから改名・機能拡張しました。
+
+```sql
+-- InfantSleepChecks（午睡チェック）
+CREATE TABLE [dbo].[InfantSleepChecks] (
+    [Id] INT IDENTITY(1,1) NOT NULL,
+    [NurseryId] INT NOT NULL,
+    [ChildId] INT NOT NULL,
+    [RecordDate] DATE NOT NULL,
+    [SleepSequence] INT NOT NULL,
+    [CheckTime] TIME NOT NULL,
+    [BreathingStatus] NVARCHAR(20) NOT NULL,
+    [HeadDirection] NVARCHAR(20) NOT NULL,
+    [BodyTemperature] NVARCHAR(20) NOT NULL,
+    [FaceColor] NVARCHAR(20) NOT NULL,
+    [BodyPosition] NVARCHAR(20) NOT NULL,
+    [CreatedAt] DATETIME2 DEFAULT [dbo].[GetJstDateTime]() NOT NULL,
+    [CreatedBy] INT NOT NULL,
+    CONSTRAINT [PK_InfantSleepChecks] PRIMARY KEY ([Id])
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_InfantSleepChecks_Sleep ON [dbo].[InfantSleepChecks]([NurseryId], [ChildId], [RecordDate], [SleepSequence], [CheckTime]);
+CREATE INDEX IX_InfantSleepChecks_Alerts ON [dbo].[InfantSleepChecks]([NurseryId], [ChildId], [RecordDate])
+    WHERE [BreathingStatus] = N'Abnormal' OR [BodyPosition] = N'FaceDown';
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'乳児午睡チェック記録', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'Id';
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'園児ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'ChildId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'午睡連番（InfantSleepsのSleepSequenceと紐づく）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'SleepSequence';
+EXECUTE sp_addextendedproperty N'MS_Description', N'チェック時刻', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'CheckTime';
+EXECUTE sp_addextendedproperty N'MS_Description', N'呼吸状態（Normal:正常/Abnormal:異常）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'BreathingStatus';
+EXECUTE sp_addextendedproperty N'MS_Description', N'頭の向き（Left:左/Right:右/FaceUp:仰向け）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'HeadDirection';
+EXECUTE sp_addextendedproperty N'MS_Description', N'体温チェック（Normal:正常/SlightlyWarm:やや温かい/Cold:冷たい）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'BodyTemperature';
+EXECUTE sp_addextendedproperty N'MS_Description', N'顔色（Normal:正常/Pale:蒼白/Purple:紫色）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'FaceColor';
+EXECUTE sp_addextendedproperty N'MS_Description', N'体勢（OnBack:仰向け/OnSide:横向き/FaceDown:うつ伏せ）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'BodyPosition';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成者ID', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'CreatedBy';
+GO
+```
+
+**アラート検出ロジック**:
+- **重大アラート**: `BreathingStatus = 'Abnormal'` または `BodyPosition = 'FaceDown'`
+- **警告アラート**: `FaceColor = 'Pale'/'Purple'` または `BodyTemperature = 'SlightlyWarm'/'Cold'`
+- フィルタ済みインデックスにより、異常値の高速検索が可能
+
+#### 3.7.10 RoomEnvironmentRecords (室温・湿度記録)
+
+**2026-01-17追加**: 午睡チェックと連動する室温・湿度記録です。監査対応として1日1回の記録が必要です。
+
+```sql
+-- RoomEnvironmentRecords（室温・湿度記録）
+CREATE TABLE [dbo].[RoomEnvironmentRecords] (
+    [NurseryId] INT NOT NULL,
+    [ClassId] INT NOT NULL,
+    [RecordDate] DATE NOT NULL,
+    [Temperature] DECIMAL(3, 1) NOT NULL,
+    [Humidity] DECIMAL(4, 1) NOT NULL,
+    [RecordedAt] DATETIME2 NOT NULL,
+    [Notes] NVARCHAR(500),
+    [CreatedAt] DATETIME2 DEFAULT [dbo].[GetJstDateTime]() NOT NULL,
+    [CreatedBy] INT NOT NULL,
+    [UpdatedAt] DATETIME2 DEFAULT [dbo].[GetJstDateTime]() NOT NULL,
+    [UpdatedBy] INT NOT NULL,
+    CONSTRAINT [PK_RoomEnvironmentRecords] PRIMARY KEY ([NurseryId], [ClassId], [RecordDate])
+);
+GO
+
+-- インデックス作成
+CREATE INDEX IX_RoomEnvironmentRecords_Date ON [dbo].[RoomEnvironmentRecords]([RecordDate] DESC);
+GO
+
+-- テーブルコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'室温・湿度記録', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', NULL, NULL;
+GO
+
+-- カラムコメント
+EXECUTE sp_addextendedproperty N'MS_Description', N'保育園ID', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'NurseryId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'クラスID', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'ClassId';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'RecordDate';
+EXECUTE sp_addextendedproperty N'MS_Description', N'室温（℃）', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'Temperature';
+EXECUTE sp_addextendedproperty N'MS_Description', N'湿度（%）', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'Humidity';
+EXECUTE sp_addextendedproperty N'MS_Description', N'記録日時', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'RecordedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'備考', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'Notes';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成日時', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'CreatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'作成者ID', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'CreatedBy';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新日時', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'UpdatedAt';
+EXECUTE sp_addextendedproperty N'MS_Description', N'更新者ID', N'SCHEMA', N'dbo', N'TABLE', N'RoomEnvironmentRecords', N'COLUMN', N'UpdatedBy';
+GO
+```
+
+**設計上の重要ポイント**:
+- **ClassId使用**: クラス単位で記録することで午睡チェック表との紐づけが可能
+- **1日1レコード**: 複合主キー (NurseryId, ClassId, RecordDate) により1クラス1日1レコードを保証
+- **監査要件**: 厚生労働省のSIDS予防ガイドラインで求められる室温・湿度記録に対応
+- **適正範囲**: 一般的に室温22-26℃、湿度50-60%が推奨値
+
 ## 12. 変更履歴
+
+### 2026-01-17: 乳児生活記録システム機能拡張
+- **新規テーブル追加**:
+  - InfantMilks: ミルク記録（0歳児向け、1日複数回記録）
+  - InfantSleepChecks: 午睡チェック記録（InfantNapChecksから改名・機能拡張）
+  - RoomEnvironmentRecords: 室温・湿度記録（監査対応）
+- **InfantSleepChecks**: SIDS予防のための詳細チェック機能
+  - BreathingStatus（呼吸状態）、HeadDirection（頭の向き）、BodyTemperature（体温チェック）
+  - FaceColor（顔色）、BodyPosition（体勢）の5項目を記録
+  - SleepSequence連番で複数回の午睡に対応
+  - アラート検出用フィルタ済みインデックス
+- **RoomEnvironmentRecords**: クラス単位の環境記録
+  - ClassIdで午睡チェック表と紐づけ
+  - 1日1レコード（複合主キーで保証）
+  - 厚生労働省SIDS予防ガイドライン対応
+- **既存テーブル修正**:
+  - InfantMeals: MealTime, Notes カラム追加
+  - InfantToileting: HasUrine, HasStool, BowelAmount カラム追加
+  - InfantTemperatures: MeasurementLocation, Notes, IsDraft カラム追加
+  - InfantMoods: RecordTime カラム追加（TimeOfDayから変更）
+- **関連ドキュメント**:
+  - [docs/mobile/infant/infant-records-requirements-v2.md](infant/infant-records-requirements-v2.md)
+  - [docs/mobile/infant/infant-records-create-tables.sql](infant/infant-records-create-tables.sql)
+  - [docs/mobile/infant/infant-records-ui-flow-v2.md](infant/infant-records-ui-flow-v2.md)
 
 ### 2025-12-28: 乳児連絡帳機能追加
 - **新規テーブル追加**: 0～2歳児向け連絡帳機能のための6テーブルを追加

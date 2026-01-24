@@ -1,125 +1,237 @@
-// 週次生活記録の型定義
+/**
+ * 乳児記録管理関連の型定義
+ */
 
-export interface WeeklyRecordResponse {
-  children: ChildWeeklyRecord[];
-}
-
-export interface ChildWeeklyRecord {
-  childId: number;
-  firstName: string;
-  dailyRecords: Record<string, DailyRecord>; // key: "2026-01-04"
-}
-
-export interface DailyRecord {
-  home?: HomeRecord;
-  morning?: MorningRecord;
-  afternoon?: AfternoonRecord;
-  toileting?: ToiletingRecord;
-}
-
-export interface HomeRecord {
-  temperature?: TemperatureRecord;
-  parentNote?: ParentNoteRecord;
-}
-
-export interface MorningRecord {
-  temperature?: TemperatureRecord;
-  snack?: MealRecord;
-  mood?: MoodRecord;
-}
-
-export interface AfternoonRecord {
-  mood?: MoodRecord;
-  lunch?: MealRecord;
-  nap?: SleepRecord;
-  temperature?: TemperatureRecord;
-  snack?: MealRecord;
-}
-
-export interface ToiletingRecord {
-  id?: number;
-  urineAmount?: string; // 'Little', 'Normal', 'Lot'
-  bowelCondition?: string; // 'Normal', 'Hard', 'Soft', 'Diarrhea'
-  bowelColor?: string; // 'Normal', 'Green', 'White', 'Black', 'Bloody'
-  diaperChangeCount?: number;
-  readonly: boolean;
-}
-
-export interface TemperatureRecord {
-  id?: number;
-  value?: string; // "36.0" (小数点1桁の文字列)
-  time?: string; // "08:30"
-  readonly: boolean;
-}
-
-export interface ParentNoteRecord {
-  id?: number;
-  text?: string;
-  readonly: boolean;
-}
-
-export interface MealRecord {
-  id?: number;
-  amount?: string; // 'All', 'Most', 'Half', 'Little', 'None'
-  readonly: boolean;
-}
-
-export interface MoodRecord {
-  id?: number;
-  state?: string; // 'VeryGood', 'Good', 'Normal', 'Bad', 'Crying'
-  readonly: boolean;
-}
-
-export interface SleepRecord {
-  id?: number;
-  start?: string; // "12:30"
-  end?: string; // "14:00"
-  duration?: number; // 90 (minutes)
-  sleepQuality?: string; // 'Deep', 'Normal', 'Light', 'Restless'
-  readonly: boolean;
-}
-
-// 更新リクエストDTO
-export interface UpdateTemperatureDto {
+/**
+ * 体温測定データ
+ */
+export interface TemperatureMeasurement {
   temperature: number;
-  measurementTime: string; // "HH:mm"
+  measurementLocation: string; // 'Armpit', 'Ear', 'Forehead'
+  measuredAt: string; // ISO 8601 datetime string
+  notes?: string;
 }
 
-export interface UpdateMealDto {
-  amount: string;
+/**
+ * 園児別体温データ
+ */
+export interface ChildTemperatureData {
+  childId: number;
+  morning?: TemperatureMeasurement;
+  afternoon?: TemperatureMeasurement;
 }
 
-export interface UpdateMoodDto {
-  state: string;
+/**
+ * クラス一括体温入力リクエスト
+ */
+export interface ClassTemperatureBulkRequest {
+  nurseryId: number;
+  classId: string;
+  recordDate: string; // ISO 8601 date string
+  temperatures: ChildTemperatureData[];
 }
 
-export interface UpdateSleepDto {
-  startTime: string;
-  endTime: string;
-  sleepQuality?: string;
-}
-
-export interface UpdateToiletingDto {
-  urineAmount?: string;
-  bowelCondition?: string;
-  bowelColor?: string;
-  diaperChangeCount?: number;
-}
-
-// 編集用の型
-export type RecordType = 'temperature' | 'meal' | 'mood' | 'sleep' | 'toileting';
-export type MeasurementType = 'home' | 'morning' | 'afternoon';
-export type ToiletingSubType = 'urine' | 'bowel' | 'diaper';
-
-export interface EditingCell {
+/**
+ * 体温警告情報
+ */
+export interface TemperatureWarning {
   childId: number;
   childName: string;
-  date: string;
-  recordType: RecordType;
-  measurementType?: MeasurementType; // for temperature
-  mealType?: 'snack' | 'lunch'; // for meal
-  moodTime?: 'morning' | 'afternoon'; // for mood
-  toiletingSubType?: ToiletingSubType; // for toileting
-  currentValue: any;
-  recordId?: number;
+  measurementType: string; // 'Morning', 'Afternoon'
+  temperature: number;
+  message: string;
+}
+
+/**
+ * クラス一括体温入力レスポンス
+ */
+export interface ClassTemperatureBulkResponse {
+  success: boolean;
+  savedCount: number;
+  skippedCount: number;
+  warnings: TemperatureWarning[];
+}
+
+/**
+ * 家庭での体温情報(保護者入力)
+ */
+export interface HomeTemperatureInfo {
+  temperature?: number;
+  measurementLocation?: string;
+  measuredAt?: string;
+  isAbnormal: boolean;
+}
+
+/**
+ * 朝の体温情報
+ */
+export interface MorningTemperatureInfo {
+  temperature?: number;
+  measurementLocation?: string;
+  measuredAt?: string;
+  isParentInput: boolean;
+  isAbnormal: boolean;
+}
+
+/**
+ * 午後の体温情報
+ */
+export interface AfternoonTemperatureInfo {
+  temperature?: number;
+  measurementLocation?: string;
+  measuredAt?: string;
+  isAbnormal: boolean;
+}
+
+/**
+ * 園児体温情報
+ */
+export interface ChildTemperatureInfo {
+  childId: number;
+  childName: string;
+  ageMonths: number;
+  home?: HomeTemperatureInfo;
+  morning?: MorningTemperatureInfo;
+  afternoon?: AfternoonTemperatureInfo;
+}
+
+/**
+ * クラス体温一覧取得レスポンス
+ */
+export interface ClassTemperatureListResponse {
+  classId: string;
+  className: string;
+  recordDate: string; // ISO 8601 date string
+  children: ChildTemperatureInfo[];
+}
+
+/**
+ * 乳児ミルク記録
+ */
+export interface InfantMilk {
+  nurseryId: number;
+  childId: number;
+  recordDate: string; // ISO 8601 date string
+  milkTime: string; // HH:mm:ss format
+  amountMl: number;
+  notes?: string;
+  createdAt: string;
+  createdBy: number;
+  updatedAt: string;
+  updatedBy: number;
+}
+
+/**
+ * 乳児ミルク記録作成リクエスト
+ */
+export interface CreateInfantMilkRequest {
+  nurseryId: number;
+  childId: number;
+  recordDate: string;
+  milkTime: string;
+  amountMl: number;
+  notes?: string;
+}
+
+/**
+ * 午睡チェック記録
+ */
+export interface InfantSleepCheck {
+  id: number;
+  nurseryId: number;
+  childId: number;
+  recordDate: string; // ISO 8601 date string
+  sleepSequence: number;
+  checkTime: string; // HH:mm:ss format
+  breathingStatus: string; // 'Normal', 'Abnormal'
+  headDirection: string; // 'Left', 'Right', 'FaceUp'
+  bodyTemperature: string; // 'Normal', 'SlightlyWarm', 'Cold'
+  faceColor: string; // 'Normal', 'Pale', 'Purple'
+  bodyPosition: string; // 'OnBack', 'OnSide', 'FaceDown'
+  notes?: string;
+  createdAt: string;
+  createdBy: number;
+  updatedAt: string;
+  updatedBy: number;
+}
+
+/**
+ * 午睡チェック記録作成リクエスト
+ */
+export interface CreateInfantSleepCheckRequest {
+  nurseryId: number;
+  childId: number;
+  recordDate: string;
+  sleepSequence: number;
+  checkTime: string;
+  breathingStatus: string;
+  headDirection: string;
+  bodyTemperature: string;
+  faceColor: string;
+  bodyPosition: string;
+  notes?: string;
+}
+
+/**
+ * 室温・湿度記録
+ */
+export interface RoomEnvironmentRecord {
+  nurseryId: number;
+  classId: string;
+  recordDate: string; // ISO 8601 date string
+  temperature: number;
+  humidity: number;
+  recordedAt: string;
+  notes?: string;
+  createdAt: string;
+  createdBy: number;
+  updatedAt: string;
+  updatedBy: number;
+}
+
+/**
+ * 室温・湿度記録作成リクエスト
+ */
+export interface CreateRoomEnvironmentRecordRequest {
+  nurseryId: number;
+  classId: string;
+  recordDate: string;
+  temperature: number;
+  humidity: number;
+  recordedAt: string;
+  notes?: string;
+}
+
+/**
+ * 乳児体温記録
+ */
+export interface InfantTemperature {
+  nurseryId: number;
+  childId: number;
+  recordDate: string; // ISO 8601 date string
+  measurementType: string; // 'Morning', 'Afternoon'
+  temperature: number;
+  measurementLocation: string;
+  measuredAt: string;
+  isParentInput: boolean;
+  notes?: string;
+  createdAt: string;
+  createdBy: number;
+  updatedAt: string;
+  updatedBy: number;
+}
+
+/**
+ * 乳児体温記録作成リクエスト
+ */
+export interface CreateInfantTemperatureRequest {
+  nurseryId: number;
+  childId: number;
+  recordDate: string;
+  measurementType: string;
+  temperature: number;
+  measurementLocation: string;
+  measuredAt: string;
+  isParentInput: boolean;
+  notes?: string;
 }
