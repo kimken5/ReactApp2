@@ -61,15 +61,17 @@ public class AfternoonRecordDto
 }
 
 /// <summary>
-/// 排泄記録DTO (スタッフ入力 - 編集可)
+/// 排泄記録DTO (スタッフ入力 - 編集可) (旧バージョン - InfantToiletingDto.csを使用)
 /// </summary>
+[Obsolete("Use InfantToiletingDto from InfantToiletingDto.cs instead")]
 public class ToiletingRecordDto
 {
     public int? Id { get; set; }
+    public bool HasUrine { get; set; }
     public string? UrineAmount { get; set; } // 'Little', 'Normal', 'Lot'
+    public bool HasStool { get; set; }
+    public string? BowelAmount { get; set; } // 'Little', 'Normal', 'Lot'
     public string? BowelCondition { get; set; } // 'Normal', 'Hard', 'Soft', 'Diarrhea'
-    public string? BowelColor { get; set; } // 'Normal', 'Green', 'White', 'Black', 'Bloody'
-    public int? DiaperChangeCount { get; set; }
     public bool Readonly { get; set; } // 常にfalse (スタッフ入力)
 }
 

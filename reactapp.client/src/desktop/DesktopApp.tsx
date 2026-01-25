@@ -37,6 +37,7 @@ import { DailyMenusPage } from './pages/DailyMenusPage';
 import { DailyMenuFormPage } from './pages/DailyMenuFormPage';
 import { ClassTemperatureBulkPage } from './pages/ClassTemperatureBulkPage';
 import { InfantRecordsIndexPage } from './pages/InfantRecordsIndexPage';
+import { InfantRecordsPage } from './pages/InfantRecordsPage';
 import { EntryExitLogsPage } from './pages/EntryExitLogsPage';
 
 /**
@@ -456,6 +457,14 @@ function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <InfantRecordsIndexPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/infant-records/manage"
+        element={
+          <ProtectedRoute>
+            <InfantRecordsPage />
           </ProtectedRoute>
         }
       />

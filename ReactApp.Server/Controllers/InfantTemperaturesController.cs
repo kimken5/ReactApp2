@@ -33,12 +33,12 @@ public class InfantTemperaturesController : ControllerBase
         return nurseryId;
     }
 
-    private int GetStaffId()
+    private int? GetStaffIdOrNull()
     {
         var staffIdClaim = User.FindFirst("StaffId")?.Value;
         if (string.IsNullOrEmpty(staffIdClaim) || !int.TryParse(staffIdClaim, out var staffId))
         {
-            throw new UnauthorizedAccessException("職員IDが取得できません");
+            return null; // デスクトップアプリの場合はnullを返す
         }
         return staffId;
     }
@@ -154,7 +154,7 @@ public class InfantTemperaturesController : ControllerBase
         try
         {
             var nurseryId = GetNurseryId();
-            var staffId = GetStaffId();
+            var staffId = GetStaffIdOrNull();
             var now = DateTime.UtcNow;
 
             var savedCount = 0;
@@ -162,10 +162,12 @@ public class InfantTemperaturesController : ControllerBase
             var warnings = new List<TemperatureWarning>();
 
             // 園児情報を取得（警告メッセージ用）
-            var childIds = request.Temperatures.Select(t => t.ChildId).ToList();
+            var childIds = request.Temperatures.Select(t => t.ChildId).Distinct().ToList();
             var children = await _context.Children
                 .Where(c => childIds.Contains(c.ChildId))
                 .Select(c => new { c.ChildId, c.FirstName, c.FamilyName })
+                .GroupBy(c => c.ChildId)
+                .Select(g => g.First())
                 .ToDictionaryAsync(c => c.ChildId);
 
             foreach (var childTemp in request.Temperatures)
@@ -254,7 +256,7 @@ public class InfantTemperaturesController : ControllerBase
         DateTime recordDate,
         string measurementType,
         TemperatureMeasurement measurement,
-        int staffId,
+        int? staffId,
         DateTime now)
     {
         try
@@ -276,7 +278,7 @@ public class InfantTemperaturesController : ControllerBase
                 existing.Notes = measurement.Notes;
                 existing.IsAbnormal = measurement.Temperature >= 37.5m;
                 existing.UpdatedAt = now;
-                existing.UpdatedBy = staffId;
+                existing.UpdatedBy = staffId ?? -1; // デスクトップアプリの場合は-1
             }
             else
             {
@@ -295,9 +297,9 @@ public class InfantTemperaturesController : ControllerBase
                     CreatedByType = "Staff",
                     IsDraft = false,
                     CreatedAt = now,
-                    CreatedBy = staffId,
+                    CreatedBy = staffId ?? -1, // デスクトップアプリの場合は-1
                     UpdatedAt = now,
-                    UpdatedBy = staffId
+                    UpdatedBy = staffId ?? -1  // デスクトップアプリの場合は-1
                 };
 
                 _context.InfantTemperatures.Add(newTemp);

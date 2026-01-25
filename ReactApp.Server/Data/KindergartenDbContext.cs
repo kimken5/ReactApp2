@@ -1177,10 +1177,10 @@ namespace ReactApp.Server.Data
         {
             modelBuilder.Entity<InfantMood>(entity =>
             {
-                // 複合主キー: (NurseryId, ChildId, RecordDate, MoodTime)
-                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.MoodTime });
+                // 複合主キー: (NurseryId, ChildId, RecordDate, RecordTime)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.RecordTime });
 
-                entity.Property(e => e.MoodTime).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.RecordTime).IsRequired();
                 entity.Property(e => e.MoodState).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
@@ -1217,10 +1217,11 @@ namespace ReactApp.Server.Data
                 entity.HasIndex(e => e.ToiletingTime)
                     .HasDatabaseName("IX_InfantToileting_Time");
 
-                entity.Property(e => e.ToiletingType).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.BowelCondition).HasMaxLength(20);
-                entity.Property(e => e.BowelColor).HasMaxLength(20);
+                entity.Property(e => e.HasUrine).IsRequired();
                 entity.Property(e => e.UrineAmount).HasMaxLength(20);
+                entity.Property(e => e.HasStool).IsRequired();
+                entity.Property(e => e.BowelAmount).HasMaxLength(20);
+                entity.Property(e => e.BowelCondition).HasMaxLength(20);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });

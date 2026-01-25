@@ -35,16 +35,18 @@ public class UpsertMoodDto
 }
 
 /// <summary>
-/// 排泄記録の作成または更新リクエストDTO
+/// 排泄記録の作成または更新リクエストDTO (旧バージョン - InfantToiletingDto.csを使用)
 /// </summary>
+[Obsolete("Use CreateInfantToiletingDto or UpdateInfantToiletingDto from InfantToiletingDto.cs instead")]
 public class UpsertToiletingDto
 {
     public int ChildId { get; set; }
     public DateTime RecordDate { get; set; }
+    public bool HasUrine { get; set; }
     public string? UrineAmount { get; set; } // 'Little', 'Normal', 'Lot'
+    public bool HasStool { get; set; }
+    public string? BowelAmount { get; set; } // 'Little', 'Normal', 'Lot'
     public string? BowelCondition { get; set; } // 'Normal', 'Hard', 'Soft', 'Diarrhea'
-    public string? BowelColor { get; set; } // 'Normal', 'Green', 'White', 'Black', 'Bloody'
-    public int? DiaperChangeCount { get; set; }
 }
 
 /// <summary>

@@ -51,13 +51,15 @@ public class UpdateSleepDto
 }
 
 /// <summary>
-/// 排泄更新リクエストDTO
+/// 排泄更新リクエストDTO (旧バージョン - InfantToiletingDto.csを使用)
 /// </summary>
+[Obsolete("Use UpdateInfantToiletingDto from InfantToiletingDto.cs instead")]
 public class UpdateToiletingDto
 {
+    public bool HasUrine { get; set; }
     public string? UrineAmount { get; set; } // 'Little', 'Normal', 'Lot'
+    public bool HasStool { get; set; }
+    public string? BowelAmount { get; set; } // 'Little', 'Normal', 'Lot'
     public string? BowelCondition { get; set; } // 'Normal', 'Hard', 'Soft', 'Diarrhea'
-    public string? BowelColor { get; set; } // 'Normal', 'Green', 'White', 'Black', 'Bloody'
-    public int? DiaperChangeCount { get; set; }
     public int UpdatedBy { get; set; }
 }

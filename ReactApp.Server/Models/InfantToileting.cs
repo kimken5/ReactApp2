@@ -20,19 +20,19 @@ public class InfantToileting
     public DateTime ToiletingTime { get; set; }
 
     [Required]
-    [StringLength(20)]
-    public string ToiletingType { get; set; } = null!; // 'Urine', 'Bowel'
-
-    [StringLength(20)]
-    public string? BowelCondition { get; set; } // 'Normal', 'Soft', 'Diarrhea', 'Hard'
-
-    [StringLength(20)]
-    public string? BowelColor { get; set; } // 'Normal', 'Green', 'White', 'Black', 'Bloody'
+    public bool HasUrine { get; set; } = false;
 
     [StringLength(20)]
     public string? UrineAmount { get; set; } // 'Little', 'Normal', 'Lot'
 
-    public int? DiaperChangeCount { get; set; }
+    [Required]
+    public bool HasStool { get; set; } = false;
+
+    [StringLength(20)]
+    public string? BowelAmount { get; set; } // 'Little', 'Normal', 'Lot'
+
+    [StringLength(20)]
+    public string? BowelCondition { get; set; } // 'Normal', 'Soft', 'Diarrhea', 'Hard', 'Bloody'
 
     [Required]
     public DateTime CreatedAt { get; set; }

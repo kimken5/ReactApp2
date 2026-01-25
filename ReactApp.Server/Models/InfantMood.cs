@@ -17,8 +17,7 @@ public class InfantMood
     public DateTime RecordDate { get; set; }
 
     [Required]
-    [StringLength(20)]
-    public string MoodTime { get; set; } = null!; // 'Morning', 'Afternoon'
+    public TimeOnly RecordTime { get; set; }
 
     [Required]
     [StringLength(20)]

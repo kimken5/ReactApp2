@@ -299,6 +299,9 @@ builder.Services.AddScoped<IAttendanceStatisticsService, AttendanceStatisticsSer
 // Application Service (入園申込サービス)
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
 
+// Infant Record Service (乳児生活記録サービス)
+builder.Services.AddScoped<IInfantRecordService, InfantRecordService>();
+
 // Menu Management Service (献立管理サービス)
 builder.Services.AddScoped<IDesktopMenuService, DesktopMenuService>();
 
@@ -354,7 +357,10 @@ builder.Services.AddCors(options =>
                   "https://localhost:5182", "https://localhost:5183", "https://localhost:5184",
                   "https://localhost:5185", "https://localhost:5186", "https://localhost:5187",
                   "https://localhost:5188", "https://localhost:5189", "https://localhost:5190",
-                  "https://localhost:3000"
+                  "https://localhost:5191", "https://localhost:5192", "https://localhost:5193",
+                  "https://localhost:5194", "https://localhost:5195", "https://localhost:5196",
+                  "https://localhost:5197", "https://localhost:5198", "https://localhost:5199",
+                  "https://localhost:5200", "https://localhost:3000"
               )
               .AllowAnyMethod()
               .AllowAnyHeader()

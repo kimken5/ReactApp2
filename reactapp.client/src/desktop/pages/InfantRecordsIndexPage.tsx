@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { MdThermostat, MdAir, MdHotel } from 'react-icons/md';
-import { GiBabyBottle } from 'react-icons/gi';
+import { MdThermostat, MdViewList } from 'react-icons/md';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 
 /**
@@ -12,40 +11,22 @@ export function InfantRecordsIndexPage() {
 
   const menuItems = [
     {
+      id: 'manage',
+      title: '乳児生活記録管理',
+      description: '全ての生活記録を統合的に閲覧・管理します(ミルク・食事・睡眠・午睡チェック・排泄・体温・機嫌・室温湿度)',
+      icon: MdViewList,
+      path: '/desktop/infant-records/manage',
+      iconColor: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+    },
+    {
       id: 'temperature',
       title: 'クラス体温一括入力',
-      description: 'クラス全員の体温を一括で記録します',
+      description: 'クラス全員の体温を一括で効率的に記録します',
       icon: MdThermostat,
       path: '/desktop/infant-records/class-temperature',
       iconColor: 'text-red-500',
       bgColor: 'bg-red-50',
-    },
-    {
-      id: 'milk',
-      title: 'ミルク記録',
-      description: '乳児のミルク摂取量を記録します',
-      icon: GiBabyBottle,
-      path: '/desktop/infant-records/milk',
-      iconColor: 'text-blue-500',
-      bgColor: 'bg-blue-50',
-    },
-    {
-      id: 'sleep',
-      title: '午睡チェック',
-      description: 'SIDS予防のための午睡チェックを記録します',
-      icon: MdHotel,
-      path: '/desktop/infant-records/sleep-checks',
-      iconColor: 'text-purple-500',
-      bgColor: 'bg-purple-50',
-    },
-    {
-      id: 'environment',
-      title: '室温・湿度記録',
-      description: '保育室の温度と湿度を記録します',
-      icon: MdAir,
-      path: '/desktop/infant-records/room-environment',
-      iconColor: 'text-green-500',
-      bgColor: 'bg-green-50',
     },
   ];
 

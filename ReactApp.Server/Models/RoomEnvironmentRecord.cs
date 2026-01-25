@@ -13,7 +13,8 @@ public class RoomEnvironmentRecord
     public int NurseryId { get; set; }
 
     [Required]
-    public int ClassId { get; set; }
+    [StringLength(50)]
+    public string ClassId { get; set; } = null!;
 
     [Required]
     [Column(TypeName = "date")]

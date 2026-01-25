@@ -4,9 +4,7 @@ import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { infantRecordService } from '../services/infantRecordService';
 import { masterService } from '../services/masterService';
 import {
-  MdThermostat,
   MdSave,
-  MdClear,
   MdChevronLeft,
   MdChevronRight,
   MdArrowBack
@@ -172,12 +170,6 @@ export function ClassTemperatureBulkPage() {
     }
   };
 
-  const handleClear = () => {
-    if (confirm('入力内容をクリアしますか?')) {
-      setTemperatures(new Map());
-    }
-  };
-
   // 日付フォーマット（〇月〇日）
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -299,24 +291,14 @@ export function ClassTemperatureBulkPage() {
               <div className="text-sm text-gray-600">
                 {formatDate(selectedDate)} の体温入力 ({temperatureData.children.length}名)
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleClear}
-                  disabled={temperatures.size === 0}
-                  className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <MdClear className="w-4 h-4 mr-2" />
-                  クリア
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving || !temperatureData}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  <MdSave className="w-4 h-4 mr-2" />
-                  {saving ? '保存中...' : '一括保存'}
-                </button>
-              </div>
+              <button
+                onClick={handleSave}
+                disabled={saving || !temperatureData}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                <MdSave className="w-4 h-4 mr-2" />
+                {saving ? '保存中...' : '一括保存'}
+              </button>
             </div>
           </div>
         )}
@@ -348,13 +330,7 @@ export function ClassTemperatureBulkPage() {
                       午前(体温)
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      測定箇所
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       午後(体温)
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      測定箇所
                     </th>
                   </tr>
                 </thead>
@@ -380,7 +356,7 @@ export function ClassTemperatureBulkPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
+                          <div className="flex items-center gap-2">
                             <input
                               type="number"
                               step="0.1"
@@ -395,36 +371,34 @@ export function ClassTemperatureBulkPage() {
                                   e.target.value
                                 )
                               }
-                              className={`w-20 border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              className={`w-16 border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                 child.morning?.isAbnormal
                                   ? 'border-red-500 bg-red-50'
                                   : 'border-gray-300'
                               }`}
                               placeholder="36.5"
                             />
-                            <span className="ml-1 text-sm text-gray-500">℃</span>
+                            <span className="text-xs text-gray-500">℃</span>
+                            <select
+                              value={temp.morning?.measurementLocation || 'Armpit'}
+                              onChange={(e) =>
+                                handleTemperatureChange(
+                                  child.childId,
+                                  'morning',
+                                  'measurementLocation',
+                                  e.target.value
+                                )
+                              }
+                              className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="Armpit">脇下</option>
+                              <option value="Ear">耳</option>
+                              <option value="Forehead">額</option>
+                            </select>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <select
-                            value={temp.morning?.measurementLocation || 'Armpit'}
-                            onChange={(e) =>
-                              handleTemperatureChange(
-                                child.childId,
-                                'morning',
-                                'measurementLocation',
-                                e.target.value
-                              )
-                            }
-                            className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="Armpit">脇下</option>
-                            <option value="Ear">耳</option>
-                            <option value="Forehead">額</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
+                          <div className="flex items-center gap-2">
                             <input
                               type="number"
                               step="0.1"
@@ -439,33 +413,31 @@ export function ClassTemperatureBulkPage() {
                                   e.target.value
                                 )
                               }
-                              className={`w-20 border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              className={`w-16 border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                 child.afternoon?.isAbnormal
                                   ? 'border-red-500 bg-red-50'
                                   : 'border-gray-300'
                               }`}
                               placeholder="36.5"
                             />
-                            <span className="ml-1 text-sm text-gray-500">℃</span>
+                            <span className="text-xs text-gray-500">℃</span>
+                            <select
+                              value={temp.afternoon?.measurementLocation || 'Armpit'}
+                              onChange={(e) =>
+                                handleTemperatureChange(
+                                  child.childId,
+                                  'afternoon',
+                                  'measurementLocation',
+                                  e.target.value
+                                )
+                              }
+                              className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="Armpit">脇下</option>
+                              <option value="Ear">耳</option>
+                              <option value="Forehead">額</option>
+                            </select>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <select
-                            value={temp.afternoon?.measurementLocation || 'Armpit'}
-                            onChange={(e) =>
-                              handleTemperatureChange(
-                                child.childId,
-                                'afternoon',
-                                'measurementLocation',
-                                e.target.value
-                              )
-                            }
-                            className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="Armpit">脇下</option>
-                            <option value="Ear">耳</option>
-                            <option value="Forehead">額</option>
-                          </select>
                         </td>
                       </tr>
                     );
