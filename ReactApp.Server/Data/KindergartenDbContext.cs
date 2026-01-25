@@ -1163,10 +1163,11 @@ namespace ReactApp.Server.Data
         {
             modelBuilder.Entity<InfantMeal>(entity =>
             {
-                // 複合主キー: (NurseryId, ChildId, RecordDate, MealType)
-                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.MealType });
+                // 複合主キー: (NurseryId, ChildId, RecordDate, MealTime)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.MealTime });
 
                 entity.Property(e => e.MealType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.MealTime).IsRequired();
                 entity.Property(e => e.OverallAmount).HasMaxLength(20);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");

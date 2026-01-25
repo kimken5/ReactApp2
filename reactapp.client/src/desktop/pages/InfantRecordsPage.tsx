@@ -27,6 +27,7 @@ import type {
   InfantToiletingDto, InfantMoodDto, RoomEnvironmentDto,
   ClassChildrenResponse
 } from '../types/infantRecord';
+import { mealTypeLabels, mealAmountLabels } from '../types/infantRecord';
 import {
   InfantMilkModal, InfantMealModal, InfantSleepModal,
   InfantToiletingModal, InfantMoodModal, RoomEnvironmentModal,
@@ -134,35 +135,52 @@ export function InfantRecordsPage() {
 
       // Fetch all records based on active tab
       switch (activeTab) {
+        case 'overview':
+          // 概要タブでは全てのデータを取得
+          const [milk, meals, sleep, toileting, mood, env] = await Promise.all([
+            infantRecordService.getMilkRecords(selectedClass, selectedDate),
+            infantRecordService.getMealRecords(selectedClass, selectedDate),
+            infantRecordService.getSleepRecords(selectedClass, selectedDate),
+            infantRecordService.getToiletingRecords(selectedClass, selectedDate),
+            infantRecordService.getMoodRecords(selectedClass, selectedDate),
+            infantRecordService.getRoomEnvironment(selectedClass, selectedDate),
+          ]);
+          setMilkRecords(milk);
+          setMealRecords(meals);
+          setSleepRecords(sleep);
+          setToiletingRecords(toileting);
+          setMoodRecords(mood);
+          setRoomEnvironment(env);
+          break;
         case 'milk':
           console.log('=== Fetching milk records ===');
           console.log('selectedClass:', selectedClass);
           console.log('selectedDate:', selectedDate);
-          const milk = await infantRecordService.getMilkRecords(selectedClass, selectedDate);
-          console.log('Fetched milk records:', milk);
-          console.log('Milk records count:', milk?.length || 0);
-          setMilkRecords(milk);
+          const milkData = await infantRecordService.getMilkRecords(selectedClass, selectedDate);
+          console.log('Fetched milk records:', milkData);
+          console.log('Milk records count:', milkData?.length || 0);
+          setMilkRecords(milkData);
           console.log('State updated with milk records');
           break;
         case 'meals':
-          const meals = await infantRecordService.getMealRecords(selectedClass, selectedDate);
-          setMealRecords(meals);
+          const mealsData = await infantRecordService.getMealRecords(selectedClass, selectedDate);
+          setMealRecords(mealsData);
           break;
         case 'sleep':
-          const sleep = await infantRecordService.getSleepRecords(selectedClass, selectedDate);
-          setSleepRecords(sleep);
+          const sleepData = await infantRecordService.getSleepRecords(selectedClass, selectedDate);
+          setSleepRecords(sleepData);
           break;
         case 'toileting':
-          const toileting = await infantRecordService.getToiletingRecords(selectedClass, selectedDate);
-          setToiletingRecords(toileting);
+          const toiletingData = await infantRecordService.getToiletingRecords(selectedClass, selectedDate);
+          setToiletingRecords(toiletingData);
           break;
         case 'mood':
-          const mood = await infantRecordService.getMoodRecords(selectedClass, selectedDate);
-          setMoodRecords(mood);
+          const moodData = await infantRecordService.getMoodRecords(selectedClass, selectedDate);
+          setMoodRecords(moodData);
           break;
         case 'environment':
-          const env = await infantRecordService.getRoomEnvironment(selectedClass, selectedDate);
-          setRoomEnvironment(env);
+          const envData = await infantRecordService.getRoomEnvironment(selectedClass, selectedDate);
+          setRoomEnvironment(envData);
           break;
       }
     } catch (err) {
@@ -387,49 +405,57 @@ export function InfantRecordsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {(data || []).map((record, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  {columns.map((col, colIndex) => (
-                    <td
-                      key={colIndex}
-                      className={`px-6 py-4 text-sm ${colIndex === 0 ? 'whitespace-nowrap text-gray-900' : 'text-gray-600'}`}
-                    >
-                      {record[col.key] || '-'}
-                    </td>
-                  ))}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center gap-2">
-                      {/* 編集ボタン */}
-                      <button
-                        onClick={() => onEdit?.(record)}
-                        className="relative group p-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200"
-                        title="編集"
+              {(data || []).length > 0 ? (
+                (data || []).map((record, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    {columns.map((col, colIndex) => (
+                      <td
+                        key={colIndex}
+                        className={`px-6 py-4 text-sm ${colIndex === 0 ? 'whitespace-nowrap text-gray-900' : 'text-gray-600'}`}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          編集
-                        </span>
-                      </button>
+                        {record[col.key] || '-'}
+                      </td>
+                    ))}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center gap-2">
+                        {/* 編集ボタン */}
+                        <button
+                          onClick={() => onEdit?.(record)}
+                          className="relative group p-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 hover:bg-blue-100 hover:shadow-md transition-all duration-200"
+                          title="編集"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            編集
+                          </span>
+                        </button>
 
-                      {/* 削除ボタン */}
-                      <button
-                        onClick={() => onDelete?.(record)}
-                        className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
-                        title="削除"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          削除
-                        </span>
-                      </button>
-                    </div>
+                        {/* 削除ボタン */}
+                        <button
+                          onClick={() => onDelete?.(record)}
+                          className="relative group p-2 bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200"
+                          title="削除"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            削除
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={columns.length + 1} className="px-6 py-8 text-center text-gray-500">
+                    記録がありません
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -673,7 +699,7 @@ export function InfantRecordsPage() {
                     <span className="ml-2 text-gray-900">
                       {(mealRecords || [])
                         .filter(r => r.childId === child.childId)
-                        .map(r => `${r.mealType}:${r.overallAmount || '未記録'}`)
+                        .map(r => `${mealTypeLabels[r.mealType] || r.mealType}:${r.mealTime}:${mealAmountLabels[r.overallAmount || ''] || r.overallAmount || '未記録'}`)
                         .join(' / ')}
                     </span>
                   </div>
@@ -783,19 +809,35 @@ export function InfantRecordsPage() {
       case 'milk':
         return renderMilkTab();
       case 'meals':
+        // 英語の定数値を日本語ラベルに変換（表示用）
+        const translatedMealRecords = (mealRecords || []).map(record => ({
+          ...record,
+          mealType: mealTypeLabels[record.mealType] || record.mealType,
+          overallAmount: record.overallAmount ? (mealAmountLabels[record.overallAmount] || record.overallAmount) : '-',
+          notes: record.notes || '-', // メモを追加
+        }));
         return renderSimpleTab(
           '食事記録',
           [
             { label: '園児名', key: 'childName' },
             { label: '種別', key: 'mealType' },
+            { label: '時刻', key: 'mealTime' },
             { label: '摂取量', key: 'overallAmount' },
             { label: 'メモ', key: 'notes' },
           ],
-          mealRecords || [],
+          translatedMealRecords,
           undefined,
           undefined,
           () => setModalState({ type: 'meal', mode: 'create', isOpen: true }),
-          (record) => setModalState({ type: 'meal', mode: 'edit', isOpen: true, data: record }),
+          // 編集時は元のレコード（英語値）を渡す
+          (record) => {
+            const originalRecord = mealRecords.find(r =>
+              r.childId === record.childId &&
+              r.recordDate === record.recordDate &&
+              r.mealTime === record.mealTime
+            );
+            setModalState({ type: 'meal', mode: 'edit', isOpen: true, data: originalRecord || record });
+          },
           (record) => handleDeleteMeal(record)
         );
       case 'sleep':
@@ -889,25 +931,99 @@ export function InfantRecordsPage() {
       case 'environment':
         return (
           <div className="bg-white rounded-md shadow-md p-6">
-            <div className="text-center py-8">
+            <div className="flex justify-end mb-6">
               <button
                 onClick={() => setModalState({ type: 'environment', mode: roomEnvironment ? 'edit' : 'create', isOpen: true, data: roomEnvironment })}
-                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm"
               >
                 {roomEnvironment ? '環境記録を編集' : '環境記録を追加'}
               </button>
-              {roomEnvironment && (
-                <div className="mt-6 text-left max-w-2xl mx-auto">
-                  <h3 className="text-lg font-semibold mb-4">現在の環境記録</h3>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">記録時刻:</span> {roomEnvironment.recordTime}</p>
-                    <p><span className="font-medium">室温:</span> {roomEnvironment.temperature}℃</p>
-                    <p><span className="font-medium">湿度:</span> {roomEnvironment.humidity}%</p>
-                    {roomEnvironment.notes && <p><span className="font-medium">メモ:</span> {roomEnvironment.notes}</p>}
+            </div>
+
+            {roomEnvironment ? (
+              <div className="max-w-4xl mx-auto">
+                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                  <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  現在の環境記録
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* 記録時刻カード */}
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 shadow-md border border-purple-200">
+                    <div className="flex items-center mb-3">
+                      <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm text-purple-600 font-medium">記録時刻</p>
+                        <p className="text-2xl font-bold text-purple-900">
+                          {new Date(roomEnvironment.recordedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 室温カード */}
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-6 shadow-md border border-orange-200">
+                    <div className="flex items-center mb-3">
+                      <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm text-orange-600 font-medium">室温</p>
+                        <p className="text-3xl font-bold text-orange-900">{roomEnvironment.temperature}<span className="text-xl">℃</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 湿度カード */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 shadow-md border border-blue-200">
+                    <div className="flex items-center mb-3">
+                      <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm text-blue-600 font-medium">湿度</p>
+                        <p className="text-3xl font-bold text-blue-900">{roomEnvironment.humidity}<span className="text-xl">%</span></p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {/* メモ欄 */}
+                {roomEnvironment.notes && (
+                  <div className="mt-6 bg-gray-50 rounded-lg p-5 border border-gray-200">
+                    <div className="flex items-start">
+                      <svg className="w-5 h-5 text-gray-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">メモ</p>
+                        <p className="text-gray-900">{roomEnvironment.notes}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </div>
+                <p className="text-gray-600 text-lg mb-2">環境記録がまだ登録されていません</p>
+                <p className="text-gray-500 text-sm">上のボタンから環境記録を追加してください</p>
+              </div>
+            )}
           </div>
         );
       default:
@@ -994,7 +1110,7 @@ export function InfantRecordsPage() {
         {/* ヘッダー */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">乳児生活記録管理</h1>
+            <h1 className="text-2xl font-bold text-gray-900">生活記録管理</h1>
             <button
               onClick={() => navigate('/desktop/infant-records')}
               className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"

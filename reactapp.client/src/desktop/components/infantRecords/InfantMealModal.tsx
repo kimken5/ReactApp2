@@ -26,6 +26,7 @@ interface InfantMealModalProps {
 interface FormData {
   childId: number;
   mealType: MealType;
+  mealTime: string;
   overallAmount: MealAmount | '';
   notes: string;
 }
@@ -33,6 +34,7 @@ interface FormData {
 interface FormErrors {
   childId?: string;
   mealType?: string;
+  mealTime?: string;
 }
 
 export function InfantMealModal({
@@ -44,9 +46,18 @@ export function InfantMealModal({
   children,
   recordDate,
 }: InfantMealModalProps) {
+  // 現在時刻を HH:mm 形式で取得
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   const [formData, setFormData] = useState<FormData>({
     childId: 0,
     mealType: 'Lunch',
+    mealTime: getCurrentTime(),
     overallAmount: '',
     notes: '',
   });
@@ -60,6 +71,7 @@ export function InfantMealModal({
       setFormData({
         childId: initialData.childId,
         mealType: initialData.mealType,
+        mealTime: initialData.mealTime,
         overallAmount: initialData.overallAmount || '',
         notes: initialData.notes || '',
       });
@@ -67,6 +79,7 @@ export function InfantMealModal({
       setFormData({
         childId: children.length > 0 ? children[0].childId : 0,
         mealType: 'Lunch',
+        mealTime: getCurrentTime(),
         overallAmount: '',
         notes: '',
       });
@@ -91,6 +104,10 @@ export function InfantMealModal({
       newErrors.mealType = '食事種別を選択してください';
     }
 
+    if (!formData.mealTime || !/^\d{2}:\d{2}$/.test(formData.mealTime)) {
+      newErrors.mealTime = '時刻を正しく入力してください (HH:mm)';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -109,10 +126,12 @@ export function InfantMealModal({
         childId: formData.childId,
         recordDate,
         mealType: formData.mealType,
+        mealTime: formData.mealTime,
         overallAmount: formData.overallAmount || undefined,
         notes: formData.notes || undefined,
       };
 
+      console.log('送信データ:', saveData);
       await onSave(saveData);
       onClose();
     } catch (error) {
@@ -179,7 +198,7 @@ export function InfantMealModal({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   食事種別 <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {(Object.keys(mealTypeLabels) as MealType[]).map((type) => (
                     <button
                       key={type}
@@ -196,6 +215,24 @@ export function InfantMealModal({
                   ))}
                 </div>
                 {errors.mealType && <p className="mt-1 text-sm text-red-500">{errors.mealType}</p>}
+              </div>
+
+              {/* 食事時刻 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  食事時刻 <span className="text-red-500">*</span>
+                  {mode === 'edit' && <span className="ml-2 text-xs text-gray-500">(編集時は変更不可)</span>}
+                </label>
+                <input
+                  type="time"
+                  value={formData.mealTime}
+                  onChange={(e) => handleInputChange('mealTime', e.target.value)}
+                  disabled={mode === 'edit'} // 編集モードでは時刻変更不可
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    mode === 'edit' ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
+                />
+                {errors.mealTime && <p className="mt-1 text-sm text-red-500">{errors.mealTime}</p>}
               </div>
 
               {/* 摂取量 */}

@@ -48,7 +48,7 @@ public interface IInfantRecordService
     /// <summary>
     /// 食事記録を削除
     /// </summary>
-    Task<bool> DeleteMealRecordAsync(int nurseryId, int childId, DateTime date, string mealType);
+    Task<bool> DeleteMealRecordAsync(int nurseryId, int childId, DateTime date, TimeSpan mealTime);
 
     // ===== 睡眠記録 =====
     /// <summary>

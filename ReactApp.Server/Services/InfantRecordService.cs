@@ -59,7 +59,7 @@ public class InfantRecordService : IInfantRecordService
                 ? $"{child.FamilyName} {child.FirstName}"
                 : "不明",
             RecordDate = r.RecordDate,
-            MilkTime = r.MilkTime.ToString(@"hh\:mm"), // TimeSpan to HH:mm string
+            MilkTime = r.MilkTime.ToString(@"hh\:mm"), // TimeSpan to hh:mm string
             AmountMl = r.AmountMl,
             Notes = r.Notes,
             CreatedAt = r.CreatedAt,
@@ -187,7 +187,9 @@ public class InfantRecordService : IInfantRecordService
                 : "不明",
             RecordDate = r.RecordDate,
             MealType = r.MealType,
+            MealTime = $"{r.MealTime.Hours:D2}:{r.MealTime.Minutes:D2}", // TimeSpanを文字列に変換 (24時間形式)
             OverallAmount = r.OverallAmount,
+            Notes = r.Notes, // メモを追加
             CreatedAt = r.CreatedAt,
             CreatedBy = r.CreatedBy,
             UpdatedAt = r.UpdatedAt,
@@ -197,6 +199,12 @@ public class InfantRecordService : IInfantRecordService
 
     public async Task<InfantMealDto> CreateMealRecordAsync(CreateInfantMealDto dto, int nurseryId, int staffId)
     {
+        // 文字列をTimeSpanに変換
+        if (!TimeSpan.TryParse(dto.MealTime, out var mealTime))
+        {
+            throw new ArgumentException("無効な時刻形式です", nameof(dto.MealTime));
+        }
+
         var now = GetJstNow();
         var record = new InfantMeal
         {
@@ -204,7 +212,9 @@ public class InfantRecordService : IInfantRecordService
             ChildId = dto.ChildId,
             RecordDate = dto.RecordDate.Date,
             MealType = dto.MealType,
+            MealTime = mealTime,
             OverallAmount = dto.OverallAmount,
+            Notes = dto.Notes, // メモを保存
             CreatedAt = now,
             CreatedBy = staffId,
             UpdatedAt = now,
@@ -226,7 +236,9 @@ public class InfantRecordService : IInfantRecordService
             ChildName = child != null ? $"{child.FamilyName} {child.FirstName}" : "不明",
             RecordDate = record.RecordDate,
             MealType = record.MealType,
+            MealTime = $"{record.MealTime.Hours:D2}:{record.MealTime.Minutes:D2}", // TimeSpanを文字列に変換 (24時間形式)
             OverallAmount = record.OverallAmount,
+            Notes = record.Notes, // メモを追加
             CreatedAt = record.CreatedAt,
             CreatedBy = record.CreatedBy,
             UpdatedAt = record.UpdatedAt,
@@ -236,16 +248,24 @@ public class InfantRecordService : IInfantRecordService
 
     public async Task<bool> UpdateMealRecordAsync(UpdateInfantMealDto dto, int nurseryId, int staffId)
     {
+        // 文字列をTimeSpanに変換
+        if (!TimeSpan.TryParse(dto.MealTime, out var mealTime))
+        {
+            throw new ArgumentException("無効な時刻形式です", nameof(dto.MealTime));
+        }
+
         var record = await _context.InfantMeals
             .FirstOrDefaultAsync(m => m.NurseryId == nurseryId &&
                                      m.ChildId == dto.ChildId &&
                                      m.RecordDate == dto.RecordDate.Date &&
-                                     m.MealType == dto.MealType);
+                                     m.MealTime == mealTime);
 
         if (record == null)
             return false;
 
+        record.MealType = dto.MealType;
         record.OverallAmount = dto.OverallAmount;
+        record.Notes = dto.Notes; // メモを更新
         record.UpdatedAt = GetJstNow();
         record.UpdatedBy = staffId;
 
@@ -253,13 +273,13 @@ public class InfantRecordService : IInfantRecordService
         return true;
     }
 
-    public async Task<bool> DeleteMealRecordAsync(int nurseryId, int childId, DateTime date, string mealType)
+    public async Task<bool> DeleteMealRecordAsync(int nurseryId, int childId, DateTime date, TimeSpan mealTime)
     {
         var record = await _context.InfantMeals
             .FirstOrDefaultAsync(m => m.NurseryId == nurseryId &&
                                      m.ChildId == childId &&
                                      m.RecordDate == date.Date &&
-                                     m.MealType == mealType);
+                                     m.MealTime == mealTime);
 
         if (record == null)
             return false;

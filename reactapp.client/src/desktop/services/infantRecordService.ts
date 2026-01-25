@@ -87,11 +87,11 @@ export const infantRecordService = {
    * @param date 日付（YYYY-MM-DD）
    */
   async getMilkRecords(classId: string, date: string): Promise<InfantMilkDto[]> {
-    const response = await apiClient.get<ApiResponse<InfantMilkDto[]>>(
+    const response = await apiClient.get<InfantMilkDto[]>(
       `${BASE_URL}/milk`,
       { params: { classId, date } }
     );
-    return response.data.data!;
+    return response.data;
   },
 
   /**
@@ -138,11 +138,11 @@ export const infantRecordService = {
    * @param date 日付（YYYY-MM-DD）
    */
   async getMealRecords(classId: string, date: string): Promise<InfantMealDto[]> {
-    const response = await apiClient.get<ApiResponse<InfantMealDto[]>>(
+    const response = await apiClient.get<InfantMealDto[]>(
       `${BASE_URL}/meal`,
       { params: { classId, date } }
     );
-    return response.data.data!;
+    return response.data;
   },
 
   /**
@@ -150,11 +150,18 @@ export const infantRecordService = {
    * @param data 食事記録作成データ
    */
   async createMealRecord(data: CreateInfantMealDto): Promise<InfantMealDto> {
-    const response = await apiClient.post<ApiResponse<InfantMealDto>>(
-      `${BASE_URL}/meal`,
-      data
-    );
-    return response.data.data!;
+    console.log('[infantRecordService] 送信するデータ:', JSON.stringify(data, null, 2));
+    try {
+      const response = await apiClient.post<ApiResponse<InfantMealDto>>(
+        `${BASE_URL}/meal`,
+        data
+      );
+      return response.data.data!;
+    } catch (error: any) {
+      console.error('[infantRecordService] エラー詳細:', error.response?.data);
+      console.error('[infantRecordService] バリデーションエラー:', JSON.stringify(error.response?.data?.errors, null, 2));
+      throw error;
+    }
   },
 
   /**
@@ -173,10 +180,10 @@ export const infantRecordService = {
    * 乳児食事記録を削除
    * @param childId 園児ID
    * @param date 日付（YYYY-MM-DD）
-   * @param mealType 食事種別
+   * @param mealTime 食事時刻（HH:mm）
    */
-  async deleteMealRecord(childId: number, date: string, mealType: string): Promise<void> {
-    await apiClient.delete(`${BASE_URL}/meals/${childId}/${date}/${mealType}`);
+  async deleteMealRecord(childId: number, date: string, mealTime: string): Promise<void> {
+    await apiClient.delete(`${BASE_URL}/meal/${childId}/${date}/${encodeURIComponent(mealTime)}`);
   },
 
   // ========================================
@@ -189,11 +196,11 @@ export const infantRecordService = {
    * @param date 日付（YYYY-MM-DD）
    */
   async getSleepRecords(classId: string, date: string): Promise<InfantSleepDto[]> {
-    const response = await apiClient.get<ApiResponse<InfantSleepDto[]>>(
+    const response = await apiClient.get<InfantSleepDto[]>(
       `${BASE_URL}/sleep`,
       { params: { classId, date } }
     );
-    return response.data.data!;
+    return response.data;
   },
 
   /**
@@ -240,11 +247,11 @@ export const infantRecordService = {
    * @param date 日付（YYYY-MM-DD）
    */
   async getToiletingRecords(classId: string, date: string): Promise<InfantToiletingDto[]> {
-    const response = await apiClient.get<ApiResponse<InfantToiletingDto[]>>(
+    const response = await apiClient.get<InfantToiletingDto[]>(
       `${BASE_URL}/toileting`,
       { params: { classId, date } }
     );
-    return response.data.data!;
+    return response.data;
   },
 
   /**
@@ -290,11 +297,11 @@ export const infantRecordService = {
    * @param date 日付（YYYY-MM-DD）
    */
   async getMoodRecords(classId: string, date: string): Promise<InfantMoodDto[]> {
-    const response = await apiClient.get<ApiResponse<InfantMoodDto[]>>(
+    const response = await apiClient.get<InfantMoodDto[]>(
       `${BASE_URL}/mood`,
       { params: { classId, date } }
     );
-    return response.data.data!;
+    return response.data;
   },
 
   /**

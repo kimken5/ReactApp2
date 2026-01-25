@@ -197,14 +197,18 @@ export function InfantMilkModal({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   ミルク時刻 <span className="text-red-500">*</span>
+                  {mode === 'edit' && <span className="ml-2 text-xs text-gray-500">(編集時は変更不可)</span>}
                 </label>
                 <input
                   type="time"
                   value={formData.milkTime}
                   onChange={(e) => handleInputChange('milkTime', e.target.value)}
+                  disabled={mode === 'edit'}
                   className={`w-full px-3 py-2 border ${
                     errors.milkTime ? 'border-red-500' : 'border-gray-300'
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    mode === 'edit' ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                 />
                 {errors.milkTime && <p className="mt-1 text-sm text-red-500">{errors.milkTime}</p>}
               </div>

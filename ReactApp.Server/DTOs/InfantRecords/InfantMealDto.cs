@@ -12,7 +12,9 @@ public class InfantMealDto
     public string ChildName { get; set; } = string.Empty;
     public DateTime RecordDate { get; set; }
     public string MealType { get; set; } = string.Empty;
+    public string MealTime { get; set; } = string.Empty; // HH:mm format
     public string? OverallAmount { get; set; }
+    public string? Notes { get; set; } // メモ
     public DateTime CreatedAt { get; set; }
     public int CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -32,10 +34,18 @@ public class CreateInfantMealDto
 
     [Required]
     [StringLength(20)]
-    public string MealType { get; set; } = string.Empty; // 'Breakfast', 'Lunch', 'Snack'
+    public string MealType { get; set; } = string.Empty; // 'Breakfast', 'Lunch', 'MorningSnack', 'AfternoonSnack'
+
+    [Required(ErrorMessage = "食事時刻は必須です")]
+    // TODO: 正規表現バリデーション一時的に無効化してデバッグ
+    // [RegularExpression(@"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", ErrorMessage = "時刻の形式が正しくありません (HH:mm)")]
+    public string MealTime { get; set; } = string.Empty; // HH:mm format
 
     [StringLength(20)]
     public string? OverallAmount { get; set; } // 'All', 'Most', 'Half', 'Little', 'None'
+
+    [StringLength(500)]
+    public string? Notes { get; set; } // メモ
 }
 
 /// <summary>
@@ -53,6 +63,13 @@ public class UpdateInfantMealDto
     [StringLength(20)]
     public string MealType { get; set; } = string.Empty;
 
+    [Required]
+    [RegularExpression(@"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", ErrorMessage = "時刻の形式が正しくありません (HH:mm)")]
+    public string MealTime { get; set; } = string.Empty; // HH:mm format
+
     [StringLength(20)]
     public string? OverallAmount { get; set; }
+
+    [StringLength(500)]
+    public string? Notes { get; set; } // メモ
 }

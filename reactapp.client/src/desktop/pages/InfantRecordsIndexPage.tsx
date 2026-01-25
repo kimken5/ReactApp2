@@ -12,7 +12,7 @@ export function InfantRecordsIndexPage() {
   const menuItems = [
     {
       id: 'manage',
-      title: '乳児生活記録管理',
+      title: '生活記録管理',
       description: '全ての生活記録を統合的に閲覧・管理します(ミルク・食事・睡眠・午睡チェック・排泄・体温・機嫌・室温湿度)',
       icon: MdViewList,
       path: '/desktop/infant-records/manage',

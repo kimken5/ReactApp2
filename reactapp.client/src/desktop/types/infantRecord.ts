@@ -1,5 +1,5 @@
 /**
- * 乳児生活記録管理 型定義
+ * 生活記録管理 型定義
  * Desktop Application用
  */
 
@@ -32,6 +32,7 @@ export interface InfantMealDto {
   childName: string;
   recordDate: string; // YYYY-MM-DD
   mealType: MealType;
+  mealTime: string; // HH:mm format
   overallAmount?: MealAmount;
   notes?: string;
   createdBy: number;
@@ -130,6 +131,7 @@ export interface CreateInfantMealDto {
   childId: number;
   recordDate: string;
   mealType: MealType;
+  mealTime: string; // HH:mm
   overallAmount?: MealAmount;
   notes?: string;
 }
@@ -204,6 +206,7 @@ export interface UpdateInfantMilkDto {
 export interface UpdateInfantMealDto {
   childId: number;
   recordDate: string;
+  mealTime: string; // HH:mm format - 主キーの一部なので必須
   mealType: MealType;
   overallAmount?: MealAmount;
   notes?: string;
@@ -264,14 +267,16 @@ export interface UpdateRoomEnvironmentDto {
 
 /**
  * 食事種別
+ * デスクトップアプリでは午前おやつ、昼食、午後おやつの3種類を使用
+ * 朝食は保護者のモバイルアプリから家庭で登録
+ * データベース値: MorningSnack, Lunch, AfternoonSnack
  */
-export type MealType = 'Breakfast' | 'Lunch' | 'Snack' | 'Afternoon_Snack';
+export type MealType = 'MorningSnack' | 'Lunch' | 'AfternoonSnack';
 
 export const mealTypeLabels: Record<MealType, string> = {
-  Breakfast: '朝食',
+  MorningSnack: '午前おやつ',
   Lunch: '昼食',
-  Snack: '午前おやつ',
-  Afternoon_Snack: '午後おやつ',
+  AfternoonSnack: '午後おやつ',
 };
 
 /**

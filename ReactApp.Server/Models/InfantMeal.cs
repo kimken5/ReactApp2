@@ -18,10 +18,17 @@ public class InfantMeal
 
     [Required]
     [StringLength(20)]
-    public string MealType { get; set; } = null!; // 'Breakfast', 'Lunch', 'Snack'
+    public string MealType { get; set; } = null!; // 'Breakfast', 'Lunch', 'MorningSnack', 'AfternoonSnack'
+
+    [Required]
+    [Column(TypeName = "time")]
+    public TimeSpan MealTime { get; set; }
 
     [StringLength(20)]
     public string? OverallAmount { get; set; } // 'All', 'Most', 'Half', 'Little', 'None'
+
+    [StringLength(500)]
+    public string? Notes { get; set; } // メモ
 
     [Required]
     public DateTime CreatedAt { get; set; }

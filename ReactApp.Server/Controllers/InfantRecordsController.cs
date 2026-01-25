@@ -167,6 +167,20 @@ public class InfantRecordsController : ControllerBase
     [HttpPost("meal")]
     public async Task<ActionResult<InfantMealDto>> CreateMealRecord([FromBody] CreateInfantMealDto dto)
     {
+        // デバッグ: 受け取ったデータをログ出力
+        _logger.LogInformation("受信データ: ChildId={ChildId}, RecordDate={RecordDate}, MealType={MealType}, MealTime={MealTime}, OverallAmount={OverallAmount}, Notes={Notes}",
+            dto.ChildId, dto.RecordDate, dto.MealType, dto.MealTime, dto.OverallAmount, dto.Notes);
+
+        // モデルバリデーションエラーをログ出力
+        if (!ModelState.IsValid)
+        {
+            foreach (var error in ModelState)
+            {
+                _logger.LogError("バリデーションエラー: Key={Key}, Errors={Errors}",
+                    error.Key, string.Join(", ", error.Value.Errors.Select(e => e.ErrorMessage)));
+            }
+        }
+
         try
         {
             var nurseryId = GetNurseryId();
@@ -208,13 +222,16 @@ public class InfantRecordsController : ControllerBase
     /// <summary>
     /// 食事記録を削除
     /// </summary>
-    [HttpDelete("meal/{childId}/{date}/{mealType}")]
-    public async Task<ActionResult> DeleteMealRecord(int childId, DateTime date, string mealType)
+    [HttpDelete("meal/{childId}/{date}/{mealTime}")]
+    public async Task<ActionResult> DeleteMealRecord(int childId, DateTime date, string mealTime)
     {
         try
         {
             var nurseryId = GetNurseryId();
-            var success = await _infantRecordService.DeleteMealRecordAsync(nurseryId, childId, date, mealType);
+            if (!TimeSpan.TryParse(mealTime, out var parsedMealTime))
+                return BadRequest("無効な時刻形式です");
+
+            var success = await _infantRecordService.DeleteMealRecordAsync(nurseryId, childId, date, parsedMealTime);
 
             if (!success)
                 return NotFound("食事記録が見つかりません");
