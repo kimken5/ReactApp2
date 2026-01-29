@@ -20,9 +20,11 @@ public class InfantSleep
     public int SleepSequence { get; set; } = 1;
 
     [Required]
-    public DateTime StartTime { get; set; }
+    [Column(TypeName = "time")]
+    public TimeSpan StartTime { get; set; }
 
-    public DateTime? EndTime { get; set; }
+    [Column(TypeName = "time")]
+    public TimeSpan? EndTime { get; set; }
 
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public int? DurationMinutes { get; set; }

@@ -1208,8 +1208,8 @@ namespace ReactApp.Server.Data
         {
             modelBuilder.Entity<InfantToileting>(entity =>
             {
-                // 複合主キー: (NurseryId, ChildId, RecordDate)
-                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate });
+                // 複合主キー: (NurseryId, ChildId, RecordDate, ToiletingTime)
+                entity.HasKey(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.ToiletingTime });
 
                 // 時刻による検索最適化
                 entity.HasIndex(e => new { e.NurseryId, e.ChildId, e.RecordDate, e.ToiletingTime })
@@ -1265,9 +1265,7 @@ namespace ReactApp.Server.Data
                 entity.Property(e => e.BodyTemperature).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.FaceColor).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.BodyPosition).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("[dbo].[GetJstDateTime]()");
             });
         }
 

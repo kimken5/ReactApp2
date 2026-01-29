@@ -104,7 +104,7 @@ namespace ReactApp.Server.DTOs.Desktop
     /// <summary>
     /// 園児情報DTO（複数園児対応）
     /// </summary>
-    public class ChildInfoDto
+    public class ApplicationChildInfoDto
     {
         [Required(ErrorMessage = "園児苗字は必須です")]
         [StringLength(20, ErrorMessage = "園児苗字は20文字以内で入力してください")]
@@ -198,7 +198,7 @@ namespace ReactApp.Server.DTOs.Desktop
         [Required(ErrorMessage = "園児情報は必須です")]
         [MinLength(1, ErrorMessage = "少なくとも1人の園児情報が必要です")]
         [MaxLength(4, ErrorMessage = "園児は最大4人までです")]
-        public List<ChildInfoDto> Children { get; set; } = new List<ChildInfoDto>();
+        public List<ApplicationChildInfoDto> Children { get; set; } = new List<ApplicationChildInfoDto>();
     }
 
     /// <summary>

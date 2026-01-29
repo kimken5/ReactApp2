@@ -12,11 +12,12 @@ public class InfantSleepDto
     public string ChildName { get; set; } = string.Empty;
     public DateTime RecordDate { get; set; }
     public int SleepSequence { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime? EndTime { get; set; }
+    public string StartTime { get; set; } = string.Empty; // HH:mm format
+    public string? EndTime { get; set; } // HH:mm format
     public int? DurationMinutes { get; set; }
     public string? SleepQuality { get; set; }
     public string? Notes { get; set; }
+    public string? CreatedByName { get; set; } // 入力者名
     public DateTime CreatedAt { get; set; }
     public int CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -37,9 +38,11 @@ public class CreateInfantSleepDto
     public int SleepSequence { get; set; } = 1;
 
     [Required]
-    public DateTime StartTime { get; set; }
+    [StringLength(5)] // HH:mm format
+    public string StartTime { get; set; } = string.Empty;
 
-    public DateTime? EndTime { get; set; }
+    [StringLength(5)] // HH:mm format
+    public string? EndTime { get; set; }
 
     [StringLength(20)]
     public string? SleepQuality { get; set; } // 'Deep', 'Normal', 'Light', 'Restless'
@@ -63,9 +66,11 @@ public class UpdateInfantSleepDto
     public int SleepSequence { get; set; }
 
     [Required]
-    public DateTime StartTime { get; set; }
+    [StringLength(5)] // HH:mm format
+    public string StartTime { get; set; } = string.Empty;
 
-    public DateTime? EndTime { get; set; }
+    [StringLength(5)] // HH:mm format
+    public string? EndTime { get; set; }
 
     [StringLength(20)]
     public string? SleepQuality { get; set; }

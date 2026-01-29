@@ -24,15 +24,28 @@ import type { ClassDto } from '../types/master';
 import { infantRecordService } from '../services/infantRecordService';
 import type {
   InfantMilkDto, InfantMealDto, InfantSleepDto,
-  InfantToiletingDto, InfantMoodDto, RoomEnvironmentDto,
+  InfantToiletingDto, InfantMoodDto, RoomEnvironmentDto, InfantTemperatureDto,
+  SleepCheckGridDto,
   ClassChildrenResponse
 } from '../types/infantRecord';
-import { mealTypeLabels, mealAmountLabels } from '../types/infantRecord';
+import {
+  mealTypeLabels,
+  mealAmountLabels,
+  measurementTypeLabels,
+  measurementLocationLabels,
+  moodStateLabels,
+  breathingStatusLabels,
+  headDirectionLabels,
+  bodyTemperatureLabels,
+  faceColorLabels,
+  bodyPositionLabels,
+} from '../types/infantRecord';
 import {
   InfantMilkModal, InfantMealModal, InfantSleepModal,
   InfantToiletingModal, InfantMoodModal, RoomEnvironmentModal,
   DeleteConfirmModal
 } from '../components/infantRecords';
+import { InfantTemperatureModal } from '../components/infantRecords/InfantTemperatureModal';
 
 // タブ定義
 type TabType = 'overview' | 'milk' | 'meals' | 'sleep' | 'sleep-check' | 'toileting' | 'temperature' | 'mood' | 'environment';
@@ -50,7 +63,7 @@ const tabs: TabItem[] = [
   { id: 'meals', label: '食事' },
   { id: 'sleep', label: '睡眠' },
   { id: 'sleep-check', label: '午睡チェック' },
-  { id: 'toileting', label: '排泄' },
+  { id: 'toileting', label: 'おむつ' },
   { id: 'temperature', label: '体温' },
   { id: 'mood', label: '機嫌' },
   { id: 'environment', label: '室温・湿度' },
@@ -72,15 +85,21 @@ export function InfantRecordsPage() {
   const [mealRecords, setMealRecords] = useState<InfantMealDto[]>([]);
   const [sleepRecords, setSleepRecords] = useState<InfantSleepDto[]>([]);
   const [toiletingRecords, setToiletingRecords] = useState<InfantToiletingDto[]>([]);
+  const [temperatureRecords, setTemperatureRecords] = useState<InfantTemperatureDto[]>([]);
   const [moodRecords, setMoodRecords] = useState<InfantMoodDto[]>([]);
   const [roomEnvironment, setRoomEnvironment] = useState<RoomEnvironmentDto | null>(null);
+  const [sleepCheckGrid, setSleepCheckGrid] = useState<SleepCheckGridDto | null>(null);
 
   // Class children for dropdowns
-  const [classChildren, setClassChildren] = useState<ClassChildrenResponse>({ children: [] });
+  const [classChildren, setClassChildren] = useState<ClassChildrenResponse>({
+    classId: '',
+    className: '',
+    children: []
+  });
 
   // Modal states
   const [modalState, setModalState] = useState<{
-    type: 'milk' | 'meal' | 'sleep' | 'toileting' | 'mood' | 'environment' | null;
+    type: 'milk' | 'meal' | 'sleep' | 'toileting' | 'temperature' | 'mood' | 'environment' | null;
     mode: 'create' | 'edit';
     isOpen: boolean;
     data?: any;
@@ -148,6 +167,7 @@ export function InfantRecordsPage() {
           setMilkRecords(milk);
           setMealRecords(meals);
           setSleepRecords(sleep);
+          console.log('概要タブ - おむつ記録データ:', toileting);
           setToiletingRecords(toileting);
           setMoodRecords(mood);
           setRoomEnvironment(env);
@@ -170,9 +190,19 @@ export function InfantRecordsPage() {
           const sleepData = await infantRecordService.getSleepRecords(selectedClass, selectedDate);
           setSleepRecords(sleepData);
           break;
+        case 'sleep-check':
+          const sleepCheckData = await infantRecordService.getSleepCheckGrid(selectedClass, selectedDate);
+          setSleepCheckGrid(sleepCheckData);
+          break;
         case 'toileting':
           const toiletingData = await infantRecordService.getToiletingRecords(selectedClass, selectedDate);
+          console.log('おむつ記録データ:', toiletingData);
           setToiletingRecords(toiletingData);
+          break;
+        case 'temperature':
+          const temperatureData = await infantRecordService.getTemperatureRecords(selectedClass, selectedDate);
+          console.log('体温記録データ:', temperatureData);
+          setTemperatureRecords(temperatureData);
           break;
         case 'mood':
           const moodData = await infantRecordService.getMoodRecords(selectedClass, selectedDate);
@@ -290,6 +320,21 @@ export function InfantRecordsPage() {
     }
   };
 
+  const handleSaveTemperature = async (data: any) => {
+    try {
+      if (modalState.mode === 'create') {
+        await infantRecordService.createTemperatureRecord(data);
+      } else {
+        await infantRecordService.updateTemperatureRecord(data);
+      }
+      setModalState({ ...modalState, isOpen: false });
+      await fetchData();
+    } catch (err) {
+      console.error('Failed to save temperature record:', err);
+      alert('保存に失敗しました');
+    }
+  };
+
   // Delete handlers
   const handleDeleteMilk = async (record: InfantMilkDto) => {
     setDeleteState({
@@ -333,7 +378,7 @@ export function InfantRecordsPage() {
   const handleDeleteToileting = async (record: InfantToiletingDto) => {
     setDeleteState({
       isOpen: true,
-      recordType: '排泄記録',
+      recordType: 'おむつ記録',
       recordData: record,
       onConfirm: async () => {
         await infantRecordService.deleteToiletingRecord(record.childId, record.recordDate, record.toiletingTime);
@@ -349,7 +394,20 @@ export function InfantRecordsPage() {
       recordType: '機嫌記録',
       recordData: record,
       onConfirm: async () => {
-        await infantRecordService.deleteMoodRecord(record.childId, record.recordDate, record.observationTime);
+        await infantRecordService.deleteMoodRecord(record.childId, record.recordDate, record.moodTime);
+        setDeleteState({ isOpen: false, recordType: '' });
+        await fetchData();
+      }
+    });
+  };
+
+  const handleDeleteTemperature = async (record: InfantTemperatureDto) => {
+    setDeleteState({
+      isOpen: true,
+      recordType: '体温記録',
+      recordData: record,
+      onConfirm: async () => {
+        await infantRecordService.deleteTemperatureRecord(record.childId, record.recordDate, record.measurementType);
         setDeleteState({ isOpen: false, recordType: '' });
         await fetchData();
       }
@@ -635,18 +693,22 @@ export function InfantRecordsPage() {
             </h3>
             <div className="flex items-center gap-6">
               <div className="text-sm text-gray-600 flex items-center gap-2">
-                <MdThermostat className="text-red-500" size={20} />
+                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
                 室温: <span className="font-medium text-gray-900">{roomEnvironment.temperature}℃</span>
               </div>
               <div className="text-sm text-gray-600 flex items-center gap-2">
-                <MdWbSunny className="text-blue-500" size={20} />
+                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                </svg>
                 湿度: <span className="font-medium text-gray-900">{roomEnvironment.humidity}%</span>
               </div>
               <div className="text-sm text-green-600 font-medium">
                 ✓ 適正範囲
               </div>
               <div className="text-sm text-gray-500 ml-auto">
-                記録時刻: {roomEnvironment.recordTime} (午睡開始時)
+                記録時刻: {new Date(roomEnvironment.recordedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           </div>
@@ -699,7 +761,7 @@ export function InfantRecordsPage() {
                     <span className="ml-2 text-gray-900">
                       {(mealRecords || [])
                         .filter(r => r.childId === child.childId)
-                        .map(r => `${mealTypeLabels[r.mealType] || r.mealType}:${r.mealTime}:${mealAmountLabels[r.overallAmount || ''] || r.overallAmount || '未記録'}`)
+                        .map(r => `${mealTypeLabels[r.mealType] || r.mealType}:${r.mealTime}:${r.overallAmount ? mealAmountLabels[r.overallAmount] : '未記録'}`)
                         .join(' / ')}
                     </span>
                   </div>
@@ -722,16 +784,32 @@ export function InfantRecordsPage() {
                 </div>
               )}
 
-              {/* 排泄 */}
+              {/* おむつ記録 */}
               {(toiletingRecords || []).filter(r => r.childId === child.childId).length > 0 && (
                 <div className="flex items-start gap-3">
                   <MdBabyChangingStation className="text-orange-500 mt-0.5" size={24} />
                   <div>
-                    <span className="font-medium text-gray-700">排泄:</span>
+                    <span className="font-medium text-gray-700">おむつ:</span>
                     <span className="ml-2 text-gray-900">
                       {(toiletingRecords || [])
                         .filter(r => r.childId === child.childId)
-                        .map(r => `${r.toiletingTime} ${r.toiletingType}`)
+                        .sort((a, b) => new Date(a.toiletingTime).getTime() - new Date(b.toiletingTime).getTime())
+                        .map(r => {
+                          const time = new Date(r.toiletingTime).toLocaleTimeString('ja-JP', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                          });
+                          let type = '';
+                          if (r.hasUrine && r.hasStool) {
+                            type = '両方';
+                          } else if (r.hasUrine) {
+                            type = 'おしっこ';
+                          } else if (r.hasStool) {
+                            type = 'うんち';
+                          }
+                          return `${time}:${type}`;
+                        })
                         .join(' / ')}
                     </span>
                   </div>
@@ -747,7 +825,7 @@ export function InfantRecordsPage() {
                     <span className="ml-2 text-gray-900">
                       {(sleepRecords || [])
                         .filter(r => r.childId === child.childId)
-                        .map(r => `${r.startTime}〜${r.endTime || '睡眠中'} (${r.sleepQuality || '-'})`)
+                        .map(r => `${r.startTime}〜${r.endTime || '睡眠中'} (${r.quality || '-'})`)
                         .join(' / ')}
                     </span>
                   </div>
@@ -824,6 +902,7 @@ export function InfantRecordsPage() {
             { label: '時刻', key: 'mealTime' },
             { label: '摂取量', key: 'overallAmount' },
             { label: 'メモ', key: 'notes' },
+            { label: '入力者', key: 'createdByName' },
           ],
           translatedMealRecords,
           undefined,
@@ -850,6 +929,7 @@ export function InfantRecordsPage() {
             { label: '終了', key: 'endTime' },
             { label: '質', key: 'quality' },
             { label: 'メモ', key: 'notes' },
+            { label: '入力者', key: 'createdByName' },
           ],
           sleepRecords || [],
           undefined,
@@ -859,37 +939,239 @@ export function InfantRecordsPage() {
           (record) => handleDeleteSleep(record)
         );
       case 'sleep-check':
+        if (!sleepCheckGrid) {
+          return (
+            <div className="bg-white p-6 rounded-md shadow-md">
+              <div className="text-center py-12">
+                <p className="text-gray-500">午睡チェックデータがありません</p>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className="bg-white p-6 rounded-md shadow-md">
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">午睡チェック表(監査対応)</p>
-              <p className="text-gray-500 text-sm mt-2">
-                横軸時間型の午睡チェック表(5分間隔)・体位・呼吸状態など
-              </p>
-              <p className="text-gray-500 text-sm mt-4">
-                ※ 横軸時間型チェック表の実装は別途対応予定
-              </p>
+            {/* ヘッダー情報 */}
+            <div className="mb-6 pb-4 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800">
+                  午睡チェック表 - {sleepCheckGrid.className}
+                </h2>
+                <div className="text-sm text-gray-600">
+                  {new Date(selectedDate).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short'
+                  })}
+                </div>
+              </div>
+              {(sleepCheckGrid.roomTemperature || sleepCheckGrid.humidity) && (
+                <div className="flex items-center gap-6 text-sm">
+                  {sleepCheckGrid.roomTemperature && (
+                    <div className="flex items-center gap-2">
+                      <MdThermostat className="text-red-500" />
+                      <span>室温: {sleepCheckGrid.roomTemperature}℃</span>
+                    </div>
+                  )}
+                  {sleepCheckGrid.humidity && (
+                    <div className="flex items-center gap-2">
+                      <MdWbSunny className="text-blue-500" />
+                      <span>湿度: {sleepCheckGrid.humidity}%</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 園児リスト */}
+            {sleepCheckGrid.children.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">園児データがありません</p>
+            ) : (
+              <div className="space-y-6">
+                {sleepCheckGrid.children.map((child) => (
+                  <div key={child.childId} className="border border-gray-200 rounded-lg overflow-hidden">
+                    {/* 園児ヘッダー */}
+                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <MdChildCare className="text-blue-500 text-xl" />
+                          <span className="font-semibold text-gray-800">{child.childName}</span>
+                          <span className="text-sm text-gray-500">({child.ageInMonths}ヶ月)</span>
+                        </div>
+                        {child.sleepStartTime && (
+                          <div className="text-sm text-gray-600">
+                            <MdHotel className="inline mr-1" />
+                            入眠: {child.sleepStartTime}
+                            {child.sleepEndTime && ` → 起床: ${child.sleepEndTime}`}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* チェック記録 */}
+                    <div className="p-4">
+                      {child.checks.length === 0 ? (
+                        <p className="text-center text-gray-400 py-4">チェック記録がありません</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="px-3 py-2 text-left font-medium text-gray-600">時刻</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-600">呼吸</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-600">頭向き</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-600">体温</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-600">顔色</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-600">体勢</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-600">記録者</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-600">メモ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {child.checks.map((check) => {
+                                const hasWarning = check.breathingStatus === 'Abnormal' || check.bodyPosition === 'FaceDown';
+                                return (
+                                  <tr
+                                    key={check.id}
+                                    className={`border-b border-gray-100 hover:bg-gray-50 ${hasWarning ? 'bg-red-50' : ''}`}
+                                  >
+                                    <td className="px-3 py-2 font-medium">{check.checkTime}</td>
+                                    <td className="px-3 py-2">
+                                      <span className={`inline-flex items-center ${check.breathingStatus === 'Abnormal' ? 'text-red-600 font-semibold' : 'text-gray-700'}`}>
+                                        {breathingStatusLabels[check.breathingStatus]}
+                                        {check.breathingStatus === 'Abnormal' && <span className="ml-1">⚠️</span>}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2">{headDirectionLabels[check.headDirection]}</td>
+                                    <td className="px-3 py-2">{bodyTemperatureLabels[check.bodyTemperature]}</td>
+                                    <td className="px-3 py-2">{faceColorLabels[check.faceColor]}</td>
+                                    <td className="px-3 py-2">
+                                      <span className={`inline-flex items-center ${check.bodyPosition === 'FaceDown' ? 'text-red-600 font-semibold' : 'text-gray-700'}`}>
+                                        {bodyPositionLabels[check.bodyPosition]}
+                                        {check.bodyPosition === 'FaceDown' && <span className="ml-1">⚠️</span>}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-600">{check.createdByName || '不明'}</td>
+                                    <td className="px-3 py-2 text-gray-500 text-xs">
+                                      {check.notes || '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 凡例 */}
+            <div className="mt-6 p-4 bg-blue-50 rounded-md">
+              <p className="text-sm font-medium text-gray-700 mb-2">凡例:</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
+                <div><span className="font-semibold">呼吸:</span> 正常/異常</div>
+                <div><span className="font-semibold">頭向き:</span> 左/右/上</div>
+                <div><span className="font-semibold">体温:</span> 正常/やや温かい/冷たい</div>
+                <div><span className="font-semibold">顔色:</span> 正常/青白い/紫色</div>
+                <div><span className="font-semibold">体勢:</span> 仰向け/横向き/うつ伏せ</div>
+                <div className="col-span-2"><span className="text-red-600">⚠️</span> = 要注意（異常・うつ伏せ）</div>
+              </div>
             </div>
           </div>
         );
       case 'toileting':
+        // おむつ記録データの変換
+        const amountLabels: Record<string, string> = {
+          Little: '少量',
+          Normal: '普通',
+          Lot: '多量',
+        };
+
+        const bowelConditionLabels: Record<string, string> = {
+          Normal: '正常',
+          Soft: '軟便',
+          Diarrhea: '下痢',
+          Hard: '硬い',
+          Bloody: '血便',
+        };
+
+        const translatedToiletingRecords = (toiletingRecords || []).map(record => {
+          // 記録タイプの判定
+          let recordType = '';
+          if (record.hasUrine && record.hasStool) {
+            recordType = '両方';
+          } else if (record.hasUrine) {
+            recordType = 'おしっこのみ';
+          } else if (record.hasStool) {
+            recordType = 'うんちのみ';
+          }
+
+          // 時刻の抽出
+          const time = new Date(record.toiletingTime).toLocaleTimeString('ja-JP', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          });
+
+          return {
+            ...record,
+            toiletingTimeDisplay: time,
+            recordType,
+            urineAmountDisplay: record.urineAmount ? (amountLabels[record.urineAmount] || record.urineAmount) : '-',
+            bowelAmountDisplay: record.bowelAmount ? (amountLabels[record.bowelAmount] || record.bowelAmount) : '-',
+            bowelConditionDisplay: record.bowelCondition ? (bowelConditionLabels[record.bowelCondition] || record.bowelCondition) : '-',
+          };
+        });
+
         return renderSimpleTab(
-          '排泄記録',
+          'おむつ記録',
           [
             { label: '園児名', key: 'childName' },
-            { label: 'おしっこ', key: 'urineCount' },
-            { label: 'うんち', key: 'bowelCount' },
-            { label: '状態', key: 'bowelCondition' },
-            { label: 'メモ', key: 'notes' },
+            { label: '時刻', key: 'toiletingTimeDisplay' },
+            { label: '記録タイプ', key: 'recordType' },
+            { label: 'おしっこ量', key: 'urineAmountDisplay' },
+            { label: 'うんち量', key: 'bowelAmountDisplay' },
+            { label: 'うんち種類', key: 'bowelConditionDisplay' },
+            { label: '入力者', key: 'createdByName' },
           ],
-          toiletingRecords || [],
+          translatedToiletingRecords,
           undefined,
           undefined,
           () => setModalState({ type: 'toileting', mode: 'create', isOpen: true }),
-          (record) => setModalState({ type: 'toileting', mode: 'edit', isOpen: true, data: record }),
-          (record) => handleDeleteToileting(record)
+          (record) => {
+            // 元のレコード(英語値)を検索
+            const originalRecord = toiletingRecords?.find(r =>
+              r.childId === record.childId &&
+              r.recordDate === record.recordDate &&
+              r.toiletingTime === record.toiletingTime
+            );
+            setModalState({ type: 'toileting', mode: 'edit', isOpen: true, data: originalRecord || record });
+          },
+          (record) => {
+            // 元のレコードを使用して削除
+            const originalRecord = toiletingRecords?.find(r =>
+              r.childId === record.childId &&
+              r.recordDate === record.recordDate &&
+              r.toiletingTime === record.toiletingTime
+            );
+            if (originalRecord) {
+              handleDeleteToileting(originalRecord);
+            }
+          }
         );
       case 'temperature':
+        const translatedTemperatureRecords = (temperatureRecords || []).map(record => ({
+          ...record,
+          time: `${record.measuredTime} (${measurementTypeLabels[record.measurementType]})`,
+          temperature: `${record.temperature}℃`,
+          location: measurementLocationLabels[record.measurementLocation],
+          recorder: record.createdByName || '-',
+          notes: record.notes || '-',
+        }));
         return renderSimpleTab('体温記録(個別園児モード)', [
           { label: '園児名', key: 'childName' },
           { label: '測定時刻', key: 'time' },
@@ -897,12 +1179,7 @@ export function InfantRecordsPage() {
           { label: '測定箇所', key: 'location' },
           { label: '入力者', key: 'recorder' },
           { label: 'メモ', key: 'notes' },
-        ], [
-          { childName: '山田太郎', time: '09:00 (朝)', temperature: '36.5℃', location: '脇下', recorder: '山田', notes: '-' },
-          { childName: '山田太郎', time: '14:00 (午後)', temperature: '36.8℃', location: '脇下', recorder: '佐藤', notes: '-' },
-          { childName: '佐藤花子', time: '09:05 (朝)', temperature: '36.7℃', location: '脇下', recorder: '山田', notes: '-' },
-          { childName: '鈴木一郎', time: '09:10 (朝)', temperature: '36.6℃', location: '脇下', recorder: '山田', notes: '-' },
-        ], undefined, (
+        ], translatedTemperatureRecords, undefined, (
           <button
             onClick={() => navigate('/desktop/infant-records/class-temperature', {
               state: { classId: selectedClass, date: selectedDate }
@@ -911,8 +1188,31 @@ export function InfantRecordsPage() {
           >
             クラス一覧入力モードに切替
           </button>
-        ));
+        ), () => setModalState({ type: 'temperature', mode: 'create', isOpen: true }),
+        (record) => {
+          const originalRecord = temperatureRecords.find(r =>
+            r.childId === record.childId &&
+            r.recordDate === record.recordDate &&
+            r.measurementType === record.measurementType
+          );
+          setModalState({ type: 'temperature', mode: 'edit', isOpen: true, data: originalRecord || record });
+        },
+        (record) => {
+          const originalRecord = temperatureRecords.find(r =>
+            r.childId === record.childId &&
+            r.recordDate === record.recordDate &&
+            r.measurementType === record.measurementType
+          );
+          if (originalRecord) {
+            handleDeleteTemperature(originalRecord);
+          }
+        });
       case 'mood':
+        const translatedMoodRecords = (moodRecords || []).map(record => ({
+          ...record,
+          moodState: moodStateLabels[record.moodState] || record.moodState,
+          notes: record.notes || '-',
+        }));
         return renderSimpleTab(
           '機嫌記録',
           [
@@ -920,13 +1220,32 @@ export function InfantRecordsPage() {
             { label: '時刻', key: 'moodTime' },
             { label: '機嫌状態', key: 'moodState' },
             { label: 'メモ', key: 'notes' },
+            { label: '入力者', key: 'createdByName' },
           ],
-          moodRecords || [],
+          translatedMoodRecords,
           undefined,
           undefined,
           () => setModalState({ type: 'mood', mode: 'create', isOpen: true }),
-          (record) => setModalState({ type: 'mood', mode: 'edit', isOpen: true, data: record }),
-          (record) => handleDeleteMood(record)
+          (record) => {
+            // 元のレコード(英語値)を検索
+            const originalRecord = moodRecords?.find(r =>
+              r.childId === record.childId &&
+              r.recordDate === record.recordDate &&
+              r.moodTime === record.moodTime
+            );
+            setModalState({ type: 'mood', mode: 'edit', isOpen: true, data: originalRecord || record });
+          },
+          (record) => {
+            // 元のレコードを使用して削除
+            const originalRecord = moodRecords?.find(r =>
+              r.childId === record.childId &&
+              r.recordDate === record.recordDate &&
+              r.moodTime === record.moodTime
+            );
+            if (originalRecord) {
+              handleDeleteMood(originalRecord);
+            }
+          }
         );
       case 'environment':
         return (
@@ -1084,6 +1403,16 @@ export function InfantRecordsPage() {
         recordDate={selectedDate}
       />
 
+      <InfantTemperatureModal
+        isOpen={modalState.type === 'temperature' && modalState.isOpen}
+        onClose={() => setModalState({ ...modalState, isOpen: false })}
+        onSave={handleSaveTemperature}
+        mode={modalState.mode}
+        initialData={modalState.data}
+        children={classChildren.children}
+        recordDate={selectedDate}
+      />
+
       <RoomEnvironmentModal
         isOpen={modalState.type === 'environment' && modalState.isOpen}
         onClose={() => setModalState({ ...modalState, isOpen: false })}
@@ -1091,6 +1420,7 @@ export function InfantRecordsPage() {
         mode={modalState.mode}
         initialData={modalState.data}
         classId={selectedClass}
+        className={classChildren.className}
         recordDate={selectedDate}
       />
 
@@ -1099,7 +1429,49 @@ export function InfantRecordsPage() {
         onClose={() => setDeleteState({ isOpen: false, recordType: '' })}
         onConfirm={deleteState.onConfirm || (async () => {})}
         recordType={deleteState.recordType}
-        recordDetails={deleteState.recordData}
+        recordDetails={(() => {
+          // recordData から表示用の文字列を生成
+          const data = deleteState.recordData;
+          if (!data) return '';
+
+          const childName = data.childName || '';
+
+          // 記録タイプごとに適切な情報を表示
+          if (deleteState.recordType === 'ミルク記録') {
+            return `${childName} ${data.milkTime || ''} (${data.amountMl || 0}mL)`;
+          } else if (deleteState.recordType === '食事記録') {
+            const mealTypeLabels: Record<string, string> = {
+              Breakfast: '朝食',
+              MorningSnack: '午前おやつ',
+              Lunch: '昼食',
+              AfternoonSnack: '午後おやつ',
+              Dinner: '夕食',
+            };
+            const mealType = mealTypeLabels[data.mealType] || data.mealType || '';
+            return `${childName} ${mealType} ${data.mealTime || ''}`;
+          } else if (deleteState.recordType === 'おむつ記録') {
+            const time = data.toiletingTime ? new Date(data.toiletingTime).toLocaleTimeString('ja-JP', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            }) : '';
+            let type = '';
+            if (data.hasUrine && data.hasStool) {
+              type = '両方';
+            } else if (data.hasUrine) {
+              type = 'おしっこ';
+            } else if (data.hasStool) {
+              type = 'うんち';
+            }
+            return `${childName} ${time} (${type})`;
+          } else if (deleteState.recordType === '午睡記録') {
+            return `${childName} ${data.startTime || ''} 〜 ${data.endTime || '睡眠中'}`;
+          } else if (deleteState.recordType === '機嫌記録') {
+            return `${childName} ${data.moodTime || ''} (${data.moodState || ''})`;
+          }
+
+          return childName;
+        })()}
       />
     </>
   );

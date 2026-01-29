@@ -50,18 +50,9 @@ public class InfantSleepCheck
     [StringLength(20)]
     public string BodyPosition { get; set; } = string.Empty; // OnBack, OnSide, FaceDown
 
-    [StringLength(500)]
-    public string? Notes { get; set; }
-
     [Required]
     public DateTime CreatedAt { get; set; }
 
     [Required]
     public int CreatedBy { get; set; }
-
-    [Required]
-    public DateTime UpdatedAt { get; set; }
-
-    [Required]
-    public int UpdatedBy { get; set; }
 }

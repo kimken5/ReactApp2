@@ -205,7 +205,7 @@ export function ClassTemperatureBulkPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">クラス体温一括入力</h1>
             <button
-              onClick={() => navigate('/desktop/infant-records')}
+              onClick={() => navigate('/desktop/infant-records/manage')}
               className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
             >
               <MdArrowBack className="w-5 h-5" />

@@ -15,6 +15,7 @@ public class InfantMealDto
     public string MealTime { get; set; } = string.Empty; // HH:mm format
     public string? OverallAmount { get; set; }
     public string? Notes { get; set; } // メモ
+    public string? CreatedByName { get; set; } // 入力者名
     public DateTime CreatedAt { get; set; }
     public int CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }

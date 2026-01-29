@@ -60,17 +60,19 @@ export interface InfantSleepDto {
 }
 
 /**
- * 乳児排泄記録 DTO
+ * 乳児排泄記録 DTO (おむつ記録)
  */
 export interface InfantToiletingDto {
   nurseryId: number;
   childId: number;
   childName: string;
   recordDate: string; // YYYY-MM-DD
-  urineCount: number;
-  bowelCount: number;
-  bowelCondition?: BowelCondition;
-  notes?: string;
+  toiletingTime: string; // ISO 8601 datetime string
+  hasUrine: boolean;
+  urineAmount?: string; // 'Little', 'Normal', 'Lot'
+  hasStool: boolean;
+  bowelAmount?: string; // 'Little', 'Normal', 'Lot'
+  bowelCondition?: string; // 'Normal', 'Soft', 'Diarrhea', 'Hard', 'Bloody'
   createdBy: number;
   createdByName?: string;
   updatedAt: string;
@@ -106,6 +108,25 @@ export interface RoomEnvironmentDto {
   notes?: string;
   createdBy: number;
   createdByName?: string;
+  updatedAt: string;
+}
+
+/**
+ * 乳児体温記録 DTO
+ */
+export interface InfantTemperatureDto {
+  childId: number;
+  childName: string;
+  recordDate: string; // YYYY-MM-DD
+  measurementType: MeasurementType;
+  measuredAt: string; // ISO datetime
+  measuredTime: string; // HH:mm format
+  temperature: number;
+  measurementLocation: MeasurementLocation;
+  notes?: string;
+  isAbnormal: boolean;
+  createdByName?: string;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -150,15 +171,17 @@ export interface CreateInfantSleepDto {
 }
 
 /**
- * 乳児排泄記録作成 DTO
+ * 乳児排泄記録作成 DTO (おむつ記録)
  */
 export interface CreateInfantToiletingDto {
   childId: number;
-  recordDate: string;
-  urineCount: number;
-  bowelCount: number;
-  bowelCondition?: BowelCondition;
-  notes?: string;
+  recordDate: Date;
+  toiletingTime: Date;
+  hasUrine: boolean;
+  urineAmount?: string;
+  hasStool: boolean;
+  bowelAmount?: string;
+  bowelCondition?: string;
 }
 
 /**
@@ -182,6 +205,20 @@ export interface CreateRoomEnvironmentDto {
   temperature: number;
   humidity: number;
   notes?: string;
+}
+
+/**
+ * 乳児体温記録作成 DTO
+ */
+export interface CreateInfantTemperatureDto {
+  childId: number;
+  recordDate: Date;
+  measurementType: MeasurementType;
+  measuredAt: Date;
+  temperature: number;
+  measurementLocation: MeasurementLocation;
+  notes?: string;
+  isAbnormal: boolean;
 }
 
 // ========================================
@@ -226,15 +263,17 @@ export interface UpdateInfantSleepDto {
 }
 
 /**
- * 乳児排泄記録更新 DTO
+ * 乳児排泄記録更新 DTO (おむつ記録)
  */
 export interface UpdateInfantToiletingDto {
   childId: number;
-  recordDate: string;
-  urineCount: number;
-  bowelCount: number;
-  bowelCondition?: BowelCondition;
-  notes?: string;
+  recordDate: Date;
+  toiletingTime: Date;
+  hasUrine: boolean;
+  urineAmount?: string;
+  hasStool: boolean;
+  bowelAmount?: string;
+  bowelCondition?: string;
 }
 
 /**
@@ -243,8 +282,7 @@ export interface UpdateInfantToiletingDto {
 export interface UpdateInfantMoodDto {
   childId: number;
   recordDate: string;
-  moodTime: string; // 変更前の時刻（識別用）
-  newMoodTime?: string; // 新しい時刻
+  moodTime: string; // 識別用の時刻（複合キーのため変更不可）
   moodState: MoodState;
   notes?: string;
 }
@@ -259,6 +297,20 @@ export interface UpdateRoomEnvironmentDto {
   temperature: number;
   humidity: number;
   notes?: string;
+}
+
+/**
+ * 乳児体温記録更新 DTO
+ */
+export interface UpdateInfantTemperatureDto {
+  childId: number;
+  recordDate: Date;
+  measurementType: MeasurementType;
+  measuredAt: Date;
+  temperature: number;
+  measurementLocation: MeasurementLocation;
+  notes?: string;
+  isAbnormal: boolean;
 }
 
 // ========================================
@@ -329,6 +381,27 @@ export const moodStateLabels: Record<MoodState, string> = {
   Crying: 'ぐずり・泣き',
 };
 
+/**
+ * 体温測定種別
+ */
+export type MeasurementType = 'Morning' | 'Afternoon';
+
+export const measurementTypeLabels: Record<MeasurementType, string> = {
+  Morning: '午前',
+  Afternoon: '午後',
+};
+
+/**
+ * 体温測定箇所
+ */
+export type MeasurementLocation = 'Armpit' | 'Ear' | 'Forehead';
+
+export const measurementLocationLabels: Record<MeasurementLocation, string> = {
+  Armpit: '脇下',
+  Ear: '耳',
+  Forehead: '額',
+};
+
 // ========================================
 // Helper Types
 // ========================================
@@ -350,3 +423,147 @@ export interface ChildInfo {
   childName: string;
   ageMonths: number;
 }
+
+// ========================================
+// 午睡チェック記録 (Sleep Check Records)
+// ========================================
+
+/**
+ * 午睡チェック記録 DTO
+ */
+export interface InfantSleepCheckDto {
+  id: number;
+  nurseryId: number;
+  childId: number;
+  childName: string;
+  recordDate: string; // YYYY-MM-DD
+  sleepSequence: number;
+  checkTime: string; // HH:mm format
+  breathingStatus: BreathingStatus;
+  headDirection: HeadDirection;
+  bodyTemperature: BodyTemperatureStatus;
+  faceColor: FaceColorStatus;
+  bodyPosition: BodyPositionStatus;
+  createdByName?: string;
+  createdAt: string;
+  createdBy: number;
+}
+
+/**
+ * 午睡チェック記録作成 DTO
+ */
+export interface CreateInfantSleepCheckDto {
+  childId: number;
+  recordDate: string; // YYYY-MM-DD
+  sleepSequence: number;
+  checkTime: string; // HH:mm format
+  breathingStatus: BreathingStatus;
+  headDirection: HeadDirection;
+  bodyTemperature: BodyTemperatureStatus;
+  faceColor: FaceColorStatus;
+  bodyPosition: BodyPositionStatus;
+}
+
+/**
+ * 午睡チェック記録更新 DTO
+ */
+export interface UpdateInfantSleepCheckDto {
+  breathingStatus: BreathingStatus;
+  headDirection: HeadDirection;
+  bodyTemperature: BodyTemperatureStatus;
+  faceColor: FaceColorStatus;
+  bodyPosition: BodyPositionStatus;
+}
+
+/**
+ * クラス別午睡チェック表 DTO（横軸時間型グリッド用）
+ */
+export interface SleepCheckGridDto {
+  classId: string;
+  className: string;
+  recordDate: string; // YYYY-MM-DD
+  roomTemperature?: number;
+  humidity?: number;
+  children: ChildSleepCheckDto[];
+}
+
+/**
+ * 園児別午睡チェック情報
+ */
+export interface ChildSleepCheckDto {
+  childId: number;
+  childName: string;
+  ageInMonths: number;
+  sleepStartTime?: string; // HH:mm format
+  sleepEndTime?: string; // HH:mm format
+  checks: InfantSleepCheckDto[];
+}
+
+/**
+ * 呼吸状態
+ */
+export type BreathingStatus = 'Normal' | 'Abnormal';
+
+/**
+ * 頭の向き
+ */
+export type HeadDirection = 'Left' | 'Right' | 'FaceUp';
+
+/**
+ * 体温状態
+ */
+export type BodyTemperatureStatus = 'Normal' | 'SlightlyWarm' | 'Cold';
+
+/**
+ * 顔色
+ */
+export type FaceColorStatus = 'Normal' | 'Pale' | 'Purple';
+
+/**
+ * 体勢
+ */
+export type BodyPositionStatus = 'OnBack' | 'OnSide' | 'FaceDown';
+
+/**
+ * 呼吸状態ラベル
+ */
+export const breathingStatusLabels: Record<BreathingStatus, string> = {
+  Normal: '正常',
+  Abnormal: '異常',
+};
+
+/**
+ * 頭の向きラベル
+ */
+export const headDirectionLabels: Record<HeadDirection, string> = {
+  Left: '左',
+  Right: '右',
+  FaceUp: '上',
+};
+
+/**
+ * 体温状態ラベル
+ */
+export const bodyTemperatureLabels: Record<BodyTemperatureStatus, string> = {
+  Normal: '正常',
+  SlightlyWarm: 'やや温かい',
+  Cold: '冷たい',
+};
+
+/**
+ * 顔色ラベル
+ */
+export const faceColorLabels: Record<FaceColorStatus, string> = {
+  Normal: '正常',
+  Pale: '青白い',
+  Purple: '紫色',
+};
+
+/**
+ * 体勢ラベル
+ */
+export const bodyPositionLabels: Record<BodyPositionStatus, string> = {
+  OnBack: '仰向け',
+  OnSide: '横向き',
+  FaceDown: 'うつ伏せ',
+};

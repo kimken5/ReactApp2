@@ -90,7 +90,7 @@ public interface IInfantRecordService
     /// <summary>
     /// 排泄記録を削除
     /// </summary>
-    Task<bool> DeleteToiletingRecordAsync(int nurseryId, int childId, DateTime date);
+    Task<bool> DeleteToiletingRecordAsync(int nurseryId, int childId, DateTime date, DateTime toiletingTime);
 
     // ===== 機嫌記録 =====
     /// <summary>
@@ -123,6 +123,27 @@ public interface IInfantRecordService
     /// 室温・湿度記録を保存（Upsert）
     /// </summary>
     Task<RoomEnvironmentDto> SaveRoomEnvironmentAsync(UpdateRoomEnvironmentDto dto, int nurseryId, int staffId);
+
+    // ===== 体温記録 =====
+    /// <summary>
+    /// 指定日のクラス内全園児の体温記録を取得
+    /// </summary>
+    Task<IEnumerable<InfantTemperatureDto>> GetTemperatureRecordsAsync(int nurseryId, string classId, DateTime date);
+
+    /// <summary>
+    /// 体温記録を作成
+    /// </summary>
+    Task<InfantTemperatureDto> CreateTemperatureRecordAsync(CreateInfantTemperatureDto dto, int nurseryId, int staffId);
+
+    /// <summary>
+    /// 体温記録を更新
+    /// </summary>
+    Task<bool> UpdateTemperatureRecordAsync(UpdateInfantTemperatureDto dto, int nurseryId, int staffId);
+
+    /// <summary>
+    /// 体温記録を削除
+    /// </summary>
+    Task<bool> DeleteTemperatureRecordAsync(int nurseryId, int childId, DateTime date, string measurementType);
 
     // ===== クラス園児一覧 =====
     /// <summary>

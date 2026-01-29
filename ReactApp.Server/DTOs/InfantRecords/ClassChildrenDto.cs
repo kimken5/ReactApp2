@@ -7,13 +7,13 @@ public class ClassChildrenResponse
 {
     public string ClassId { get; set; } = null!;
     public string ClassName { get; set; } = null!;
-    public List<ChildInfoDto> Children { get; set; } = new();
+    public List<InfantRecordChildDto> Children { get; set; } = new();
 }
 
 /// <summary>
-/// 園児基本情報
+/// 園児基本情報（生活記録用）
 /// </summary>
-public class ChildInfoDto
+public class InfantRecordChildDto
 {
     public int ChildId { get; set; }
     public string ChildName { get; set; } = null!;

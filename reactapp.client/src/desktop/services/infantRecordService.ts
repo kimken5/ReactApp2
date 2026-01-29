@@ -21,20 +21,27 @@ import type {
   InfantMealDto,
   InfantSleepDto,
   InfantToiletingDto,
+  InfantTemperatureDto,
   InfantMoodDto,
   RoomEnvironmentDto,
+  InfantSleepCheckDto,
+  SleepCheckGridDto,
   CreateInfantMilkDto,
   CreateInfantMealDto,
   CreateInfantSleepDto,
   CreateInfantToiletingDto,
+  CreateInfantTemperatureDto,
   CreateInfantMoodDto,
   CreateRoomEnvironmentDto,
+  CreateInfantSleepCheckDto,
   UpdateInfantMilkDto,
   UpdateInfantMealDto,
   UpdateInfantSleepDto,
   UpdateInfantToiletingDto,
+  UpdateInfantTemperatureDto,
   UpdateInfantMoodDto,
   UpdateRoomEnvironmentDto,
+  UpdateInfantSleepCheckDto,
   ClassChildrenResponse,
 } from '../types/infantRecord';
 
@@ -282,9 +289,10 @@ export const infantRecordService = {
    * 乳児排泄記録を削除
    * @param childId 園児ID
    * @param date 日付（YYYY-MM-DD）
+   * @param toiletingTime 排泄時刻（ISO 8601 datetime string）
    */
-  async deleteToiletingRecord(childId: number, date: string): Promise<void> {
-    await apiClient.delete(`${BASE_URL}/toileting/${childId}/${date}`);
+  async deleteToiletingRecord(childId: number, date: string, toiletingTime: string): Promise<void> {
+    await apiClient.delete(`${BASE_URL}/toileting/${childId}/${date}/${encodeURIComponent(toiletingTime)}`);
   },
 
   // ========================================
@@ -383,6 +391,57 @@ export const infantRecordService = {
    */
   async deleteRoomEnvironment(classId: string, date: string): Promise<void> {
     await apiClient.delete(`${BASE_URL}/environment/${classId}/${date}`);
+  },
+
+  // ========================================
+  // 体温記録
+  // ========================================
+
+  /**
+   * クラス内の体温記録一覧を取得
+   * @param classId クラスID
+   * @param date 日付（YYYY-MM-DD）
+   */
+  async getTemperatureRecords(classId: string, date: string): Promise<InfantTemperatureDto[]> {
+    const response = await apiClient.get<InfantTemperatureDto[]>(
+      `${BASE_URL}/temperature`,
+      { params: { classId, date } }
+    );
+    return response.data;
+  },
+
+  /**
+   * 乳児体温記録を作成
+   * @param data 体温記録作成データ
+   */
+  async createTemperatureRecord(data: CreateInfantTemperatureDto): Promise<InfantTemperatureDto> {
+    const response = await apiClient.post<ApiResponse<InfantTemperatureDto>>(
+      `${BASE_URL}/temperature`,
+      data
+    );
+    return response.data.data!;
+  },
+
+  /**
+   * 乳児体温記録を更新
+   * @param data 体温記録更新データ
+   */
+  async updateTemperatureRecord(data: UpdateInfantTemperatureDto): Promise<InfantTemperatureDto> {
+    const response = await apiClient.put<ApiResponse<InfantTemperatureDto>>(
+      `${BASE_URL}/temperature`,
+      data
+    );
+    return response.data.data!;
+  },
+
+  /**
+   * 乳児体温記録を削除
+   * @param childId 園児ID
+   * @param date 日付（YYYY-MM-DD）
+   * @param measurementType 測定種別
+   */
+  async deleteTemperatureRecord(childId: number, date: string, measurementType: string): Promise<void> {
+    await apiClient.delete(`${BASE_URL}/temperature/${childId}/${date}/${measurementType}`);
   },
 
   // ========================================
@@ -513,5 +572,78 @@ export const infantRecordService = {
    */
   async deleteRoomEnvironmentRecord(classId: string, date: string): Promise<void> {
     await apiClient.delete(`/api/desktop/room-environment/${classId}/${date}`);
+  },
+
+  // ========================================
+  // 午睡チェック記録
+  // ========================================
+
+  /**
+   * クラス別午睡チェック表を取得（横軸時間型グリッド用）
+   * @param classId クラスID
+   * @param date 日付（YYYY-MM-DD）
+   */
+  async getSleepCheckGrid(classId: string, date: string): Promise<SleepCheckGridDto> {
+    const response = await apiClient.get<SleepCheckGridDto>(
+      `${BASE_URL}/sleep-check/grid`,
+      {
+        params: { classId, date },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * 指定園児・日付・睡眠回の午睡チェック記録を取得
+   * @param childId 園児ID
+   * @param date 日付（YYYY-MM-DD）
+   * @param sleepSequence 睡眠回数
+   */
+  async getSleepChecks(
+    childId: number,
+    date: string,
+    sleepSequence: number
+  ): Promise<InfantSleepCheckDto[]> {
+    const response = await apiClient.get<InfantSleepCheckDto[]>(
+      `${BASE_URL}/sleep-check`,
+      {
+        params: { childId, date, sleepSequence },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * 午睡チェック記録を作成
+   * @param data 作成データ
+   */
+  async createSleepCheck(
+    data: CreateInfantSleepCheckDto
+  ): Promise<InfantSleepCheckDto> {
+    const response = await apiClient.post<InfantSleepCheckDto>(
+      `${BASE_URL}/sleep-check`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * 午睡チェック記録を更新
+   * @param id 記録ID
+   * @param data 更新データ
+   */
+  async updateSleepCheck(
+    id: number,
+    data: UpdateInfantSleepCheckDto
+  ): Promise<void> {
+    await apiClient.put(`${BASE_URL}/sleep-check/${id}`, data);
+  },
+
+  /**
+   * 午睡チェック記録を削除
+   * @param id 記録ID
+   */
+  async deleteSleepCheck(id: number): Promise<void> {
+    await apiClient.delete(`${BASE_URL}/sleep-check/${id}`);
   },
 };

@@ -17,13 +17,16 @@ namespace ReactApp.Server.Controllers;
 public class InfantRecordsController : ControllerBase
 {
     private readonly IInfantRecordService _infantRecordService;
+    private readonly IInfantSleepCheckService _sleepCheckService;
     private readonly ILogger<InfantRecordsController> _logger;
 
     public InfantRecordsController(
         IInfantRecordService infantRecordService,
+        IInfantSleepCheckService sleepCheckService,
         ILogger<InfantRecordsController> logger)
     {
         _infantRecordService = infantRecordService;
+        _sleepCheckService = sleepCheckService;
         _logger = logger;
     }
 
@@ -405,13 +408,13 @@ public class InfantRecordsController : ControllerBase
     /// <summary>
     /// 排泄記録を削除
     /// </summary>
-    [HttpDelete("toileting/{childId}/{date}")]
-    public async Task<ActionResult> DeleteToiletingRecord(int childId, DateTime date)
+    [HttpDelete("toileting/{childId}/{date}/{toiletingTime}")]
+    public async Task<ActionResult> DeleteToiletingRecord(int childId, DateTime date, DateTime toiletingTime)
     {
         try
         {
             var nurseryId = GetNurseryId();
-            var success = await _infantRecordService.DeleteToiletingRecordAsync(nurseryId, childId, date);
+            var success = await _infantRecordService.DeleteToiletingRecordAsync(nurseryId, childId, date, toiletingTime);
 
             if (!success)
                 return NotFound("排泄記録が見つかりません");
@@ -521,7 +524,7 @@ public class InfantRecordsController : ControllerBase
     /// 指定日のクラスの室温・湿度記録を取得
     /// </summary>
     [HttpGet("environment")]
-    public async Task<ActionResult<RoomEnvironmentDto>> GetRoomEnvironment(
+    public async Task<ActionResult<RoomEnvironmentDto?>> GetRoomEnvironment(
         [FromQuery] string classId,
         [FromQuery] DateTime date)
     {
@@ -530,9 +533,7 @@ public class InfantRecordsController : ControllerBase
             var nurseryId = GetNurseryId();
             var record = await _infantRecordService.GetRoomEnvironmentAsync(nurseryId, classId, date);
 
-            if (record == null)
-                return NotFound("室温・湿度記録が見つかりません");
-
+            // データがない場合はnullを返す（404ではなく200 OK with null）
             return Ok(record);
         }
         catch (Exception ex)
@@ -562,6 +563,99 @@ public class InfantRecordsController : ControllerBase
         }
     }
 
+    // ===== 体温記録API =====
+
+    /// <summary>
+    /// 指定日のクラス内全園児の体温記録を取得
+    /// </summary>
+    [HttpGet("temperature")]
+    public async Task<ActionResult<IEnumerable<InfantTemperatureDto>>> GetTemperatureRecords(
+        [FromQuery] string classId,
+        [FromQuery] DateTime date)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var records = await _infantRecordService.GetTemperatureRecordsAsync(nurseryId, classId, date);
+            return Ok(records);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "体温記録取得エラー: ClassId={ClassId}, Date={Date}", classId, date);
+            return StatusCode(500, "体温記録の取得中にエラーが発生しました");
+        }
+    }
+
+    /// <summary>
+    /// 体温記録を作成
+    /// </summary>
+    [HttpPost("temperature")]
+    public async Task<ActionResult<InfantTemperatureDto>> CreateTemperatureRecord([FromBody] CreateInfantTemperatureDto dto)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var staffId = GetStaffId();
+            var record = await _infantRecordService.CreateTemperatureRecordAsync(dto, nurseryId, staffId);
+            return CreatedAtAction(nameof(GetTemperatureRecords), new { classId = 0, date = dto.RecordDate }, record);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "体温記録作成エラー: ChildId={ChildId}", dto.ChildId);
+            return StatusCode(500, "体温記録の作成中にエラーが発生しました");
+        }
+    }
+
+    /// <summary>
+    /// 体温記録を更新
+    /// </summary>
+    [HttpPut("temperature")]
+    public async Task<ActionResult> UpdateTemperatureRecord([FromBody] UpdateInfantTemperatureDto dto)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var staffId = GetStaffId();
+            var success = await _infantRecordService.UpdateTemperatureRecordAsync(dto, nurseryId, staffId);
+
+            if (!success)
+                return NotFound("体温記録が見つかりません");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "体温記録更新エラー: ChildId={ChildId}", dto.ChildId);
+            return StatusCode(500, "体温記録の更新中にエラーが発生しました");
+        }
+    }
+
+    /// <summary>
+    /// 体温記録を削除
+    /// </summary>
+    [HttpDelete("temperature/{childId}/{date}/{measurementType}")]
+    public async Task<ActionResult> DeleteTemperatureRecord(
+        int childId,
+        DateTime date,
+        string measurementType)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var success = await _infantRecordService.DeleteTemperatureRecordAsync(nurseryId, childId, date, measurementType);
+
+            if (!success)
+                return NotFound("体温記録が見つかりません");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "体温記録削除エラー: ChildId={ChildId}", childId);
+            return StatusCode(500, "体温記録の削除中にエラーが発生しました");
+        }
+    }
+
     // ===== クラス園児一覧API =====
 
     /// <summary>
@@ -584,6 +678,121 @@ public class InfantRecordsController : ControllerBase
         {
             _logger.LogError(ex, "クラス園児一覧取得エラー: ClassId={ClassId}, Date={Date}", classId, date);
             return StatusCode(500, "クラス園児一覧の取得中にエラーが発生しました");
+        }
+    }
+
+    // ===== 午睡チェック記録API =====
+
+    /// <summary>
+    /// 指定クラス・日付の午睡チェック表を取得（横軸時間型グリッド用）
+    /// </summary>
+    [HttpGet("sleep-check/grid")]
+    public async Task<ActionResult<SleepCheckGridDto>> GetSleepCheckGrid(
+        [FromQuery] string classId,
+        [FromQuery] DateTime date)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var result = await _sleepCheckService.GetSleepCheckGridAsync(nurseryId, classId, date);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "午睡チェック表取得エラー: ClassId={ClassId}, Date={Date}", classId, date);
+            return StatusCode(500, "午睡チェック表の取得中にエラーが発生しました");
+        }
+    }
+
+    /// <summary>
+    /// 指定園児・日付・睡眠回の午睡チェック記録を取得
+    /// </summary>
+    [HttpGet("sleep-check")]
+    public async Task<ActionResult<IEnumerable<InfantSleepCheckDto>>> GetSleepChecks(
+        [FromQuery] int childId,
+        [FromQuery] DateTime date,
+        [FromQuery] int sleepSequence)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var records = await _sleepCheckService.GetSleepChecksAsync(nurseryId, childId, date, sleepSequence);
+            return Ok(records);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "午睡チェック記録取得エラー: ChildId={ChildId}, Date={Date}, Sequence={Sequence}",
+                childId, date, sleepSequence);
+            return StatusCode(500, "午睡チェック記録の取得中にエラーが発生しました");
+        }
+    }
+
+    /// <summary>
+    /// 午睡チェック記録を作成
+    /// </summary>
+    [HttpPost("sleep-check")]
+    public async Task<ActionResult<InfantSleepCheckDto>> CreateSleepCheck([FromBody] CreateInfantSleepCheckDto dto)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var staffId = GetStaffId();
+            var record = await _sleepCheckService.CreateSleepCheckAsync(dto, nurseryId, staffId);
+            return CreatedAtAction(nameof(GetSleepChecks),
+                new { childId = dto.ChildId, date = dto.RecordDate, sleepSequence = dto.SleepSequence },
+                record);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "午睡チェック記録作成エラー: ChildId={ChildId}", dto.ChildId);
+            return StatusCode(500, "午睡チェック記録の作成中にエラーが発生しました");
+        }
+    }
+
+    /// <summary>
+    /// 午睡チェック記録を更新
+    /// </summary>
+    [HttpPut("sleep-check/{id}")]
+    public async Task<ActionResult> UpdateSleepCheck(int id, [FromBody] UpdateInfantSleepCheckDto dto)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var staffId = GetStaffId();
+            var success = await _sleepCheckService.UpdateSleepCheckAsync(id, dto, nurseryId, staffId);
+
+            if (!success)
+                return NotFound("午睡チェック記録が見つかりません");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "午睡チェック記録更新エラー: Id={Id}", id);
+            return StatusCode(500, "午睡チェック記録の更新中にエラーが発生しました");
+        }
+    }
+
+    /// <summary>
+    /// 午睡チェック記録を削除
+    /// </summary>
+    [HttpDelete("sleep-check/{id}")]
+    public async Task<ActionResult> DeleteSleepCheck(int id)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+            var success = await _sleepCheckService.DeleteSleepCheckAsync(id, nurseryId);
+
+            if (!success)
+                return NotFound("午睡チェック記録が見つかりません");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "午睡チェック記録削除エラー: Id={Id}", id);
+            return StatusCode(500, "午睡チェック記録の削除中にエラーが発生しました");
         }
     }
 }

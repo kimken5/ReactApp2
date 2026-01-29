@@ -11,9 +11,10 @@ public class InfantMoodDto
     public int ChildId { get; set; }
     public string ChildName { get; set; } = string.Empty;
     public DateTime RecordDate { get; set; }
-    public TimeOnly RecordTime { get; set; }
+    public string MoodTime { get; set; } = string.Empty; // HH:mm format
     public string MoodState { get; set; } = string.Empty;
     public string? Notes { get; set; }
+    public string? CreatedByName { get; set; } // 入力者名
     public DateTime CreatedAt { get; set; }
     public int CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -32,7 +33,8 @@ public class CreateInfantMoodDto
     public DateTime RecordDate { get; set; }
 
     [Required]
-    public TimeOnly RecordTime { get; set; }
+    [StringLength(5)] // HH:mm format
+    public string MoodTime { get; set; } = string.Empty;
 
     [Required]
     [StringLength(20)]
@@ -54,7 +56,8 @@ public class UpdateInfantMoodDto
     public DateTime RecordDate { get; set; }
 
     [Required]
-    public TimeOnly RecordTime { get; set; }
+    [StringLength(5)] // HH:mm format
+    public string MoodTime { get; set; } = string.Empty; // 識別用の時刻（複合キーのため変更不可）
 
     [Required]
     [StringLength(20)]

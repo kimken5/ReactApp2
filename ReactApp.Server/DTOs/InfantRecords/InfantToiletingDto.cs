@@ -17,6 +17,7 @@ public class InfantToiletingDto
     public bool HasStool { get; set; }
     public string? BowelAmount { get; set; }
     public string? BowelCondition { get; set; }
+    public string? CreatedByName { get; set; } // 入力者名
     public DateTime CreatedAt { get; set; }
     public int CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }

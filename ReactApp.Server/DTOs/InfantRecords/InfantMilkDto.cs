@@ -14,6 +14,7 @@ public class InfantMilkDto
     public string MilkTime { get; set; } = string.Empty; // HH:mm format
     public int AmountMl { get; set; }
     public string? Notes { get; set; }
+    public string? CreatedByName { get; set; } // 入力者名
     public DateTime CreatedAt { get; set; }
     public int CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }

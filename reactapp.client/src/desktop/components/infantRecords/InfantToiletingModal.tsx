@@ -4,12 +4,10 @@ import type {
   CreateInfantToiletingDto,
   UpdateInfantToiletingDto,
   ChildInfo,
-  BowelCondition,
 } from '../../types/infantRecord';
-import { bowelConditionLabels } from '../../types/infantRecord';
 
 /**
- * 乳児排泄記録 作成・編集モーダル
+ * 乳児おむつ記録 作成・編集モーダル
  */
 
 interface InfantToiletingModalProps {
@@ -22,19 +20,37 @@ interface InfantToiletingModalProps {
   recordDate: string;
 }
 
+type RecordType = 'urine' | 'stool' | 'both';
+type Amount = 'Little' | 'Normal' | 'Lot';
+type BowelCondition = 'Normal' | 'Soft' | 'Diarrhea' | 'Hard' | 'Bloody';
+
 interface FormData {
   childId: number;
-  urineCount: number;
-  bowelCount: number;
-  bowelCondition: BowelCondition | '';
-  notes: string;
+  toiletingTime: string; // HH:mm format
+  recordType: RecordType;
+  urineAmount: Amount;
+  bowelAmount: Amount;
+  bowelCondition: BowelCondition;
 }
 
 interface FormErrors {
   childId?: string;
-  urineCount?: string;
-  bowelCount?: string;
+  toiletingTime?: string;
 }
+
+const amountLabels: Record<Amount, string> = {
+  Little: '少量',
+  Normal: '普通',
+  Lot: '多量',
+};
+
+const bowelConditionLabels: Record<BowelCondition, string> = {
+  Normal: '正常',
+  Soft: '軟便',
+  Diarrhea: '下痢',
+  Hard: '硬い',
+  Bloody: '血便',
+};
 
 export function InfantToiletingModal({
   isOpen,
@@ -47,10 +63,11 @@ export function InfantToiletingModal({
 }: InfantToiletingModalProps) {
   const [formData, setFormData] = useState<FormData>({
     childId: 0,
-    urineCount: 0,
-    bowelCount: 0,
-    bowelCondition: '',
-    notes: '',
+    toiletingTime: '',
+    recordType: 'urine',
+    urineAmount: 'Normal',
+    bowelAmount: 'Normal',
+    bowelCondition: 'Normal',
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -59,29 +76,63 @@ export function InfantToiletingModal({
   // 初期化
   useEffect(() => {
     if (mode === 'edit' && initialData) {
+      // Extract time from DateTime
+      const time = new Date(initialData.toiletingTime).toLocaleTimeString('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+      // Determine record type
+      let recordType: RecordType = 'urine';
+      if (initialData.hasUrine && initialData.hasStool) {
+        recordType = 'both';
+      } else if (initialData.hasStool) {
+        recordType = 'stool';
+      }
+
       setFormData({
         childId: initialData.childId,
-        urineCount: initialData.urineCount,
-        bowelCount: initialData.bowelCount,
-        bowelCondition: initialData.bowelCondition || '',
-        notes: initialData.notes || '',
+        toiletingTime: time,
+        recordType,
+        urineAmount: (initialData.urineAmount as Amount) || 'Normal',
+        bowelAmount: (initialData.bowelAmount as Amount) || 'Normal',
+        bowelCondition: (initialData.bowelCondition as BowelCondition) || 'Normal',
       });
     } else if (mode === 'create') {
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       setFormData({
         childId: children.length > 0 ? children[0].childId : 0,
-        urineCount: 0,
-        bowelCount: 0,
-        bowelCondition: '',
-        notes: '',
+        toiletingTime: currentTime,
+        recordType: 'urine',
+        urineAmount: 'Normal',
+        bowelAmount: 'Normal',
+        bowelCondition: 'Normal',
       });
     }
   }, [mode, initialData, children]);
 
-  const handleInputChange = (field: keyof FormData, value: string | number) => {
+  const handleInputChange = (field: keyof FormData, value: string | number | RecordType | Amount | BowelCondition) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
+  };
+
+  // 現在時刻設定
+  const setCurrentTime = () => {
+    const now = new Date();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    handleInputChange('toiletingTime', currentTime);
+  };
+
+  // 5分前設定
+  const setFiveMinutesAgo = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - 5);
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    handleInputChange('toiletingTime', time);
   };
 
   const validateForm = (): boolean => {
@@ -91,12 +142,8 @@ export function InfantToiletingModal({
       newErrors.childId = '園児を選択してください';
     }
 
-    if (formData.urineCount < 0) {
-      newErrors.urineCount = 'おしっこ回数は0以上で入力してください';
-    }
-
-    if (formData.bowelCount < 0) {
-      newErrors.bowelCount = 'うんち回数は0以上で入力してください';
+    if (!formData.toiletingTime) {
+      newErrors.toiletingTime = '時刻を入力してください';
     }
 
     setErrors(newErrors);
@@ -113,19 +160,26 @@ export function InfantToiletingModal({
     setIsSubmitting(true);
 
     try {
+      // Create DateTime from recordDate and toiletingTime
+      const [hours, minutes] = formData.toiletingTime.split(':').map(Number);
+      const toiletingDateTime = new Date(recordDate);
+      toiletingDateTime.setHours(hours, minutes, 0, 0);
+
       const saveData = {
         childId: formData.childId,
-        recordDate,
-        urineCount: formData.urineCount,
-        bowelCount: formData.bowelCount,
-        bowelCondition: formData.bowelCondition || undefined,
-        notes: formData.notes || undefined,
+        recordDate: new Date(recordDate),
+        toiletingTime: toiletingDateTime,
+        hasUrine: formData.recordType === 'urine' || formData.recordType === 'both',
+        urineAmount: formData.recordType === 'urine' || formData.recordType === 'both' ? formData.urineAmount : undefined,
+        hasStool: formData.recordType === 'stool' || formData.recordType === 'both',
+        bowelAmount: formData.recordType === 'stool' || formData.recordType === 'both' ? formData.bowelAmount : undefined,
+        bowelCondition: formData.recordType === 'stool' || formData.recordType === 'both' ? formData.bowelCondition : undefined,
       };
 
       await onSave(saveData);
       onClose();
     } catch (error) {
-      console.error('排泄記録の保存に失敗しました:', error);
+      console.error('おむつ記録の保存に失敗しました:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -144,7 +198,7 @@ export function InfantToiletingModal({
           {/* Header */}
           <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-800">
-              {mode === 'create' ? '排泄記録追加' : '排泄記録編集'}
+              {mode === 'create' ? 'おむつ記録追加' : 'おむつ記録編集'}
             </h2>
             <button
               onClick={onClose}
@@ -159,7 +213,7 @@ export function InfantToiletingModal({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6">
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* 園児選択 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -183,77 +237,156 @@ export function InfantToiletingModal({
                 {errors.childId && <p className="mt-1 text-sm text-red-500">{errors.childId}</p>}
               </div>
 
-              {/* おしっこ・うんち回数 */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    おしっこ回数 <span className="text-red-500">*</span>
-                  </label>
+              {/* 時刻 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  時刻 <span className="text-red-500">*</span>
+                  {mode === 'edit' && <span className="ml-2 text-xs text-gray-500">(編集時は変更不可)</span>}
+                </label>
+                <div className="flex items-center space-x-2">
                   <input
-                    type="number"
-                    min={0}
-                    max={20}
-                    value={formData.urineCount}
-                    onChange={(e) => handleInputChange('urineCount', parseInt(e.target.value) || 0)}
-                    className={`w-full px-3 py-2 border ${
-                      errors.urineCount ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    placeholder="0"
+                    type="time"
+                    value={formData.toiletingTime}
+                    onChange={(e) => handleInputChange('toiletingTime', e.target.value)}
+                    disabled={mode === 'edit'}
+                    className={`flex-1 px-3 py-2 border ${
+                      errors.toiletingTime ? 'border-red-500' : 'border-gray-300'
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      mode === 'edit' ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
                   />
-                  {errors.urineCount && <p className="mt-1 text-sm text-red-500">{errors.urineCount}</p>}
+                  {mode === 'create' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={setCurrentTime}
+                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition"
+                      >
+                        今
+                      </button>
+                      <button
+                        type="button"
+                        onClick={setFiveMinutesAgo}
+                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition"
+                      >
+                        5分前
+                      </button>
+                    </>
+                  )}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    うんち回数 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={10}
-                    value={formData.bowelCount}
-                    onChange={(e) => handleInputChange('bowelCount', parseInt(e.target.value) || 0)}
-                    className={`w-full px-3 py-2 border ${
-                      errors.bowelCount ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    placeholder="0"
-                  />
-                  {errors.bowelCount && <p className="mt-1 text-sm text-red-500">{errors.bowelCount}</p>}
-                </div>
+                {errors.toiletingTime && <p className="mt-1 text-sm text-red-500">{errors.toiletingTime}</p>}
               </div>
 
-              {/* 便の状態 */}
+              {/* 記録タイプ */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">便の状態</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  記録タイプ <span className="text-red-500">*</span>
+                </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(Object.keys(bowelConditionLabels) as BowelCondition[]).map((condition) => (
-                    <button
-                      key={condition}
-                      type="button"
-                      onClick={() => handleInputChange('bowelCondition', condition)}
-                      className={`px-3 py-2 rounded-lg text-sm border font-medium transition ${
-                        formData.bowelCondition === condition
-                          ? 'bg-orange-600 text-white border-orange-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {bowelConditionLabels[condition]}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('recordType', 'urine')}
+                    className={`px-4 py-2.5 rounded-lg text-sm border font-medium transition ${
+                      formData.recordType === 'urine'
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    おしっこのみ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('recordType', 'stool')}
+                    className={`px-4 py-2.5 rounded-lg text-sm border font-medium transition ${
+                      formData.recordType === 'stool'
+                        ? 'bg-orange-600 text-white border-orange-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    うんちのみ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('recordType', 'both')}
+                    className={`px-4 py-2.5 rounded-lg text-sm border font-medium transition ${
+                      formData.recordType === 'both'
+                        ? 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    両方
+                  </button>
                 </div>
               </div>
 
-              {/* メモ */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">メモ</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="色、量、その他気になる点など"
-                />
-              </div>
+              {/* おしっこ量 */}
+              {(formData.recordType === 'urine' || formData.recordType === 'both') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">おしっこ量</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(Object.keys(amountLabels) as Amount[]).map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => handleInputChange('urineAmount', amount)}
+                        className={`px-3 py-2 rounded-lg text-sm border font-medium transition ${
+                          formData.urineAmount === amount
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {amountLabels[amount]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* うんち量 */}
+              {(formData.recordType === 'stool' || formData.recordType === 'both') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">うんち量</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(Object.keys(amountLabels) as Amount[]).map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => handleInputChange('bowelAmount', amount)}
+                        className={`px-3 py-2 rounded-lg text-sm border font-medium transition ${
+                          formData.bowelAmount === amount
+                            ? 'bg-orange-600 text-white border-orange-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {amountLabels[amount]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* うんち種類 */}
+              {(formData.recordType === 'stool' || formData.recordType === 'both') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">うんち種類</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(Object.keys(bowelConditionLabels) as BowelCondition[]).map((condition) => (
+                      <button
+                        key={condition}
+                        type="button"
+                        onClick={() => handleInputChange('bowelCondition', condition)}
+                        className={`px-3 py-2 rounded-lg text-sm border font-medium transition ${
+                          formData.bowelCondition === condition
+                            ? 'bg-orange-600 text-white border-orange-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {bowelConditionLabels[condition]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* アクションボタン */}
