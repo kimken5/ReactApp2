@@ -56,6 +56,7 @@ namespace ReactApp.Server.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<DailyAttendance> DailyAttendances { get; set; }
         public DbSet<ApplicationWork> ApplicationWorks { get; set; }
+        public DbSet<NurseryDayType> NurseryDayTypes { get; set; }
 
         // 献立管理用エンティティ
         public DbSet<AllergenMaster> AllergenMasters { get; set; }

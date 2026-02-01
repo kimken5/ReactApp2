@@ -495,8 +495,8 @@ CREATE TABLE InfantSleepChecks (
     CheckTime TIME NOT NULL,
     BreathingStatus NVARCHAR(20) NOT NULL, -- '正常', '異常'
     HeadDirection NVARCHAR(20) NOT NULL, -- '左', '右', '仰向け'
-    BodyTemperature NVARCHAR(20) NOT NULL, -- '正常', 'やや温かい', '冷たい'
-    FaceColor NVARCHAR(20) NOT NULL, -- '正常', '蒼白', '紫色'
+    BodyTemperature NVARCHAR(20) NOT NULL, -- '正常', 'やや温かい', '熱あり', '冷たい'
+    FaceColor NVARCHAR(20) NOT NULL, -- '正常', '蒼白', '紫色', '紅潮'
     BodyPosition NVARCHAR(20) NOT NULL, -- '仰向け', '横向き', 'うつ伏せ'
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CreatedBy INT NOT NULL,
@@ -507,8 +507,8 @@ CREATE TABLE InfantSleepChecks (
         REFERENCES Staff(Id),
     CONSTRAINT CK_InfantSleepChecks_Breathing CHECK (BreathingStatus IN ('正常', '異常')),
     CONSTRAINT CK_InfantSleepChecks_HeadDirection CHECK (HeadDirection IN ('左', '右', '仰向け')),
-    CONSTRAINT CK_InfantSleepChecks_BodyTemp CHECK (BodyTemperature IN ('正常', 'やや温かい', '冷たい')),
-    CONSTRAINT CK_InfantSleepChecks_FaceColor CHECK (FaceColor IN ('正常', '蒼白', '紫色')),
+    CONSTRAINT CK_InfantSleepChecks_BodyTemp CHECK (BodyTemperature IN ('正常', 'やや温かい', '熱あり', '冷たい')),
+    CONSTRAINT CK_InfantSleepChecks_FaceColor CHECK (FaceColor IN ('正常', '蒼白', '紫色', '紅潮')),
     CONSTRAINT CK_InfantSleepChecks_BodyPosition CHECK (BodyPosition IN ('仰向け', '横向き', 'うつ伏せ'))
 );
 
@@ -556,11 +556,11 @@ public class InfantSleepCheck
 
     [Required]
     [StringLength(20)]
-    public string BodyTemperature { get; set; } = null!; // '正常', 'やや温かい', '冷たい'
+    public string BodyTemperature { get; set; } = null!; // '正常', 'やや温かい', '熱あり', '冷たい'
 
     [Required]
     [StringLength(20)]
-    public string FaceColor { get; set; } = null!; // '正常', '蒼白', '紫色'
+    public string FaceColor { get; set; } = null!; // '正常', '蒼白', '紫色', '紅潮'
 
     [Required]
     [StringLength(20)]
@@ -905,10 +905,12 @@ public class InfantSleepCheck
 │  ◯ 左    ⬤ 右    ◯ 仰向け                │
 │                                            │
 │  体温チェック（触感）                        │
-│  ⬤ 正常    ◯ やや温かい    ◯ 冷たい      │
+│  ⬤ 正常    ◯ やや温かい                   │
+│  ◯ 熱あり    ◯ 冷たい                      │
 │                                            │
 │  顔色                                       │
-│  ⬤ 正常    ◯ 蒼白    ◯ 紫色              │
+│  ⬤ 正常    ◯ 蒼白                         │
+│  ◯ 紫色    ◯ 紅潮                          │
 │                                            │
 │  体勢                                       │
 │  ⬤ 仰向け    ◯ 横向き    ◯ うつ伏せ      │

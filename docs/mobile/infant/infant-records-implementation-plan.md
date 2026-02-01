@@ -750,8 +750,8 @@ export const InfantSleepCheckForm: React.FC = () => {
     checkTime: getCurrentTime(),
     breathingStatus: 'Normal',
     headDirection: 'Right',
-    bodyTemperature: 'Normal',
-    faceColor: 'Normal',
+    bodyTemperature: 'Normal', // 'Normal' | 'SlightlyWarm' | 'Hot' | 'Cold'
+    faceColor: 'Normal', // 'Normal' | 'Pale' | 'Purple' | 'Flushed'
     bodyPosition: 'OnBack',
   });
 
@@ -760,9 +760,9 @@ export const InfantSleepCheckForm: React.FC = () => {
     const normalData: InfantSleepCheckRequest = {
       checkTime: getCurrentTime(),
       breathingStatus: 'Normal',
-      headDirection: 'Right',
-      bodyTemperature: 'Normal',
-      faceColor: 'Normal',
+      headDirection: 'FaceUp',
+      bodyTemperature: 'Normal', // 正常
+      faceColor: 'Normal', // 正常
       bodyPosition: 'OnBack',
     };
     await onSave(normalData);

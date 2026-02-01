@@ -18,15 +18,18 @@ public class InfantRecordsController : ControllerBase
 {
     private readonly IInfantRecordService _infantRecordService;
     private readonly IInfantSleepCheckService _sleepCheckService;
+    private readonly ISleepCheckPdfService _pdfService;
     private readonly ILogger<InfantRecordsController> _logger;
 
     public InfantRecordsController(
         IInfantRecordService infantRecordService,
         IInfantSleepCheckService sleepCheckService,
+        ISleepCheckPdfService pdfService,
         ILogger<InfantRecordsController> logger)
     {
         _infantRecordService = infantRecordService;
         _sleepCheckService = sleepCheckService;
+        _pdfService = pdfService;
         _logger = logger;
     }
 
@@ -793,6 +796,53 @@ public class InfantRecordsController : ControllerBase
         {
             _logger.LogError(ex, "午睡チェック記録削除エラー: Id={Id}", id);
             return StatusCode(500, "午睡チェック記録の削除中にエラーが発生しました");
+        }
+    }
+
+    /// <summary>
+    /// 午睡チェック表のPDF出力
+    /// </summary>
+    [HttpGet("sleep-check-pdf")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(500)]
+    public async Task<IActionResult> GetSleepCheckPdf(
+        [FromQuery] string classId,
+        [FromQuery] string recordDate)
+    {
+        try
+        {
+            var nurseryId = GetNurseryId();
+
+            // 日付の妥当性チェック
+            if (!DateTime.TryParseExact(recordDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            {
+                return BadRequest("無効な日付形式です");
+            }
+
+            _logger.LogInformation("午睡チェックPDF生成開始: NurseryId={NurseryId}, ClassId={ClassId}, RecordDate={RecordDate}",
+                nurseryId, classId, recordDate);
+
+            // グリッドデータを取得
+            var gridData = await _sleepCheckService.GetSleepCheckGridAsync(nurseryId, classId, date);
+
+            if (gridData == null || gridData.Children.Count == 0)
+            {
+                return NotFound("午睡チェックデータが見つかりません");
+            }
+
+            // PDF生成
+            var pdfBytes = _pdfService.GenerateSleepCheckPdf(gridData);
+
+            var fileName = $"午睡チェック表_{recordDate}_{gridData.ClassName}.pdf";
+
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "午睡チェックPDF生成エラー: ClassId={ClassId}, RecordDate={RecordDate}",
+                classId, recordDate);
+            return StatusCode(500, "PDF生成中にエラーが発生しました");
         }
     }
 }

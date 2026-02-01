@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { EventFormModal } from '../components/calendar/EventFormModal';
+import { NurseryDayTypeDialog } from '../components/NurseryDayTypeDialog';
 import { calendarService } from '../services/calendarService';
+import { nurseryDayTypeService } from '../services/nurseryDayTypeService';
 import { masterService } from '../services/masterService';
-import type { CalendarEventDto, EventCategoryType, CreateEventRequestDto, UpdateEventRequestDto } from '../types/calendar';
+import type { CalendarEventDto, EventCategoryType, CreateEventRequestDto, UpdateEventRequestDto, NurseryDayTypeDto, CreateNurseryDayTypeRequest } from '../types/calendar';
 import type { ClassDto } from '../types/master';
-import { eventCategoriesDesktop } from '../types/calendar';
+import { eventCategoriesDesktop, nurseryDayTypeInfo } from '../types/calendar';
 
 /**
  * カレンダー管理ページ
@@ -45,15 +47,6 @@ const getDemoEvents = (): CalendarEventDto[] => {
       isAllDay: false,
     },
     {
-      id: 2,
-      title: '保育園休園日',
-      description: '祝日のため休園です。',
-      category: 'nursery_holiday',
-      startDateTime: `${tomorrow.toISOString().split('T')[0]}T00:00:00`,
-      endDateTime: `${tomorrow.toISOString().split('T')[0]}T23:59:59`,
-      isAllDay: true,
-    },
-    {
       id: 3,
       title: '全体行事：遠足',
       description: '近くの公園に遠足に行きます。',
@@ -76,14 +69,21 @@ export function CalendarPage() {
   const [showEventFormModal, setShowEventFormModal] = useState(false);
   const [eventFormMode, setEventFormMode] = useState<'create' | 'edit'>('create');
   const [events, setEvents] = useState<CalendarEventDto[]>([]);
+  const [nurseryDayTypes, setNurseryDayTypes] = useState<NurseryDayTypeDto[]>([]);
   const [classes, setClasses] = useState<ClassDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // イベントデータの読み込み
+  // 休園日・休日保育ダイアログ
+  const [showNurseryDayTypeDialog, setShowNurseryDayTypeDialog] = useState(false);
+  const [selectedNurseryDayTypeDate, setSelectedNurseryDayTypeDate] = useState<string | undefined>();
+  const [selectedNurseryDayType, setSelectedNurseryDayType] = useState<NurseryDayTypeDto | null>(null);
+
+  // イベントデータと休園日・休日保育の読み込み
   useEffect(() => {
     loadEvents();
+    loadNurseryDayTypes();
     loadMasterData();
   }, [currentDate, viewMode]);
 
@@ -97,6 +97,11 @@ export function CalendarPage() {
   };
 
   const loadEvents = async () => {
+    if (isDemoMode) {
+      setEvents(getDemoEvents());
+      return;
+    }
+
     try {
       setIsLoading(true);
       setErrorMessage(null);
@@ -132,6 +137,54 @@ export function CalendarPage() {
     }
   };
 
+  const loadNurseryDayTypes = async () => {
+    if (isDemoMode) {
+      // デモモードでは休園日・休日保育のダミーデータを設定
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      setNurseryDayTypes([
+        {
+          id: 1,
+          nurseryId: '1',
+          date: tomorrow.toISOString().split('T')[0],
+          dayType: 'ClosedDay',
+          createdBy: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]);
+      return;
+    }
+
+    try {
+      // 表示モードに基づいて日付範囲を計算
+      let startDate: Date;
+      let endDate: Date;
+
+      if (viewMode === 'month') {
+        startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      } else {
+        const dayOfWeek = currentDate.getDay();
+        startDate = new Date(currentDate);
+        startDate.setDate(currentDate.getDate() - dayOfWeek);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+      }
+
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      const nurseryDayTypesData = await nurseryDayTypeService.getNurseryDayTypes(startDateStr, endDateStr);
+      setNurseryDayTypes(nurseryDayTypesData);
+    } catch (error) {
+      console.error('休園日・休日保育取得エラー:', error);
+      setNurseryDayTypes([]);
+    }
+  };
+
   // 日付関連の関数
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -158,6 +211,52 @@ export function CalendarPage() {
       const matchesFilter = selectedFilters.length === 0 || selectedFilters.includes(event.category);
       return matchesDate && matchesFilter;
     });
+  };
+
+  // 休園日・休日保育の取得
+  const getNurseryDayTypeForDate = (date: string) => {
+    return nurseryDayTypes.find((ndt) => ndt.date === date);
+  };
+
+  // 休園日・休日保育ダイアログハンドラー
+  const handleOpenNurseryDayTypeDialog = (date: string) => {
+    const existing = getNurseryDayTypeForDate(date);
+    setSelectedNurseryDayTypeDate(date);
+    setSelectedNurseryDayType(existing || null);
+    setShowNurseryDayTypeDialog(true);
+  };
+
+  const handleSaveNurseryDayType = async (data: CreateNurseryDayTypeRequest) => {
+    try {
+      if (selectedNurseryDayType) {
+        // 更新
+        await nurseryDayTypeService.updateNurseryDayType(selectedNurseryDayType.id, {
+          dayType: data.dayType,
+        });
+      } else {
+        // 新規作成
+        await nurseryDayTypeService.createNurseryDayType(data);
+      }
+      // バックグラウンドでカレンダーデータを更新（ダイアログは開いたまま）
+      await loadNurseryDayTypes();
+      // ダイアログは閉じない（連続入力を可能にする）
+    } catch (error) {
+      console.error('休園日・休日保育保存エラー:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteNurseryDayType = async (id: number) => {
+    try {
+      await nurseryDayTypeService.deleteNurseryDayType(id);
+      setSuccessMessage('休園日・休日保育を削除しました');
+      // バックグラウンドでカレンダーデータを更新（ダイアログは開いたまま）
+      await loadNurseryDayTypes();
+      // ダイアログは閉じない（連続入力を可能にする）
+    } catch (error) {
+      console.error('休園日・休日保育削除エラー:', error);
+      throw error;
+    }
   };
 
   // ナビゲーション
@@ -350,6 +449,7 @@ export function CalendarPage() {
             const cellDate = new Date(year, month, day);
             const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
             const dayEvents = getEventsForDate(dateString);
+            const nurseryDayType = getNurseryDayTypeForDate(dateString);
             const dayOfWeek = cellDate.getDay();
 
             return (
@@ -357,18 +457,37 @@ export function CalendarPage() {
                 key={index}
                 className={`min-h-[80px] p-2 ${
                   isToday(cellDate) ? 'bg-yellow-50' : 'bg-white'
-                } cursor-pointer flex flex-col`}
+                } flex flex-col`}
                 style={{ borderBottom: '0.5px solid #d1d5db', borderRight: '0.5px solid #d1d5db' }}
               >
                 <div
-                  className={`text-sm font-bold mb-1 ${
+                  className={`text-sm font-bold mb-1 cursor-pointer ${
                     dayOfWeek === 0 ? 'text-red-600' : isSaturday(dayOfWeek) ? 'text-blue-500' : 'text-gray-800'
                   }`}
+                  onClick={() => handleOpenNurseryDayTypeDialog(dateString)}
                 >
                   {day}
                 </div>
 
-                {/* イベント表示 */}
+                {/* 休園日・休日保育表示 */}
+                {nurseryDayType && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenNurseryDayTypeDialog(dateString);
+                    }}
+                    className="text-xs px-1 py-0.5 rounded border text-center cursor-pointer overflow-hidden font-bold"
+                    style={{
+                      backgroundColor: nurseryDayTypeInfo[nurseryDayType.dayType].bgColor,
+                      color: nurseryDayTypeInfo[nurseryDayType.dayType].color,
+                      borderColor: nurseryDayTypeInfo[nurseryDayType.dayType].color,
+                    }}
+                  >
+                    {nurseryDayTypeInfo[nurseryDayType.dayType].name}
+                  </div>
+                )}
+
+                {/* 通常イベント表示 */}
                 <div className="flex flex-col gap-1 flex-1">
                   {dayEvents.map((event, eventIndex) => {
                     const category = eventCategoriesDesktop[event.category];
@@ -451,6 +570,7 @@ export function CalendarPage() {
               .toString()
               .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
             const allDayEvents = getEventsForDate(dateString).filter((event) => event.isAllDay);
+            const nurseryDayType = getNurseryDayTypeForDate(dateString);
 
             return (
               <div
@@ -460,6 +580,22 @@ export function CalendarPage() {
                 }`}
                 style={dateIndex < 6 ? { borderRight: '0.5px solid #d1d5db' } : {}}
               >
+                {/* 休園日・休日保育表示 */}
+                {nurseryDayType && (
+                  <div
+                    onClick={() => handleOpenNurseryDayTypeDialog(dateString)}
+                    className="text-xs p-1 rounded border text-center cursor-pointer font-bold"
+                    style={{
+                      backgroundColor: nurseryDayTypeInfo[nurseryDayType.dayType].bgColor,
+                      color: nurseryDayTypeInfo[nurseryDayType.dayType].color,
+                      borderColor: nurseryDayTypeInfo[nurseryDayType.dayType].color,
+                    }}
+                  >
+                    {nurseryDayTypeInfo[nurseryDayType.dayType].name}
+                  </div>
+                )}
+
+                {/* 通常の全日イベント */}
                 {allDayEvents.map((event, eventIndex) => {
                   const category = eventCategoriesDesktop[event.category];
                   return (
@@ -639,6 +775,23 @@ export function CalendarPage() {
                 週
               </button>
             </div>
+
+            {/* 休園日・休日保育設定ボタン */}
+            <button
+              onClick={() => {
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1)
+                  .toString()
+                  .padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+                handleOpenNurseryDayTypeDialog(todayStr);
+              }}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              休園日・休日保育設定
+            </button>
           </div>
 
           {/* ナビゲーション */}
@@ -872,6 +1025,17 @@ export function CalendarPage() {
           event={selectedEvent}
           classes={classes}
           mode={eventFormMode}
+        />
+
+        {/* 休園日・休日保育ダイアログ */}
+        <NurseryDayTypeDialog
+          isOpen={showNurseryDayTypeDialog}
+          onClose={() => setShowNurseryDayTypeDialog(false)}
+          onSave={handleSaveNurseryDayType}
+          onDelete={handleDeleteNurseryDayType}
+          selectedDate={selectedNurseryDayTypeDate}
+          existingData={selectedNurseryDayType}
+          allNurseryDayTypes={nurseryDayTypes}
         />
       </div>
     </DashboardLayout>

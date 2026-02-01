@@ -16,7 +16,8 @@ import {
   MdChildCare,
   MdRocketLaunch,
   MdAssessment,
-  MdChecklist
+  MdChecklist,
+  MdPictureAsPdf
 } from 'react-icons/md';
 import apiClient from '../services/apiClient';
 import { masterService } from '../services/masterService';
@@ -25,7 +26,7 @@ import { infantRecordService } from '../services/infantRecordService';
 import type {
   InfantMilkDto, InfantMealDto, InfantSleepDto,
   InfantToiletingDto, InfantMoodDto, RoomEnvironmentDto, InfantTemperatureDto,
-  SleepCheckGridDto,
+  SleepCheckGridDto, ChildSleepCheckDto, InfantSleepCheckDto, BodyPositionStatus,
   ClassChildrenResponse
 } from '../types/infantRecord';
 import {
@@ -949,136 +950,417 @@ export function InfantRecordsPage() {
           );
         }
 
+        // 時間の重なりをチェックする関数（30分以内の間隔を重なりとみなす）
+        const hasTimeOverlap = (range1: { start: number; end: number }, range2: { start: number; end: number }, gapThresholdMinutes = 30) => {
+          // 時間範囲が重なっているか、または間隔がgapThresholdMinutes以内かチェック
+          return !(range1.end + gapThresholdMinutes < range2.start || range2.end + gapThresholdMinutes < range1.start);
+        };
+
+        // sleepSequence と時間帯でグループ化
+        const groupBySequenceAndTime = () => {
+          const allChecks = sleepCheckGrid.children.flatMap(c => c.checks);
+          const sequences = [...new Set(allChecks.map(c => c.sleepSequence))].sort((a, b) => a - b);
+
+          const result: Array<{
+            sequence: number;
+            children: Array<ChildSleepCheckDto & { checks: InfantSleepCheckDto[] }>;
+          }> = [];
+
+          sequences.forEach(seq => {
+            // このセッションに参加している園児
+            const childrenInSeq = sleepCheckGrid.children
+              .map(child => ({
+                ...child,
+                checks: child.checks.filter(check => check.sleepSequence === seq)
+              }))
+              .filter(child => child.checks.length > 0);
+
+            // 各園児の時間範囲を計算
+            const childrenWithTimeRanges = childrenInSeq.map(child => {
+              const times = child.checks.map(c => {
+                const [hours, minutes] = c.checkTime.split(':').map(Number);
+                return hours * 60 + minutes;
+              });
+              return {
+                child,
+                start: Math.min(...times),
+                end: Math.max(...times)
+              };
+            });
+
+            // 時間帯でグループ化
+            const timeGroups: typeof childrenWithTimeRanges[] = [];
+
+            childrenWithTimeRanges.forEach(({ child, start, end }) => {
+              // 既存のグループで時間が重なるものを探す
+              let foundGroup = timeGroups.find(group => {
+                const groupStart = Math.min(...group.map(g => g.start));
+                const groupEnd = Math.max(...group.map(g => g.end));
+                return hasTimeOverlap({ start, end }, { start: groupStart, end: groupEnd });
+              });
+
+              if (foundGroup) {
+                foundGroup.push({ child, start, end });
+              } else {
+                timeGroups.push([{ child, start, end }]);
+              }
+            });
+
+            // 各時間グループをマトリックスとして追加
+            timeGroups.forEach(group => {
+              result.push({
+                sequence: seq,
+                children: group.map(g => g.child)
+              });
+            });
+          });
+
+          return result;
+        };
+
+        const sleepSessions = groupBySequenceAndTime();
+
+        // セッション別の時間軸生成ロジック
+        const generateTimeSlotsForSession = (checks: InfantSleepCheckDto[]) => {
+          if (checks.length === 0) return [];
+
+          // 全チェック時刻をパース
+          const times = checks.map(c => {
+            const [hours, minutes] = c.checkTime.split(':').map(Number);
+            return hours * 60 + minutes;
+          });
+
+          const minTime = Math.min(...times);
+          const maxTime = Math.max(...times);
+
+          // 最小時刻を5分単位に切り捨て（0または5で終わる分に）
+          const minTimeRounded = Math.floor(minTime / 5) * 5;
+          // 最大時刻を5分単位に切り上げ
+          const maxTimeRounded = Math.ceil(maxTime / 5) * 5;
+
+          // 5分刻みで時間軸を生成
+          const slots: string[] = [];
+          for (let t = minTimeRounded; t <= maxTimeRounded; t += 5) {
+            const hours = Math.floor(t / 60);
+            const minutes = t % 60;
+            slots.push(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+          }
+          return slots;
+        };
+
+        // 特定の園児・時刻のチェック記録を取得（5分間隔の範囲内、複数対応）
+        const getChecksForTime = (child: ChildSleepCheckDto, time: string) => {
+          // ヘッダー時刻をパース（例: "10:50"）
+          const [headerHours, headerMinutes] = time.split(':').map(Number);
+          const headerTotalMinutes = headerHours * 60 + headerMinutes;
+
+          // 5分間隔の範囲内（例: 10:50なら10:50-10:54）でチェックを検索
+          return child.checks.filter(c => {
+            const [checkHours, checkMinutes] = c.checkTime.split(':').map(Number);
+            const checkTotalMinutes = checkHours * 60 + checkMinutes;
+
+            // ヘッダー時刻から次の5分間隔の直前まで
+            return checkTotalMinutes >= headerTotalMinutes && checkTotalMinutes < headerTotalMinutes + 5;
+          });
+        };
+
+        // 呼吸状態の記号（1-2文字）
+        const getBreathingText = (status: string) => {
+          return status === 'Normal' ? '正' : '異';
+        };
+
+        // 頭の向きの記号（1-2文字）
+        const getHeadDirectionText = (direction: string) => {
+          const map: Record<string, string> = {
+            Left: '左',
+            Right: '右',
+            FaceUp: '上',
+          };
+          return map[direction] || '';
+        };
+
+        // 体温チェックの記号（1-2文字）
+        const getBodyTempText = (temp: string) => {
+          const map: Record<string, string> = {
+            Normal: '正',
+            SlightlyWarm: '温',
+            Hot: '熱',
+            Cold: '冷',
+          };
+          return map[temp] || '';
+        };
+
+        // 顔色の記号（1-2文字）
+        const getFaceColorText = (color: string) => {
+          const map: Record<string, string> = {
+            Normal: '正',
+            Pale: '蒼',
+            Purple: '紫',
+            Flushed: '紅',
+          };
+          return map[color] || '';
+        };
+
+        // 体勢の記号（1-2文字）
+        const getBodyPositionText = (position: BodyPositionStatus) => {
+          const map: Record<BodyPositionStatus, string> = {
+            OnBack: '仰',
+            OnSide: '横',
+            FaceDown: 'う',
+          };
+          return map[position] || '';
+        };
+
+        // 記録者名の短縮（苗字の最初の文字）
+        const getRecorderShort = (name?: string) => {
+          if (!name) return '';
+          return name.charAt(0);
+        };
+
+        // セルの背景色クラス（複数チェック対応）
+        const getCellBgClass = (checks: InfantSleepCheckDto[]) => {
+          if (checks.length === 0) return 'bg-gray-50';
+          // いずれかのチェックで異常がある場合は背景色を変更
+          if (checks.some(c => c.breathingStatus === 'Abnormal')) return 'bg-red-100';
+          if (checks.some(c => c.bodyPosition === 'FaceDown')) return 'bg-yellow-50';
+          return 'bg-white';
+        };
+
+        // PDF出力ハンドラー
+        const handlePdfExport = async () => {
+          try {
+            const response = await apiClient.get(
+              `/api/desktop/infant-records/sleep-check-pdf?classId=${selectedClass}&recordDate=${selectedDate}`,
+              { responseType: 'blob' }
+            );
+
+            // Blobからダウンロードリンクを作成
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `午睡チェック表_${selectedDate}_${sleepCheckGrid.className}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          } catch (error) {
+            console.error('PDF出力エラー:', error);
+            alert('PDF出力に失敗しました');
+          }
+        };
+
         return (
           <div className="bg-white p-6 rounded-md shadow-md">
-            {/* ヘッダー情報 */}
-            <div className="mb-6 pb-4 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">
-                  午睡チェック表 - {sleepCheckGrid.className}
-                </h2>
-                <div className="text-sm text-gray-600">
-                  {new Date(selectedDate).toLocaleDateString('ja-JP', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    weekday: 'short'
-                  })}
-                </div>
+            {/* ヘッダー: 環境情報とアクションボタン */}
+            <div className="flex items-center justify-between mb-4">
+              {/* 環境情報（室温・湿度のみ） */}
+              <div className="flex items-center gap-6 text-sm">
+                {sleepCheckGrid.roomTemperature && (
+                  <div className="flex items-center gap-2">
+                    <MdThermostat className="text-red-500" />
+                    <span>室温: {sleepCheckGrid.roomTemperature}℃</span>
+                  </div>
+                )}
+                {sleepCheckGrid.humidity && (
+                  <div className="flex items-center gap-2">
+                    <MdWbSunny className="text-blue-500" />
+                    <span>湿度: {sleepCheckGrid.humidity}%</span>
+                  </div>
+                )}
               </div>
-              {(sleepCheckGrid.roomTemperature || sleepCheckGrid.humidity) && (
-                <div className="flex items-center gap-6 text-sm">
-                  {sleepCheckGrid.roomTemperature && (
-                    <div className="flex items-center gap-2">
-                      <MdThermostat className="text-red-500" />
-                      <span>室温: {sleepCheckGrid.roomTemperature}℃</span>
-                    </div>
-                  )}
-                  {sleepCheckGrid.humidity && (
-                    <div className="flex items-center gap-2">
-                      <MdWbSunny className="text-blue-500" />
-                      <span>湿度: {sleepCheckGrid.humidity}%</span>
-                    </div>
-                  )}
-                </div>
-              )}
+
+              {/* アクションボタン */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePdfExport}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
+                >
+                  <MdPictureAsPdf size={18} />
+                  PDF出力
+                </button>
+              </div>
             </div>
 
-            {/* 園児リスト */}
+            {/* セッション別マトリックスグリッド */}
             {sleepCheckGrid.children.length === 0 ? (
               <p className="text-center text-gray-500 py-8">園児データがありません</p>
+            ) : sleepSessions.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">チェック記録がありません</p>
             ) : (
-              <div className="space-y-6">
-                {sleepCheckGrid.children.map((child) => (
-                  <div key={child.childId} className="border border-gray-200 rounded-lg overflow-hidden">
-                    {/* 園児ヘッダー */}
-                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <MdChildCare className="text-blue-500 text-xl" />
-                          <span className="font-semibold text-gray-800">{child.childName}</span>
-                          <span className="text-sm text-gray-500">({child.ageInMonths}ヶ月)</span>
-                        </div>
-                        {child.sleepStartTime && (
-                          <div className="text-sm text-gray-600">
-                            <MdHotel className="inline mr-1" />
-                            入眠: {child.sleepStartTime}
-                            {child.sleepEndTime && ` → 起床: ${child.sleepEndTime}`}
-                          </div>
-                        )}
+              <div className="space-y-8">
+                {sleepSessions.map((session, sessionIdx) => {
+                  const sessionChecks = session.children.flatMap(c => c.checks);
+                  const timeSlots = generateTimeSlotsForSession(sessionChecks);
+
+                  return (
+                    <div key={`${session.sequence}-${sessionIdx}`}>
+                      {/* マトリックステーブル */}
+                      <div className="overflow-x-auto" style={{ border: '1px solid #d1d5db' }}>
+                        <table className="text-sm" style={{ borderCollapse: 'collapse', tableLayout: 'auto', width: 'max-content' }}>
+                          <thead className="sticky top-0 z-20">
+                            <tr style={{ borderBottom: '0.5px solid #d1d5db' }}>
+                              <th className="sticky left-0 z-30 bg-gray-100 px-4 py-3 text-left font-semibold text-gray-700 min-w-[140px]" style={{ borderRight: '0.5px solid #d1d5db' }}>
+                                園児名
+                              </th>
+                              <th className="bg-gray-100 px-3 py-3 text-center font-semibold text-gray-700 min-w-[60px]" style={{ borderRight: '0.5px solid #d1d5db' }}>
+                                入眠<br/>時刻
+                              </th>
+                              {timeSlots.map(time => (
+                                <th key={time} className="bg-gray-100 px-3 py-3 text-center font-semibold text-gray-700 min-w-[70px]" style={{ borderRight: '0.5px solid #d1d5db' }}>
+                                  {time}
+                                </th>
+                              ))}
+                              <th className="bg-gray-100 px-3 py-3 text-center font-semibold text-gray-700 min-w-[60px]">
+                                起床<br/>時刻
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {session.children.map((child) => {
+                              // このセッションの最初と最後のチェック時刻を計算
+                              const checkTimes = child.checks.map(c => c.checkTime).sort();
+                              const sessionStartTime = checkTimes.length > 0 ? checkTimes[0] : '-';
+                              const sessionEndTime = checkTimes.length > 0 ? checkTimes[checkTimes.length - 1] : '-';
+
+                              return (
+                                <tr key={child.childId} style={{ borderBottom: '0.5px solid #e5e7eb' }} className="hover:bg-blue-50">
+                                  {/* 園児名（固定列） */}
+                                  <td className="sticky left-0 z-10 bg-white px-4 py-3 font-medium text-gray-800" style={{ borderRight: '0.5px solid #d1d5db' }}>
+                                    <div className="flex items-center gap-2">
+                                      <MdChildCare className="text-blue-500" size={18} />
+                                      <div>
+                                        <div className="text-sm">{child.childName}</div>
+                                        <div className="text-xs text-gray-500">
+                                          {Math.floor(child.ageInMonths / 12)}歳{child.ageInMonths % 12}ヶ月
+                                        </div>
+                                        <div className="text-xs text-blue-600 font-medium">
+                                          {session.sequence}回目
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* 入眠時刻 */}
+                                  <td className="bg-blue-50 px-3 py-3 text-center font-medium text-gray-700 text-sm" style={{ borderRight: '0.5px solid #d1d5db' }}>
+                                    {sessionStartTime}
+                                  </td>
+
+                                {/* 各時刻のチェック記録 */}
+                                {timeSlots.map(time => {
+                                  const checks = getChecksForTime(child, time);
+                                  return (
+                                    <td
+                                      key={time}
+                                      className={`${getCellBgClass(checks)} px-2 py-2 text-center align-top whitespace-nowrap`}
+                                      style={{ borderRight: '0.5px solid #d1d5db', minWidth: '70px' }}
+                                    >
+                                      {checks.length > 0 && (
+                                        <div className="flex flex-row gap-3 w-full justify-start">
+                                          {checks.map((check, idx) => (
+                                            <div key={idx} className="flex flex-col items-start gap-0.5 flex-shrink-0">
+                                              {/* チェック時刻の分（mm） */}
+                                              <div className="text-xs text-blue-600 font-semibold mb-1">
+                                                {check.checkTime.split(':')[1]}分
+                                              </div>
+                                              {/* 1行目: 呼吸状態 */}
+                                              <div className={`text-sm ${check.breathingStatus === 'Abnormal' ? 'text-red-700 font-bold' : 'text-gray-700'}`}>
+                                                呼:{getBreathingText(check.breathingStatus)}
+                                              </div>
+                                              {/* 2行目: 体勢 */}
+                                              <div className={`text-sm ${check.bodyPosition === 'FaceDown' ? 'text-red-700 font-bold' : 'text-gray-700'}`}>
+                                                勢:{getBodyPositionText(check.bodyPosition)}
+                                              </div>
+                                              {/* 3行目: 頭の向き */}
+                                              <div className="text-sm text-gray-700">
+                                                頭:{getHeadDirectionText(check.headDirection)}
+                                              </div>
+                                              {/* 4行目: 体温チェック */}
+                                              <div className={`text-sm ${check.bodyTemperature === 'Hot' ? 'text-red-700 font-bold' : check.bodyTemperature === 'SlightlyWarm' ? 'text-orange-600 font-medium' : check.bodyTemperature === 'Cold' ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
+                                                温:{getBodyTempText(check.bodyTemperature)}
+                                              </div>
+                                              {/* 5行目: 顔色 */}
+                                              <div className={`text-sm ${check.faceColor === 'Purple' ? 'text-purple-700 font-bold' : check.faceColor === 'Pale' ? 'text-yellow-700 font-medium' : check.faceColor === 'Flushed' ? 'text-orange-600 font-medium' : 'text-gray-700'}`}>
+                                                顔:{getFaceColorText(check.faceColor)}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+
+                                  {/* 起床時刻 */}
+                                  <td className="bg-blue-50 px-3 py-3 text-center font-medium text-gray-700 text-sm">
+                                    {sessionEndTime}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-
-                    {/* チェック記録 */}
-                    <div className="p-4">
-                      {child.checks.length === 0 ? (
-                        <p className="text-center text-gray-400 py-4">チェック記録がありません</p>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-gray-200">
-                                <th className="px-3 py-2 text-left font-medium text-gray-600">時刻</th>
-                                <th className="px-3 py-2 text-left font-medium text-gray-600">呼吸</th>
-                                <th className="px-3 py-2 text-left font-medium text-gray-600">頭向き</th>
-                                <th className="px-3 py-2 text-left font-medium text-gray-600">体温</th>
-                                <th className="px-3 py-2 text-left font-medium text-gray-600">顔色</th>
-                                <th className="px-3 py-2 text-left font-medium text-gray-600">体勢</th>
-                                <th className="px-3 py-2 text-left font-medium text-gray-600">記録者</th>
-                                <th className="px-3 py-2 text-left font-medium text-gray-600">メモ</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {child.checks.map((check) => {
-                                const hasWarning = check.breathingStatus === 'Abnormal' || check.bodyPosition === 'FaceDown';
-                                return (
-                                  <tr
-                                    key={check.id}
-                                    className={`border-b border-gray-100 hover:bg-gray-50 ${hasWarning ? 'bg-red-50' : ''}`}
-                                  >
-                                    <td className="px-3 py-2 font-medium">{check.checkTime}</td>
-                                    <td className="px-3 py-2">
-                                      <span className={`inline-flex items-center ${check.breathingStatus === 'Abnormal' ? 'text-red-600 font-semibold' : 'text-gray-700'}`}>
-                                        {breathingStatusLabels[check.breathingStatus]}
-                                        {check.breathingStatus === 'Abnormal' && <span className="ml-1">⚠️</span>}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-2">{headDirectionLabels[check.headDirection]}</td>
-                                    <td className="px-3 py-2">{bodyTemperatureLabels[check.bodyTemperature]}</td>
-                                    <td className="px-3 py-2">{faceColorLabels[check.faceColor]}</td>
-                                    <td className="px-3 py-2">
-                                      <span className={`inline-flex items-center ${check.bodyPosition === 'FaceDown' ? 'text-red-600 font-semibold' : 'text-gray-700'}`}>
-                                        {bodyPositionLabels[check.bodyPosition]}
-                                        {check.bodyPosition === 'FaceDown' && <span className="ml-1">⚠️</span>}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-600">{check.createdByName || '不明'}</td>
-                                    <td className="px-3 py-2 text-gray-500 text-xs">
-                                      {check.notes || '-'}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             {/* 凡例 */}
             <div className="mt-6 p-4 bg-blue-50 rounded-md">
-              <p className="text-sm font-medium text-gray-700 mb-2">凡例:</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
-                <div><span className="font-semibold">呼吸:</span> 正常/異常</div>
-                <div><span className="font-semibold">頭向き:</span> 左/右/上</div>
-                <div><span className="font-semibold">体温:</span> 正常/やや温かい/冷たい</div>
-                <div><span className="font-semibold">顔色:</span> 正常/青白い/紫色</div>
-                <div><span className="font-semibold">体勢:</span> 仰向け/横向き/うつ伏せ</div>
-                <div className="col-span-2"><span className="text-red-600">⚠️</span> = 要注意（異常・うつ伏せ）</div>
+              <p className="text-sm font-medium text-gray-700 mb-3">記号凡例（各セルは5行構成）:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-y-3 gap-x-6 text-sm text-gray-700">
+                {/* 呼吸状態 */}
+                <div>
+                  <span className="font-semibold text-gray-800">【1行目: 呼吸】</span>
+                  <div className="ml-2 mt-1">
+                    <div>正 = 正常</div>
+                    <div className="text-red-600 font-medium">異 = 異常</div>
+                  </div>
+                </div>
+
+                {/* 体勢 */}
+                <div>
+                  <span className="font-semibold text-gray-800">【2行目: 体勢】</span>
+                  <div className="ml-2 mt-1">
+                    <div>仰 = 仰向け</div>
+                    <div>横 = 横向き</div>
+                    <div className="text-red-600 font-medium">う = うつ伏せ</div>
+                  </div>
+                </div>
+
+                {/* 頭の向き */}
+                <div>
+                  <span className="font-semibold text-gray-800">【3行目: 頭向き】</span>
+                  <div className="ml-2 mt-1">
+                    <div>左 = 左</div>
+                    <div>右 = 右</div>
+                    <div>上 = 上</div>
+                  </div>
+                </div>
+
+                {/* 体温チェック */}
+                <div>
+                  <span className="font-semibold text-gray-800">【4行目: 体温】</span>
+                  <div className="ml-2 mt-1">
+                    <div>正 = 正常</div>
+                    <div className="text-orange-600">温 = やや温かい</div>
+                    <div className="text-red-600 font-bold">熱 = 熱あり</div>
+                    <div className="text-blue-600">冷 = 冷たい</div>
+                  </div>
+                </div>
+
+                {/* 顔色 */}
+                <div>
+                  <span className="font-semibold text-gray-800">【5行目: 顔色】</span>
+                  <div className="ml-2 mt-1">
+                    <div>正 = 正常</div>
+                    <div className="text-yellow-600">蒼 = 蒼白</div>
+                    <div className="text-purple-700 font-bold">紫 = 紫色</div>
+                    <div className="text-orange-600">紅 = 紅潮</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

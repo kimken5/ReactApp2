@@ -10,8 +10,7 @@ export type EventCategoryType =
   | 'general_announcement'
   | 'general_event'
   | 'grade_activity'
-  | 'class_activity'
-  | 'nursery_holiday';
+  | 'class_activity';
 
 /**
  * カテゴリ情報
@@ -94,9 +93,53 @@ export const eventCategoriesDesktop: Record<EventCategoryType, CategoryInfo> = {
     color: '#6366f1',
     bgColor: '#e0e7ff',
   },
-  nursery_holiday: {
-    name: '園休日',
+};
+
+/**
+ * 休園日種別タイプ
+ */
+export type NurseryDayType = 'ClosedDay' | 'HolidayCare';
+
+/**
+ * 休園日・休日保育DTO
+ */
+export interface NurseryDayTypeDto {
+  id: number;
+  nurseryId: string;
+  date: string; // ISO date string (YYYY-MM-DD)
+  dayType: NurseryDayType;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 休園日・休日保育作成リクエスト
+ */
+export interface CreateNurseryDayTypeRequest {
+  date: string; // ISO date string (YYYY-MM-DD)
+  dayType: NurseryDayType;
+}
+
+/**
+ * 休園日・休日保育更新リクエスト
+ */
+export interface UpdateNurseryDayTypeRequest {
+  dayType: NurseryDayType;
+}
+
+/**
+ * 休園日種別の表示情報
+ */
+export const nurseryDayTypeInfo: Record<NurseryDayType, { name: string; color: string; bgColor: string }> = {
+  ClosedDay: {
+    name: '休園日',
     color: '#ef4444',
     bgColor: '#fee2e2',
+  },
+  HolidayCare: {
+    name: '休日保育',
+    color: '#3b82f6',
+    bgColor: '#dbeafe',
   },
 };

@@ -106,9 +106,9 @@ EXECUTE sp_addextendedproperty N'MS_Description', N'呼吸状態（Normal:正常
 /
 EXECUTE sp_addextendedproperty N'MS_Description', N'頭の向き（Left:左/Right:右/FaceUp:仰向け）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'HeadDirection'
 /
-EXECUTE sp_addextendedproperty N'MS_Description', N'体温チェック（Normal:正常/SlightlyWarm:やや温かい/Cold:冷たい）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'BodyTemperature'
+EXECUTE sp_addextendedproperty N'MS_Description', N'体温チェック（Normal:正常/SlightlyWarm:やや温かい/Hot:熱あり/Cold:冷たい）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'BodyTemperature'
 /
-EXECUTE sp_addextendedproperty N'MS_Description', N'顔色（Normal:正常/Pale:蒼白/Purple:紫色）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'FaceColor'
+EXECUTE sp_addextendedproperty N'MS_Description', N'顔色（Normal:正常/Pale:蒼白/Purple:紫色/Flushed:紅潮）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'FaceColor'
 /
 EXECUTE sp_addextendedproperty N'MS_Description', N'体勢（OnBack:仰向け/OnSide:横向き/FaceDown:うつ伏せ）', N'SCHEMA', N'dbo', N'TABLE', N'InfantSleepChecks', N'COLUMN', N'BodyPosition'
 /

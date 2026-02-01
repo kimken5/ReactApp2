@@ -511,6 +511,55 @@ EXEC sp_addextendedproperty 'MS_Description', '論理削除フラグ', 'SCHEMA',
 - RecordedByStaffNurseryId, RecordedByStaffId → Staff(NurseryId, StaffId)
 - UpdatedByStaffNurseryId, UpdatedByStaffId → Staff(NurseryId, StaffId)
 
+### 2.5 NurseryDayTypes（休園日・休日保育管理）
+
+**目的**: 休園日と休日保育の日付を一元管理
+
+```sql
+CREATE TABLE [dbo].[NurseryDayTypes] (
+  [Id] INT IDENTITY(1,1) NOT NULL,
+  [NurseryId] NVARCHAR(50) NOT NULL,
+  [Date] DATE NOT NULL,
+  [DayType] NVARCHAR(20) NOT NULL,
+  [CreatedBy] INT NOT NULL,
+  [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  [UpdatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  CONSTRAINT [PK__NurseryDayTypes] PRIMARY KEY ([Id]),
+  CONSTRAINT [UQ_NurseryDayTypes_NurseryId_Date] UNIQUE ([NurseryId], [Date])
+);
+
+-- インデックス作成
+CREATE INDEX [IX_NurseryDayTypes_NurseryId_Date] ON [dbo].[NurseryDayTypes]([NurseryId], [Date]);
+CREATE INDEX [IX_NurseryDayTypes_Date] ON [dbo].[NurseryDayTypes]([Date]);
+CREATE INDEX [IX_NurseryDayTypes_DayType] ON [dbo].[NurseryDayTypes]([DayType]);
+
+-- テーブルコメント
+EXEC sp_addextendedproperty 'MS_Description', '休園日・休日保育管理', 'SCHEMA', 'dbo', 'TABLE', 'NurseryDayTypes';
+
+-- カラムコメント
+EXEC sp_addextendedproperty 'MS_Description', 'ID', 'SCHEMA', 'dbo', 'TABLE', 'NurseryDayTypes', 'COLUMN', 'Id';
+EXEC sp_addextendedproperty 'MS_Description', '保育園ID', 'SCHEMA', 'dbo', 'TABLE', 'NurseryDayTypes', 'COLUMN', 'NurseryId';
+EXEC sp_addextendedproperty 'MS_Description', '日付', 'SCHEMA', 'dbo', 'TABLE', 'NurseryDayTypes', 'COLUMN', 'Date';
+EXEC sp_addextendedproperty 'MS_Description', '日付種別（ClosedDay:休園日 / HolidayCare:休日保育）', 'SCHEMA', 'dbo', 'TABLE', 'NurseryDayTypes', 'COLUMN', 'DayType';
+EXEC sp_addextendedproperty 'MS_Description', '作成者ID', 'SCHEMA', 'dbo', 'TABLE', 'NurseryDayTypes', 'COLUMN', 'CreatedBy';
+EXEC sp_addextendedproperty 'MS_Description', '作成日時', 'SCHEMA', 'dbo', 'TABLE', 'NurseryDayTypes', 'COLUMN', 'CreatedAt';
+EXEC sp_addextendedproperty 'MS_Description', '更新日時', 'SCHEMA', 'dbo', 'TABLE', 'NurseryDayTypes', 'COLUMN', 'UpdatedAt';
+```
+
+**ビジネスルール**
+- ユニーク制約: 同じ保育園・同じ日付で重複不可
+- DayType値: `ClosedDay` (休園日), `HolidayCare` (休日保育)
+- 1日1件のみ登録可能（休園日と休日保育の両方を同日に設定することは不可）
+
+**カレンダーイベントとの統合**
+- CalendarEventsテーブルの`nursery_holiday`カテゴリは削除
+- 休園日・休日保育はNurseryDayTypesテーブルで一元管理
+- カレンダー表示時は、CalendarEventsとNurseryDayTypesの両方から情報を取得して統合表示
+
+**外部キー制約** (論理的な関係、EF Coreでは無視)
+- NurseryId → Nurseries(Id)
+- CreatedBy → Nurseries(Id) または Staff(NurseryId, StaffId)
+
 ## 3. マイグレーション順序
 
 データベース拡張を安全に実行するための推奨順序：
@@ -535,6 +584,9 @@ EXEC sp_addextendedproperty 'MS_Description', '論理削除フラグ', 'SCHEMA',
 ### Phase 4: 新規テーブル作成(履歴系)
 12. PromotionHistory テーブル作成
 13. DailyAttendances テーブル作成
+
+### Phase 5: 新規テーブル作成(カレンダー関連)
+14. NurseryDayTypes テーブル作成
 
 ## 4. データ移行スクリプト
 
@@ -938,8 +990,9 @@ public class ApplicationWork
 | AuditLogs | 操作ログ、セキュリティ監査 |
 | DailyAttendances | 日次出欠状況の記録・管理 |
 | ApplicationWork | 入園申込ワークテーブル（保護者Web申込の一時保管） *(2025-12-08追加)* |
+| NurseryDayTypes | 休園日・休日保育管理 *(2026-02-01追加)* |
 
-**合計: 6テーブル(新規作成)**
+**合計: 7テーブル(新規作成)**
 
 **設計方針の変更**: 
 - **AttendanceStatisticsテーブルは不要**: 出席統計はDailyAttendancesテーブルから直接リアルタイムで計算します

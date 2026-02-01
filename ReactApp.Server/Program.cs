@@ -15,6 +15,10 @@ using System.Text;
 using System.Threading.RateLimiting;
 using System.IO.Compression;
 using System.Text.Json;
+using QuestPDF.Infrastructure;
+
+// QuestPDF Community License
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -260,6 +264,7 @@ builder.Services.AddScoped<IDesktopPhotoService, DesktopPhotoService>();
 builder.Services.AddSingleton<IAttachmentService, AzureBlobAttachmentService>();
 // Calendar Services
 builder.Services.AddScoped<IDesktopCalendarService, DesktopCalendarService>();
+builder.Services.AddScoped<INurseryDayTypeService, NurseryDayTypeService>();
 
 // Desktop Announcement Service
 builder.Services.AddScoped<IDesktopAnnouncementService, DesktopAnnouncementService>();
@@ -302,6 +307,7 @@ builder.Services.AddScoped<IApplicationService, ApplicationService>();
 // Infant Record Service (乳児生活記録サービス)
 builder.Services.AddScoped<IInfantRecordService, InfantRecordService>();
 builder.Services.AddScoped<IInfantSleepCheckService, InfantSleepCheckService>();
+builder.Services.AddScoped<ISleepCheckPdfService, SleepCheckPdfService>();
 
 // Menu Management Service (献立管理サービス)
 builder.Services.AddScoped<IDesktopMenuService, DesktopMenuService>();
