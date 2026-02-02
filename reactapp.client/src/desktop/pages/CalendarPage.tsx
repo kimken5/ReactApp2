@@ -228,28 +228,40 @@ export function CalendarPage() {
 
   const handleSaveNurseryDayType = async (data: CreateNurseryDayTypeRequest) => {
     try {
-      if (selectedNurseryDayType) {
-        // 更新
-        await nurseryDayTypeService.updateNurseryDayType(selectedNurseryDayType.id, {
-          dayType: data.dayType,
-        });
-      } else {
-        // 新規作成
-        await nurseryDayTypeService.createNurseryDayType(data);
+      // その日付に既存のデータがあるかチェック（現在の表示期間内のみ）
+      const existingForDate = getNurseryDayTypeForDate(data.date);
+
+      if (existingForDate) {
+        // 既に登録されている場合は種別に関わらずエラー
+        const existingTypeName = existingForDate.dayType === 'ClosedDay' ? '休園日' : '休日保育';
+        throw new Error(`${data.date} は既に${existingTypeName}として登録されています。変更する場合は、先に既存の登録を削除してください。`);
       }
+
+      // 新規作成（バックエンドで重複チェックが行われる）
+      await nurseryDayTypeService.createNurseryDayType(data);
+
       // バックグラウンドでカレンダーデータを更新（ダイアログは開いたまま）
       await loadNurseryDayTypes();
       // ダイアログは閉じない（連続入力を可能にする）
-    } catch (error) {
+    } catch (error: any) {
       console.error('休園日・休日保育保存エラー:', error);
-      throw error;
+
+      // Axiosエラーからメッセージを抽出
+      if (error.response?.data?.error?.message) {
+        throw new Error(error.response.data.error.message);
+      } else if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('保存に失敗しました');
+      }
     }
   };
 
   const handleDeleteNurseryDayType = async (id: number) => {
     try {
       await nurseryDayTypeService.deleteNurseryDayType(id);
-      setSuccessMessage('休園日・休日保育を削除しました');
       // バックグラウンドでカレンダーデータを更新（ダイアログは開いたまま）
       await loadNurseryDayTypes();
       // ダイアログは閉じない（連続入力を可能にする）

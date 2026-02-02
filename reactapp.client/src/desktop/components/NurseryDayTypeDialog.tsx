@@ -5,6 +5,7 @@ import type {
   CreateNurseryDayTypeRequest,
 } from '../types/calendar';
 import { nurseryDayTypeInfo } from '../types/calendar';
+import { nurseryDayTypeService } from '../services/nurseryDayTypeService';
 
 interface NurseryDayTypeDialogProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ interface NurseryDayTypeDialogProps {
   onDelete?: (id: number) => Promise<void>;
   selectedDate?: string; // ISO date string (YYYY-MM-DD)
   existingData?: NurseryDayTypeDto | null;
-  allNurseryDayTypes: NurseryDayTypeDto[]; // 全ての休園日・休日保育データ
+  allNurseryDayTypes: NurseryDayTypeDto[]; // カレンダー表示期間のデータ（参照用）
 }
 
 /**
@@ -32,6 +33,35 @@ export function NurseryDayTypeDialog({
   const [dayType, setDayType] = useState<NurseryDayType>('ClosedDay');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allData, setAllData] = useState<NurseryDayTypeDto[]>([]);
+
+  // ダイアログが開かれたときに全データを取得
+  useEffect(() => {
+    if (isOpen) {
+      loadAllData();
+    }
+  }, [isOpen]);
+
+  // 全データを取得（過去1年～未来1年の範囲）
+  const loadAllData = async () => {
+    try {
+      const today = new Date();
+      const oneYearAgo = new Date(today);
+      oneYearAgo.setFullYear(today.getFullYear() - 1);
+      const oneYearLater = new Date(today);
+      oneYearLater.setFullYear(today.getFullYear() + 1);
+
+      const startDate = oneYearAgo.toISOString().split('T')[0];
+      const endDate = oneYearLater.toISOString().split('T')[0];
+
+      const data = await nurseryDayTypeService.getNurseryDayTypes(startDate, endDate);
+      setAllData(data);
+    } catch (err) {
+      console.error('全データ取得エラー:', err);
+      // エラー時は表示期間のデータをフォールバックとして使用
+      setAllData(allNurseryDayTypes);
+    }
+  };
 
   // ダイアログが開かれたときに初期化
   useEffect(() => {
@@ -65,8 +95,9 @@ export function NurseryDayTypeDialog({
     try {
       setIsLoading(true);
       await onSave({ date, dayType });
-      // 保存後、日付入力欄をクリア
-      setDate('');
+      // 保存後、日付入力欄はクリアせず残す
+      // 全データを再読み込み
+      await loadAllData();
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存に失敗しました');
     } finally {
@@ -84,6 +115,8 @@ export function NurseryDayTypeDialog({
     try {
       setIsLoading(true);
       await onDelete(item.id);
+      // 削除後、全データを再読み込み
+      await loadAllData();
     } catch (err) {
       setError(err instanceof Error ? err.message : '削除に失敗しました');
     } finally {
@@ -92,7 +125,7 @@ export function NurseryDayTypeDialog({
   };
 
   // 選択された種別でフィルタリングして降順ソート
-  const filteredItems = allNurseryDayTypes
+  const filteredItems = allData
     .filter((item) => item.dayType === dayType)
     .sort((a, b) => b.date.localeCompare(a.date));
 
@@ -202,16 +235,17 @@ export function NurseryDayTypeDialog({
                 </div>
 
                 {filteredItems.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="text-center py-8 text-gray-500 rounded-lg bg-gray-50" style={{ border: '0.5px solid #d1d5db' }}>
                     登録されている{nurseryDayTypeInfo[dayType].name}はありません
                   </div>
                 ) : (
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="rounded-lg overflow-hidden" style={{ border: '0.5px solid #d1d5db' }}>
                     <div className="max-h-[300px] overflow-y-auto">
                       {filteredItems.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center justify-between px-4 py-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition"
+                          className="flex items-center justify-between px-4 py-3 last:border-b-0 hover:bg-gray-50 transition"
+                          style={{ borderBottom: '0.5px solid #d1d5db' }}
                         >
                           <div className="flex items-center gap-3">
                             <div
