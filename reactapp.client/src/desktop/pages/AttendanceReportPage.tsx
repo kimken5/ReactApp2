@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MdCalendarToday, MdRefresh, MdArrowBack, MdShowChart } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { formatLocalDate, addDays, getTodayLocal } from '../../utils/dateUtils';
 import { getAttendanceStatistics, getMonthlyStatistics } from '../../services/attendanceStatisticsService';
 import { masterService } from '../services/masterService';
 import type {
@@ -39,12 +40,8 @@ const AttendanceReportPage: React.FC = () => {
 
   // Initialize date range (last 30 days) and fetch classes
   useEffect(() => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-
-    setDateTo(today.toISOString().split('T')[0]);
-    setDateFrom(thirtyDaysAgo.toISOString().split('T')[0]);
+    setDateTo(getTodayLocal());
+    setDateFrom(addDays(new Date(), -30));
 
     // Fetch available classes from API
     const fetchClasses = async () => {

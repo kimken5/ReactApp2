@@ -6,6 +6,7 @@ import type {
 } from '../types/calendar';
 import { nurseryDayTypeInfo } from '../types/calendar';
 import { nurseryDayTypeService } from '../services/nurseryDayTypeService';
+import { formatLocalDate, addYears } from '../../utils/dateUtils';
 
 interface NurseryDayTypeDialogProps {
   isOpen: boolean;
@@ -46,13 +47,8 @@ export function NurseryDayTypeDialog({
   const loadAllData = async () => {
     try {
       const today = new Date();
-      const oneYearAgo = new Date(today);
-      oneYearAgo.setFullYear(today.getFullYear() - 1);
-      const oneYearLater = new Date(today);
-      oneYearLater.setFullYear(today.getFullYear() + 1);
-
-      const startDate = oneYearAgo.toISOString().split('T')[0];
-      const endDate = oneYearLater.toISOString().split('T')[0];
+      const startDate = addYears(today, -1);
+      const endDate = addYears(today, 1);
 
       const data = await nurseryDayTypeService.getNurseryDayTypes(startDate, endDate);
       setAllData(data);
@@ -76,7 +72,7 @@ export function NurseryDayTypeDialog({
         setDayType('ClosedDay');
       } else {
         // 新規作成（日付未指定）
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatLocalDate(new Date());
         setDate(today);
         setDayType('ClosedDay');
       }

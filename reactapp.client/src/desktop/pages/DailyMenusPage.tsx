@@ -5,6 +5,7 @@ import { menuService } from '../services/menuService';
 import type { DailyMenuDto } from '../types/menu';
 import { MenuTypeLabels, MenuTypeColors } from '../types/menu';
 import { MdChevronLeft, MdChevronRight, MdToday, MdAdd, MdEdit, MdDelete, MdWarning } from 'react-icons/md';
+import { formatLocalDate } from '../../utils/dateUtils';
 
 const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
 const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
@@ -35,8 +36,8 @@ export function DailyMenusPage() {
       const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const startDateStr = formatLocalDate(startDate);
+      const endDateStr = formatLocalDate(endDate);
 
       const data = await menuService.getDailyMenus(startDateStr, endDateStr);
       setDailyMenus(data);
@@ -256,7 +257,7 @@ export function DailyMenusPage() {
             {/* カレンダーグリッド */}
             <div className="grid grid-cols-7">
               {calendarDays.map((date, index) => {
-                const dateStr = date?.toISOString().split('T')[0];
+                const dateStr = date ? formatLocalDate(date) : undefined;
                 const menusForDate = dateStr ? getMenusForDate(dateStr) : [];
                 const row = Math.floor(index / 7);
                 const col = index % 7;

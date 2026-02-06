@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaFileAlt } from 'react-icons/fa';
 import { MdArrowBack } from 'react-icons/md';
+import { getNurseryDayTypes, getNurseryDayTypeForDate, nurseryDayTypeInfo } from '../../services/nurseryDayTypeService';
+import type { NurseryDayTypeDto } from '../../services/nurseryDayTypeService';
+import { formatLocalDate } from '../../utils/dateUtils';
 
 // イベントカテゴリの型定義
 type EventCategoryType = 'general_announcement' | 'general_event' | 'grade_activity' | 'class_activity' | 'nursery_holiday';
@@ -79,6 +82,7 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
   const [showEventModal, setShowEventModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [nurseryDayTypes, setNurseryDayTypes] = useState<NurseryDayTypeDto[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 保護者表示の場合はi18nを使用、スタッフ表示は固定日本語
@@ -125,15 +129,16 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
     ? ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日']
     : t('calendar:weekDays.full', { returnObjects: true }) as string[];
 
-  // APIからイベントを取得
+  // APIからイベントと休園日・休日保育を取得
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('auth_token');
         if (!token) {
           console.error('認証トークンがありません。ログインしてください。');
           setEvents([]);
+          setNurseryDayTypes([]);
           return;
         }
 
@@ -154,9 +159,9 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
           endDate.setDate(startDate.getDate() + 6);
         }
 
-        // ISO 8601形式に変換 (YYYY-MM-DD)
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = endDate.toISOString().split('T')[0];
+        // ISO 8601形式に変換 (YYYY-MM-DD) - ローカルタイムゾーン使用
+        const startDateStr = formatLocalDate(startDate);
+        const endDateStr = formatLocalDate(endDate);
 
         // スタッフビューか保護者ビューかで API エンドポイントを切り替え
         const baseUrl = isStaffView
@@ -167,6 +172,7 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
 
         console.log(`カレンダーデータ取得: ${startDateStr} ~ ${endDateStr} (${viewMode})`);
 
+        // イベントデータを取得
         const response = await fetch(apiUrl, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -193,15 +199,22 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
           console.error(`カレンダーデータ取得失敗: ${response.status} ${response.statusText}`);
           setEvents([]);
         }
+
+        // 休園日・休日保育データを取得
+        const nurseryDayTypesData = await getNurseryDayTypes(startDateStr, endDateStr, token);
+        console.log('休園日・休日保育データ取得成功:', nurseryDayTypesData);
+        setNurseryDayTypes(nurseryDayTypesData);
+
       } catch (error) {
         console.error('カレンダーデータ取得エラー:', error);
         setEvents([]);
+        setNurseryDayTypes([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEvents();
+    fetchData();
   }, [isStaffView, currentDate, viewMode]);
 
   // レスポンシブ対応
@@ -366,6 +379,7 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
             const cellDate = new Date(year, month, day);
             const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
             const events = getEventsForDate(dateString);
+            const nurseryDayType = getNurseryDayTypeForDate(dateString, nurseryDayTypes);
             const dayOfWeek = cellDate.getDay();
 
             return (
@@ -391,6 +405,30 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
                 }}>
                   {day}
                 </div>
+
+                {/* 休園日・休日保育表示 */}
+                {nurseryDayType && (
+                  <div style={{
+                    fontSize: isMobile ? '8px' : '10px',
+                    backgroundColor: nurseryDayTypeInfo[nurseryDayType.dayType].bgColor,
+                    color: nurseryDayTypeInfo[nurseryDayType.dayType].color,
+                    padding: isMobile ? '2px 3px' : '3px 4px',
+                    borderRadius: '3px',
+                    border: `1px solid ${nurseryDayTypeInfo[nurseryDayType.dayType].color}`,
+                    overflow: 'hidden',
+                    wordWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    whiteSpace: 'normal',
+                    lineHeight: '1.3',
+                    maxWidth: '100%',
+                    flexShrink: 0,
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    marginBottom: '2px'
+                  }}>
+                    {nurseryDayTypeInfo[nurseryDayType.dayType].name}
+                  </div>
+                )}
 
                 {/* イベント表示 */}
                 <div style={{
@@ -527,6 +565,7 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
           {weekDates.map((date, dateIndex) => {
             const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
             const allDayEvents = getEventsForDate(dateString).filter(event => event.isAllDay);
+            const nurseryDayType = getNurseryDayTypeForDate(dateString, nurseryDayTypes);
 
             return (
               <div
@@ -544,6 +583,36 @@ export function Calendar({ isStaffView = false }: CalendarProps) {
                   overflow: 'auto'
                 }}
               >
+                {/* 休園日・休日保育表示 */}
+                {nurseryDayType && (
+                  <div
+                    style={{
+                      fontSize: isMobile ? '9px' : '11px',
+                      backgroundColor: nurseryDayTypeInfo[nurseryDayType.dayType].bgColor,
+                      color: nurseryDayTypeInfo[nurseryDayType.dayType].color,
+                      padding: isMobile ? '3px 2px' : '4px 3px',
+                      borderRadius: '3px',
+                      border: `1px solid ${nurseryDayTypeInfo[nurseryDayType.dayType].color}`,
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      overflow: 'hidden',
+                      width: '100%',
+                      lineHeight: '1.3',
+                      flexShrink: 0,
+                      boxSizing: 'border-box',
+                      wordWrap: 'break-word',
+                      wordBreak: 'break-word',
+                      whiteSpace: 'normal',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minHeight: isMobile ? '20px' : '24px'
+                    }}
+                  >
+                    {nurseryDayTypeInfo[nurseryDayType.dayType].name}
+                  </div>
+                )}
+
                 {allDayEvents.map((event, eventIndex) => {
                   const category = eventCategories[event.category];
                   return (

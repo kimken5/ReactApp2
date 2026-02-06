@@ -9,6 +9,7 @@ import { masterService } from '../services/masterService';
 import type { CalendarEventDto, EventCategoryType, CreateEventRequestDto, UpdateEventRequestDto, NurseryDayTypeDto, CreateNurseryDayTypeRequest } from '../types/calendar';
 import type { ClassDto } from '../types/master';
 import { eventCategoriesDesktop, nurseryDayTypeInfo } from '../types/calendar';
+import { formatLocalDate } from '../../utils/dateUtils';
 
 /**
  * カレンダー管理ページ
@@ -123,8 +124,8 @@ export function CalendarPage() {
         endDate.setDate(startDate.getDate() + 6);
       }
 
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const startDateStr = formatLocalDate(startDate);
+      const endDateStr = formatLocalDate(endDate);
 
       const eventsData = await calendarService.getEvents(startDateStr, endDateStr);
       setEvents(eventsData);
@@ -174,10 +175,19 @@ export function CalendarPage() {
         endDate.setDate(startDate.getDate() + 6);
       }
 
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const startDateStr = formatLocalDate(startDate);
+      const endDateStr = formatLocalDate(endDate);
+
+      console.log('[NurseryDayType] Loading data:', { startDate: startDateStr, endDate: endDateStr, viewMode });
 
       const nurseryDayTypesData = await nurseryDayTypeService.getNurseryDayTypes(startDateStr, endDateStr);
+      
+      console.log('[NurseryDayType] Data loaded:', {
+        count: nurseryDayTypesData.length,
+        dates: nurseryDayTypesData.map(d => d.date),
+        data: nurseryDayTypesData
+      });
+
       setNurseryDayTypes(nurseryDayTypesData);
     } catch (error) {
       console.error('休園日・休日保育取得エラー:', error);
